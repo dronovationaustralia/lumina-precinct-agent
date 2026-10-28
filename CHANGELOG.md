@@ -6,6 +6,14 @@ repositories (`LuminaSpatialInsightsXR`, `LuminaSpatial`, `extended-tableau-mcp`
 
 ## 2026-10-29 (Thu), early morning
 
+### Added
+- `npm run ingest:patronage`: Transport for NSW Train Station Entries and Exits (CC BY 4.0) to
+  monthly entries and exits per station. Station rows only; light rail and separate metro stations
+  are not added in. Real file: Oct 2024 to Sep 2026, all 10 stations complete, no small-count cells.
+- Real patronage replaces the demo patronage in local dev automatically and with
+  `db:setup -- --load-patronage` (`--load-real` loads sales and patronage). `LUMINA_REAL_DATA=off`
+  keeps demo data. Parser tests. 56 tests. Only land use is still demo data.
+
 ### Results
 - Real G-NAF geocoding run: **98.9%** of sales in the stations' own postcodes matched (12,838 of
   12,975); 52,605 sales located within reach of the stations, almost all by lot/plan. Loaded

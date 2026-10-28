@@ -54,10 +54,13 @@ async function createPglite(opts: { realSales?: boolean } = {}): Promise<Db> {
   await db.exec(await schemaSql());
   const { seedDemo } = await import('./seed-demo');
   await seedDemo(db);
-  // Local development: use the real sales if the ingest has produced them (LUMINA_REAL_SALES=off to skip).
-  if (opts.realSales !== false && process.env.LUMINA_REAL_SALES !== 'off') {
+  // Local development: use real data when the ingest has produced it
+  // (LUMINA_REAL_DATA=off, or the older LUMINA_REAL_SALES=off, to skip).
+  if (opts.realSales !== false && process.env.LUMINA_REAL_DATA !== 'off' && process.env.LUMINA_REAL_SALES !== 'off') {
     const { loadRealSales, realSalesAvailable } = await import('./real-sales');
     if (realSalesAvailable()) await loadRealSales(db);
+    const { loadRealPatronage, realPatronageAvailable } = await import('./real-patronage');
+    if (realPatronageAvailable()) await loadRealPatronage(db);
   }
   return db;
 }

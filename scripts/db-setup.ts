@@ -5,6 +5,8 @@
  *   npm run db:setup -- --agent-login       # also create/rotate the read-only agent login
  *   npm run db:setup -- --seed-demo         # also load labelled demo data (skipped if data exists)
  *   npm run db:setup -- --load-sales        # replace demo sales with real sales from data/derived
+ *   npm run db:setup -- --load-patronage    # replace demo patronage with TfNSW entries and exits
+ *   npm run db:setup -- --load-real         # both
  *
  * Reads DATABASE_URL (the admin connection string) from .env.local or the environment.
  * For --agent-login, set AGENT_DB_PASSWORD; the login is `lumina_agent`, a member of agent_ro.
@@ -58,11 +60,17 @@ try {
       console.log('Demo data loaded (labelled "Demo data" everywhere).');
     }
   }
-  if (flags.has('--load-sales')) {
+  if (flags.has('--load-sales') || flags.has('--load-real')) {
     const { loadRealSales, realSalesAvailable } = await import('@/server/db/real-sales');
     if (!realSalesAvailable()) throw new Error('No data/derived/sales_geocoded.csv. Run ingest:vg, ingest:gnaf and ingest:geocode first.');
     const r = await loadRealSales(db, undefined, (m) => console.log(m));
     console.log(`Loaded ${r.sales.toLocaleString()} real sales (as of ${r.asOf}); demo sales removed.`);
+  }
+  if (flags.has('--load-patronage') || flags.has('--load-real')) {
+    const { loadRealPatronage, realPatronageAvailable } = await import('@/server/db/real-patronage');
+    if (!realPatronageAvailable()) throw new Error('No data/derived/patronage.csv. Run ingest:patronage first.');
+    const r = await loadRealPatronage(db);
+    console.log(`Loaded ${r.rows} station-months of patronage (as of ${r.asOf}); demo patronage removed.`);
   }
 } finally {
   await db.close();
