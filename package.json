@@ -14,7 +14,10 @@
     "spike:sam": "tsx spikes/02-sam-landuse.ts",
     "spike:voice": "tsx spikes/03-voice-transcribe.ts",
     "test": "vitest run",
-    "eval": "tsx --tsconfig tsconfig.json scripts/eval.ts"
+    "eval": "tsx --tsconfig tsconfig.json scripts/eval.ts",
+    "postinstall": "node scripts/copy-map-worker.mjs",
+    "predev": "node scripts/copy-map-worker.mjs",
+    "prebuild": "node scripts/copy-map-worker.mjs"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.12",
@@ -24,11 +27,15 @@
     "@langchain/openai": "^1.7.1",
     "@meta-sam/parser": "^0.1.0",
     "libpg-query": "^18.2.1",
+    "maplibre-gl": "6.15",
     "next": "16.4.3",
     "openai": "^7.45.1",
     "pg": "^8.23.1",
     "react": "19.3.0",
     "react-dom": "19.3.0",
+    "vega": "^6.4.0",
+    "vega-embed": "^7.3.0",
+    "vega-lite": "^6.5.0",
     "zod": "^4.6.7"
   },
   "devDependencies": {

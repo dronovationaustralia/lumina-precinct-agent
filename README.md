@@ -8,7 +8,7 @@ results, and returns map actions and chart specs that any front end can render.
 Built for the Meta Global AI Developer Hackathon (27 Oct – 4 Nov 2026). See
 [`CHANGELOG.md`](CHANGELOG.md) for dated progress.
 
-> Status: 28 Oct. Agent core, governed data layer and headless API v1 work end to end on **labelled demo data**. Real NSW data, SAM 3.1 land use and the portal UI come next.
+> Status: 28 Oct. Agent core, governed data layer, headless API v1 and the portal Ask page work end to end on **labelled demo data**. Real NSW data and SAM 3.1 land use come next.
 
 ## How it works
 

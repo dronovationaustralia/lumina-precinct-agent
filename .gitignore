@@ -49,3 +49,6 @@ spikes/audio/
 # offline mock runs
 spikes/results/*.mock.*
 spikes/results/mock-requests.jsonl
+
+# copied from node_modules by scripts/copy-map-worker.mjs
+public/maplibre-gl-worker.mjs

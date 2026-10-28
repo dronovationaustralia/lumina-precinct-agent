@@ -202,6 +202,7 @@ async function respond(
   const status = s.fallbackReason ? 'fallback' : s.attempts > 1 ? 'verified_after_retry' : 'verified';
   return {
     lines,
+    templates: ok ? s.draft!.lines : lines,
     disclaimer: demo ? `${DISCLAIMER} Demo data: figures are synthetic, not real.` : DISCLAIMER,
     facts,
     sources,

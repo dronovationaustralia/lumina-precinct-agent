@@ -156,6 +156,8 @@ export type ToolTrace = z.infer<typeof ToolTrace>;
 
 export const AskResponse = z.object({
   lines: z.array(z.string()).max(3),
+  /** The same lines with {fN} placeholders, so clients can render each figure as a traceable fact. */
+  templates: z.array(z.string()).max(3),
   disclaimer: z.string(),
   facts: z.array(Fact),
   sources: z.array(Source),

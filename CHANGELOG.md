@@ -28,8 +28,16 @@ repositories (`LuminaSpatialInsightsXR`, `LuminaSpatial`, `extended-tableau-mcp`
   suppression, role permissions, agent retry and fallback paths.
 - Eval script v1 (`npm run eval`): 22 questions; offline baseline 19/22.
 
+- Portal Ask page: MapLibre map (open basemap with an offline fallback ground) that runs the
+  agent's map actions; conversation with streamed progress; every figure rendered as a
+  numbered, traceable fact with a ledger of label, source and as-of date; verification
+  details (checks, tool calls, SQL); Vega-Lite charts; land-use panel; follow-ups; demo-data
+  and offline-planner notices. Responsive down to phone width; dark mode.
+- `templates` in `AskResponse`: the answer lines with `{fN}` placeholders for clients.
+
 ### Changed
-- Layout uses a system font stack (Google Fonts are not reachable from the build environment).
+- Public Sans loaded from Google Fonts in the browser instead of `next/font` (the build
+  environment cannot reach Google Fonts).
 
 ## 2026-10-28 (Wed), morning
 
