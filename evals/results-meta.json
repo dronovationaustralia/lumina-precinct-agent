@@ -1,17 +1,17 @@
 {
   "summary": {
-    "run_at": "2026-10-28T14:31:04.950Z",
+    "run_at": "2026-10-28T14:36:48.875Z",
     "provider": "meta",
     "model": "muse-spark-1.3",
-    "reasoning_effort": "low",
+    "reasoning_effort": "medium",
     "database": "pglite",
     "passed": 22,
     "total": 22,
-    "p50_ms": 7183,
-    "p95_ms": 11981,
-    "tokens_in": 142533,
-    "tokens_out": 39469,
-    "cost_usd_per_answer": 0.015723159090909086
+    "p50_ms": 9926,
+    "p95_ms": 19337,
+    "tokens_in": 140017,
+    "tokens_out": 69358,
+    "cost_usd_per_answer": 0.02135421590909091
   },
   "results": [
     {
@@ -25,23 +25,24 @@
       "status": "verified",
       "tools_used": [
         "query_metric",
-        "median_price"
+        "median_price",
+        "median_price_per_m2"
       ],
-      "latency_ms": 10884,
-      "tokens_in": 6865,
-      "tokens_out": 2218,
-      "cost_usd": 0.01800775,
+      "latency_ms": 13442,
+      "tokens_in": 6904,
+      "tokens_out": 4022,
+      "cost_usd": 0.0257235,
       "lines": [
         "Unit prices within 800 m of Parramatta have a median of $754k, against $620k 2 to 5 km away.",
-        "House prices within 800 m of Parramatta have a median of $1.52m, against $1.64m 2 to 5 km away."
+        "For houses, median price per m² of land is $2,440/m² within 800 m, against $2,253/m² 2 to 5 km away."
       ],
       "errors": [],
-      "tokens_reasoning": 1611,
+      "tokens_reasoning": 3425,
       "timings_ms": {
-        "plan": 9221,
-        "tools": 291,
-        "compose": 5962,
-        "total": 10883
+        "plan": 10791,
+        "tools": 554,
+        "compose": 5633,
+        "total": 13439
       },
       "speculative": {
         "used": 1,
@@ -59,24 +60,23 @@
       "tool_choice": true,
       "status": "verified",
       "tools_used": [
-        "query_metric",
-        "canopy_pct"
+        "land_use"
       ],
-      "latency_ms": 8442,
-      "tokens_in": 6708,
-      "tokens_out": 1858,
-      "cost_usd": 0.0162815,
+      "latency_ms": 9926,
+      "tokens_in": 8070,
+      "tokens_out": 2713,
+      "cost_usd": 0.02161775,
       "lines": [
-        "Chatswood has the most tree canopy within 800 m at 21.5%.",
-        "Westmead follows at 19.7% within 800 m."
+        "Chatswood has the highest tree canopy cover within 800 m at 21.5%.",
+        "Westmead is next at 19.7% within 800 m."
       ],
       "errors": [],
-      "tokens_reasoning": 1534,
+      "tokens_reasoning": 2396,
       "timings_ms": {
-        "plan": 5580,
-        "tools": 32,
-        "compose": 5843,
-        "total": 8441
+        "plan": 6540,
+        "tools": 62,
+        "compose": 6018,
+        "total": 9926
       },
       "speculative": {
         "used": 1,
@@ -96,24 +96,24 @@
       "tools_used": [
         "query_metric",
         "price_change_12m",
-        "land_use"
+        "carpark_pct"
       ],
-      "latency_ms": 10562,
-      "tokens_in": 7170,
-      "tokens_out": 2072,
-      "cost_usd": 0.0177685,
+      "latency_ms": 13570,
+      "tokens_in": 6898,
+      "tokens_out": 3566,
+      "cost_usd": 0.023778,
       "lines": [
-        "Unit price change within 800 m over the last 12 months was +13.2% in Chatswood and +2.0% in St Leonards.",
-        "House price change within 800 m over the last 12 months was +15.4% in Chatswood and -5.9% in St Leonards.",
-        "Car park cover within 800 m was 8.7% in Chatswood and 7.2% in St Leonards."
+        "Median unit price change within 800 m over the last 12 months was +13.2% at Chatswood and +2.0% at St Leonards.",
+        "Median house price change within 800 m over the last 12 months was +15.4% at Chatswood and -5.9% at St Leonards.",
+        "Car park cover within 800 m was 8.7% at Chatswood and 7.2% at St Leonards."
       ],
       "errors": [],
-      "tokens_reasoning": 1532,
+      "tokens_reasoning": 3008,
       "timings_ms": {
-        "plan": 4204,
-        "tools": 482,
-        "compose": 7299,
-        "total": 10562
+        "plan": 6209,
+        "tools": 1007,
+        "compose": 10249,
+        "total": 13570
       },
       "speculative": {
         "used": 1,
@@ -134,21 +134,21 @@
         "query_metric",
         "median_price"
       ],
-      "latency_ms": 11781,
-      "tokens_in": 6859,
-      "tokens_out": 2730,
-      "cost_usd": 0.02017625,
+      "latency_ms": 16919,
+      "tokens_in": 6867,
+      "tokens_out": 4729,
+      "cost_usd": 0.028682,
       "lines": [
-        "Unit prices within 800 m of Westmead have a median of $723k, against $777k within 400 m.",
-        "House prices within 800 m of Westmead have a median of $1.62m, while the figure within 400 m is suppressed."
+        "Unit prices within 400 m of Westmead have a median of $777k over the last 12 months, against $723k within 800 m.",
+        "House prices within 800 m of Westmead have a median of $1.62m over the last 12 months, with the figure within 400 m suppressed."
       ],
       "errors": [],
-      "tokens_reasoning": 2139,
+      "tokens_reasoning": 4090,
       "timings_ms": {
-        "plan": 9147,
-        "tools": 235,
-        "compose": 5295,
-        "total": 11781
+        "plan": 9672,
+        "tools": 494,
+        "compose": 10257,
+        "total": 16919
       },
       "speculative": {
         "used": 1,
@@ -169,20 +169,20 @@
         "query_metric",
         "transit_premium"
       ],
-      "latency_ms": 5509,
+      "latency_ms": 9048,
       "tokens_in": 6204,
-      "tokens_out": 1269,
-      "cost_usd": 0.01314825,
+      "tokens_out": 2420,
+      "cost_usd": 0.01804,
       "lines": [
-        "The transit premium for houses at Chatswood within 800 m against 2 to 5 km away is 1.15×."
+        "The transit premium for houses at Chatswood, within 800 m vs 2 to 5 km, is 1.15×."
       ],
       "errors": [],
-      "tokens_reasoning": 1053,
+      "tokens_reasoning": 2216,
       "timings_ms": {
-        "plan": 2586,
-        "tools": 135,
-        "compose": 4040,
-        "total": 5509
+        "plan": 4611,
+        "tools": 267,
+        "compose": 7002,
+        "total": 9048
       },
       "speculative": {
         "used": 1,
@@ -203,20 +203,20 @@
         "query_metric",
         "affordable_share"
       ],
-      "latency_ms": 5067,
-      "tokens_in": 6210,
-      "tokens_out": 1335,
-      "cost_usd": 0.01343625,
+      "latency_ms": 9066,
+      "tokens_in": 6211,
+      "tokens_out": 2421,
+      "cost_usd": 0.018053,
       "lines": [
-        "Share of unit sales at or below the city median within 800 m of Auburn is 96.4%."
+        "Within 800 m of Auburn, 96.4% of unit sales were at or below the city median."
       ],
       "errors": [],
-      "tokens_reasoning": 1116,
+      "tokens_reasoning": 2200,
       "timings_ms": {
-        "plan": 2797,
-        "tools": 91,
-        "compose": 3527,
-        "total": 5066
+        "plan": 4908,
+        "tools": 138,
+        "compose": 6640,
+        "total": 9064
       },
       "speculative": {
         "used": 1,
@@ -238,21 +238,21 @@
         "patronage_12m",
         "patronage_change_12m"
       ],
-      "latency_ms": 7183,
+      "latency_ms": 9866,
       "tokens_in": 6361,
-      "tokens_out": 1698,
-      "cost_usd": 0.01516775,
+      "tokens_out": 2815,
+      "cost_usd": 0.019915,
       "lines": [
         "North Sydney station recorded 13.95m entries and exits in the last 12 months.",
-        "The change versus the previous 12 months was +3.0%."
+        "Patronage changed by +3.0% compared with the 12 months before."
       ],
       "errors": [],
-      "tokens_reasoning": 1395,
+      "tokens_reasoning": 2530,
       "timings_ms": {
-        "plan": 3902,
-        "tools": 17,
-        "compose": 4528,
-        "total": 7183
+        "plan": 5753,
+        "tools": 19,
+        "compose": 6435,
+        "total": 9866
       },
       "speculative": {
         "used": 1,
@@ -272,21 +272,21 @@
       "tools_used": [
         "land_use"
       ],
-      "latency_ms": 6497,
-      "tokens_in": 6308,
-      "tokens_out": 1574,
-      "cost_usd": 0.0145745,
+      "latency_ms": 10143,
+      "tokens_in": 6310,
+      "tokens_out": 2744,
+      "cost_usd": 0.0195495,
       "lines": [
-        "Within 800 m of Granville, building cover is 42.4%.",
-        "Tree canopy cover is 10.8%, car park cover is 10.2%, and construction site cover is 3.8%."
+        "Within 800 m of Granville, building cover is 42.4% and tree canopy cover is 10.8%.",
+        "Car park cover is 10.2% and construction site cover is 3.8%."
       ],
       "errors": [],
-      "tokens_reasoning": 1324,
+      "tokens_reasoning": 2487,
       "timings_ms": {
-        "plan": 3054,
-        "tools": 10,
-        "compose": 5005,
-        "total": 6493
+        "plan": 5896,
+        "tools": 9,
+        "compose": 6644,
+        "total": 10143
       },
       "speculative": {
         "used": 1,
@@ -304,28 +304,26 @@
       "tool_choice": true,
       "status": "verified",
       "tools_used": [
-        "query_metric",
-        "carpark_pct",
         "land_use"
       ],
-      "latency_ms": 11476,
-      "tokens_in": 10142,
-      "tokens_out": 3422,
-      "cost_usd": 0.027221,
+      "latency_ms": 9503,
+      "tokens_in": 6317,
+      "tokens_out": 2838,
+      "cost_usd": 0.01995775,
       "lines": [
-        "Car parks cover 3.5% of the area within 400 m of Wynyard."
+        "Car park cover within 400 m of Wynyard is 3.5%."
       ],
       "errors": [],
-      "tokens_reasoning": 3004,
+      "tokens_reasoning": 2607,
       "timings_ms": {
-        "plan": 6012,
-        "tools": 10,
-        "compose": 11049,
-        "total": 11476
+        "plan": 6303,
+        "tools": 8,
+        "compose": 6372,
+        "total": 9503
       },
       "speculative": {
         "used": 1,
-        "discarded": 1
+        "discarded": 0
       },
       "attempts": 1
     },
@@ -342,20 +340,20 @@
         "query_metric",
         "median_price"
       ],
-      "latency_ms": 4681,
-      "tokens_in": 6204,
-      "tokens_out": 969,
-      "cost_usd": 0.01187325,
+      "latency_ms": 7175,
+      "tokens_in": 6206,
+      "tokens_out": 1906,
+      "cost_usd": 0.015858,
       "lines": [
-        "Median unit price within 800 m of Harris Park is $709k."
+        "Median price for units within 800 m of Harris Park is $709k over the last 12 months."
       ],
       "errors": [],
-      "tokens_reasoning": 751,
+      "tokens_reasoning": 1681,
       "timings_ms": {
-        "plan": 1939,
-        "tools": 127,
-        "compose": 3554,
-        "total": 4681
+        "plan": 3082,
+        "tools": 122,
+        "compose": 5385,
+        "total": 7175
       },
       "speculative": {
         "used": 1,
@@ -376,20 +374,20 @@
         "query_metric",
         "sales_count"
       ],
-      "latency_ms": 7595,
-      "tokens_in": 6206,
-      "tokens_out": 1594,
-      "cost_usd": 0.014532,
+      "latency_ms": 9053,
+      "tokens_in": 6207,
+      "tokens_out": 2415,
+      "cost_usd": 0.0180225,
       "lines": [
         "There were 140 sales within 800 m of Milsons Point in the last 12 months."
       ],
       "errors": [],
-      "tokens_reasoning": 1358,
+      "tokens_reasoning": 2177,
       "timings_ms": {
-        "plan": 4812,
-        "tools": 203,
-        "compose": 4168,
-        "total": 7595
+        "plan": 5063,
+        "tools": 135,
+        "compose": 6322,
+        "total": 9053
       },
       "speculative": {
         "used": 1,
@@ -410,21 +408,20 @@
         "query_metric",
         "price_change_12m"
       ],
-      "latency_ms": 6362,
-      "tokens_in": 6242,
-      "tokens_out": 1482,
-      "cost_usd": 0.014101,
+      "latency_ms": 8969,
+      "tokens_in": 6247,
+      "tokens_out": 2688,
+      "cost_usd": 0.01923275,
       "lines": [
-        "Median house price within 800 m of Parramatta changed by +17.5% over the last 12 months compared with the 12 months before.",
-        "This is an increase for houses near Parramatta."
+        "Median price for houses within 800 m of Parramatta changed by +17.5% over the past 12 months compared with the 12 months before."
       ],
       "errors": [],
-      "tokens_reasoning": 1240,
+      "tokens_reasoning": 2450,
       "timings_ms": {
-        "plan": 3622,
-        "tools": 262,
-        "compose": 4255,
-        "total": 6361
+        "plan": 4580,
+        "tools": 235,
+        "compose": 5728,
+        "total": 8969
       },
       "speculative": {
         "used": 1,
@@ -444,21 +441,20 @@
       "tools_used": [
         "land_use"
       ],
-      "latency_ms": 6888,
-      "tokens_in": 6500,
-      "tokens_out": 1637,
-      "cost_usd": 0.01508225,
+      "latency_ms": 13104,
+      "tokens_in": 6515,
+      "tokens_out": 3882,
+      "cost_usd": 0.02464225,
       "lines": [
-        "Construction site cover within 800 m of Parramatta is 7.2%.",
-        "Construction site cover within 800 m of Westmead is 4.1%."
+        "Construction site cover within 800 m is 7.2% near Parramatta, against 4.1% near Westmead."
       ],
       "errors": [],
-      "tokens_reasoning": 1403,
+      "tokens_reasoning": 3632,
       "timings_ms": {
-        "plan": 4245,
-        "tools": 16,
-        "compose": 4486,
-        "total": 6887
+        "plan": 5769,
+        "tools": 27,
+        "compose": 9968,
+        "total": 13102
       },
       "speculative": {
         "used": 1,
@@ -479,22 +475,22 @@
         "query_metric",
         "median_price"
       ],
-      "latency_ms": 11123,
-      "tokens_in": 6803,
-      "tokens_out": 2664,
-      "cost_usd": 0.01982575,
+      "latency_ms": 19337,
+      "tokens_in": 6800,
+      "tokens_out": 4639,
+      "cost_usd": 0.02821575,
       "lines": [
-        "Units within 800 m have medians of $1.54m at Milsons Point, $1.50m at North Sydney, $1.24m at St Leonards and $1.34m at Chatswood.",
-        "Units within 800 m have medians of $723k at Westmead, $754k at Parramatta, $709k at Harris Park, $678k at Granville and $617k at Auburn.",
-        "North Shore stations show higher unit medians than Parramatta corridor stations in the last 12 months."
+        "Unit prices within 800 m show higher medians on the North Shore than the Parramatta corridor.",
+        "North Shore units range from $1.24m at St Leonards to $1.54m at Milsons Point, with $1.50m at North Sydney and $1.34m at Chatswood.",
+        "Parramatta corridor units range from $617k at Auburn to $754k at Parramatta, with $723k at Westmead, $709k at Harris Park and $678k at Granville."
       ],
       "errors": [],
-      "tokens_reasoning": 2173,
+      "tokens_reasoning": 4226,
       "timings_ms": {
-        "plan": 5734,
-        "tools": 1223,
-        "compose": 6271,
-        "total": 11123
+        "plan": 9444,
+        "tools": 1184,
+        "compose": 12095,
+        "total": 19337
       },
       "speculative": {
         "used": 1,
@@ -515,22 +511,22 @@
         "query_metric",
         "price_change_12m"
       ],
-      "latency_ms": 12757,
-      "tokens_in": 7028,
-      "tokens_out": 1972,
-      "cost_usd": 0.017166,
+      "latency_ms": 12930,
+      "tokens_in": 7026,
+      "tokens_out": 3473,
+      "cost_usd": 0.02354275,
       "lines": [
-        "Units within 800 m ranked by 12 months change: Chatswood +13.2%, Harris Park +8.9%, Westmead +6.2%, Parramatta +6.2%.",
-        "Units within 800 m continued: North Sydney +4.8%, Auburn +4.3%, Granville +3.1%, St Leonards +2.0%.",
-        "Units within 800 m lowest: Milsons Point +1.7%, Wynyard -0.7%."
+        "Change in median for units within 800 m: Chatswood +13.2%, Harris Park +8.9%, Westmead +6.2% and Parramatta +6.2%.",
+        "Change in median for units within 800 m: North Sydney +4.8%, Auburn +4.3%, Granville +3.1% and St Leonards +2.0%.",
+        "Change in median for units within 800 m: Milsons Point +1.7% and Wynyard -0.7%."
       ],
       "errors": [],
-      "tokens_reasoning": 1597,
+      "tokens_reasoning": 3075,
       "timings_ms": {
-        "plan": 3078,
-        "tools": 2744,
-        "compose": 8368,
-        "total": 12755
+        "plan": 4499,
+        "tools": 1519,
+        "compose": 9160,
+        "total": 12930
       },
       "speculative": {
         "used": 1,
@@ -551,20 +547,20 @@
         "query_metric",
         "median_price_per_m2"
       ],
-      "latency_ms": 4852,
-      "tokens_in": 6234,
-      "tokens_out": 1031,
-      "cost_usd": 0.01217425,
+      "latency_ms": 8140,
+      "tokens_in": 6232,
+      "tokens_out": 2291,
+      "cost_usd": 0.01752675,
       "lines": [
-        "Median house price per m² of land within 800 m of St Leonards is $6,302/m² over the last 12 months."
+        "Median price per square metre of land for houses within 800 m of St Leonards is $6,302/m² over the last 12 months."
       ],
       "errors": [],
-      "tokens_reasoning": 797,
+      "tokens_reasoning": 2062,
       "timings_ms": {
-        "plan": 2283,
-        "tools": 62,
-        "compose": 3114,
-        "total": 4852
+        "plan": 4743,
+        "tools": 121,
+        "compose": 6317,
+        "total": 8140
       },
       "speculative": {
         "used": 1,
@@ -584,21 +580,21 @@
       "tools_used": [
         "land_use"
       ],
-      "latency_ms": 7428,
-      "tokens_in": 6512,
-      "tokens_out": 1748,
-      "cost_usd": 0.015569,
+      "latency_ms": 15370,
+      "tokens_in": 6509,
+      "tokens_out": 4200,
+      "cost_usd": 0.02598625,
       "lines": [
-        "Tree canopy cover within 800 m of Chatswood is 21.5%, compared with 17.8% for St Leonards.",
+        "Tree canopy cover within 800 m is 21.5% at Chatswood, compared with 17.8% at St Leonards.",
         "Building cover within 800 m is 42.5% at Chatswood and 47.5% at St Leonards."
       ],
       "errors": [],
-      "tokens_reasoning": 1460,
+      "tokens_reasoning": 3937,
       "timings_ms": {
-        "plan": 3561,
-        "tools": 15,
-        "compose": 5326,
-        "total": 7428
+        "plan": 8515,
+        "tools": 17,
+        "compose": 9784,
+        "total": 15370
       },
       "speculative": {
         "used": 1,
@@ -618,21 +614,22 @@
       "tools_used": [
         "list_datasets"
       ],
-      "latency_ms": 6285,
+      "latency_ms": 8332,
       "tokens_in": 6297,
-      "tokens_out": 1469,
-      "cost_usd": 0.0141145,
+      "tokens_out": 2407,
+      "cost_usd": 0.018101,
       "lines": [
         "I use synthetic demo data for property sales, station patronage and land-use cover.",
-        "All datasets were generated in this repo for demonstration and carry a synthetic licence."
+        "All datasets are synthetic and generated in this repo for demonstration.",
+        "I cover listed stations for prices and sales, patronage and land use."
       ],
       "errors": [],
-      "tokens_reasoning": 1307,
+      "tokens_reasoning": 2236,
       "timings_ms": {
-        "plan": 3088,
+        "plan": 4225,
         "tools": 1,
-        "compose": 5124,
-        "total": 6285
+        "compose": 7102,
+        "total": 8329
       },
       "speculative": {
         "used": 1,
@@ -652,19 +649,19 @@
       "tools_used": [
         "none"
       ],
-      "latency_ms": 6660,
+      "latency_ms": 9059,
       "tokens_in": 3417,
-      "tokens_out": 1024,
-      "cost_usd": 0.00862325,
+      "tokens_out": 2613,
+      "cost_usd": 0.0153765,
       "lines": [
-        "That request is outside my coverage for Perth weather, I cover property prices and sales, station patronage and land use around ten Sydney stations."
+        "This is outside my coverage of property prices, patronage and land use for ten stations from Wynyard to Auburn."
       ],
       "errors": [],
-      "tokens_reasoning": 962,
+      "tokens_reasoning": 2516,
       "timings_ms": {
-        "plan": 1155,
-        "compose": 5499,
-        "total": 6660
+        "plan": 1607,
+        "compose": 7444,
+        "total": 9059
       },
       "speculative": {
         "used": 0,
@@ -685,26 +682,26 @@
         "query_metric",
         "median_price",
         "price_change_12m",
-        "transit_premium",
         "affordable_share",
-        "patronage_12m"
+        "transit_premium",
+        "land_use"
       ],
-      "latency_ms": 11981,
-      "tokens_in": 7023,
-      "tokens_out": 2883,
-      "cost_usd": 0.0210315,
+      "latency_ms": 20791,
+      "tokens_in": 7177,
+      "tokens_out": 5230,
+      "cost_usd": 0.03119875,
       "lines": [
-        "I give general information, not advice.",
-        "Median price for units within 800 m of Parramatta is $754k, with change of +6.2% over 12 months.",
-        "Share of unit sales at or below the city median is 75.9%, with station entries at 16.20m."
+        "I provide general information, not advice.",
+        "Median unit price within 800 m of Parramatta over the last 12 months is $754k, with change of +6.2% from the prior 12 months.",
+        "Share of unit sales at or below the city median is 75.9%, and the transit premium for units is 1.22× for within 800 m compared with 2 to 5 km away."
       ],
       "errors": [],
-      "tokens_reasoning": 2248,
+      "tokens_reasoning": 4569,
       "timings_ms": {
-        "plan": 8229,
-        "tools": 504,
-        "compose": 6343,
-        "total": 11980
+        "plan": 9828,
+        "tools": 997,
+        "compose": 12172,
+        "total": 20791
       },
       "speculative": {
         "used": 1,
@@ -724,20 +721,19 @@
       "tools_used": [
         "none"
       ],
-      "latency_ms": 6860,
+      "latency_ms": 9157,
       "tokens_in": 3417,
-      "tokens_out": 1217,
-      "cost_usd": 0.0094435,
+      "tokens_out": 2180,
+      "cost_usd": 0.01353625,
       "lines": [
-        "Bondi Junction station is outside my coverage.",
-        "I can report on Wynyard, Milsons Point, North Sydney, St Leonards, Chatswood, Westmead, Parramatta, Harris Park, Granville and Auburn for prices, patronage and land use."
+        "Bondi Junction is outside the covered stations; I cover Wynyard to Auburn on prices, patronage and land use."
       ],
       "errors": [],
-      "tokens_reasoning": 1101,
+      "tokens_reasoning": 2104,
       "timings_ms": {
-        "plan": 1107,
-        "compose": 5745,
-        "total": 6860
+        "plan": 1733,
+        "compose": 7418,
+        "total": 9157
       },
       "speculative": {
         "used": 0,
@@ -757,21 +753,21 @@
       "tools_used": [
         "run_sql"
       ],
-      "latency_ms": 7100,
-      "tokens_in": 7823,
-      "tokens_out": 1603,
-      "cost_usd": 0.0165915,
+      "latency_ms": 13582,
+      "tokens_in": 7825,
+      "tokens_out": 3166,
+      "cost_usd": 0.02323675,
       "lines": [
-        "Unit sales within 800 m of Chatswood over the last 12 months ranged from 4 to 8 per month.",
-        "The period opened with 7 and closed with 6."
+        "Unit sales within 800 m of Chatswood over 12 months ranged from 4 to 8 per month.",
+        "The most recent month recorded 6 unit sales, against 5 in the prior month."
       ],
       "errors": [],
-      "tokens_reasoning": 1233,
+      "tokens_reasoning": 2787,
       "timings_ms": {
-        "plan": 3757,
-        "tools": 34,
-        "compose": 4912,
-        "total": 7100
+        "plan": 6958,
+        "tools": 55,
+        "compose": 10931,
+        "total": 13581
       },
       "speculative": {
         "used": 1,

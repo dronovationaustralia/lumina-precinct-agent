@@ -1,0 +1,779 @@
+{
+  "summary": {
+    "run_at": "2026-10-28T14:36:48.875Z",
+    "provider": "meta",
+    "model": "muse-spark-1.3",
+    "reasoning_effort": "medium",
+    "database": "pglite",
+    "passed": 22,
+    "total": 22,
+    "p50_ms": 9926,
+    "p95_ms": 19337,
+    "tokens_in": 140017,
+    "tokens_out": 69358,
+    "cost_usd_per_answer": 0.02135421590909091
+  },
+  "results": [
+    {
+      "id": "q01",
+      "question": "How do prices near Parramatta station compare with 2 to 5 km away?",
+      "pass": true,
+      "schema": true,
+      "numbers_verified": true,
+      "wording": true,
+      "tool_choice": true,
+      "status": "verified",
+      "tools_used": [
+        "query_metric",
+        "median_price",
+        "median_price_per_m2"
+      ],
+      "latency_ms": 13442,
+      "tokens_in": 6904,
+      "tokens_out": 4022,
+      "cost_usd": 0.0257235,
+      "lines": [
+        "Unit prices within 800 m of Parramatta have a median of $754k, against $620k 2 to 5 km away.",
+        "For houses, median price per m² of land is $2,440/m² within 800 m, against $2,253/m² 2 to 5 km away."
+      ],
+      "errors": [],
+      "tokens_reasoning": 3425,
+      "timings_ms": {
+        "plan": 10791,
+        "tools": 554,
+        "compose": 5633,
+        "total": 13439
+      },
+      "speculative": {
+        "used": 1,
+        "discarded": 0
+      },
+      "attempts": 1
+    },
+    {
+      "id": "q02",
+      "question": "Which of the 10 stations has the most tree canopy within 800 m?",
+      "pass": true,
+      "schema": true,
+      "numbers_verified": true,
+      "wording": true,
+      "tool_choice": true,
+      "status": "verified",
+      "tools_used": [
+        "land_use"
+      ],
+      "latency_ms": 9926,
+      "tokens_in": 8070,
+      "tokens_out": 2713,
+      "cost_usd": 0.02161775,
+      "lines": [
+        "Chatswood has the highest tree canopy cover within 800 m at 21.5%.",
+        "Westmead is next at 19.7% within 800 m."
+      ],
+      "errors": [],
+      "tokens_reasoning": 2396,
+      "timings_ms": {
+        "plan": 6540,
+        "tools": 62,
+        "compose": 6018,
+        "total": 9926
+      },
+      "speculative": {
+        "used": 1,
+        "discarded": 0
+      },
+      "attempts": 1
+    },
+    {
+      "id": "q03",
+      "question": "Compare Chatswood and St Leonards on price momentum and car-park cover.",
+      "pass": true,
+      "schema": true,
+      "numbers_verified": true,
+      "wording": true,
+      "tool_choice": true,
+      "status": "verified",
+      "tools_used": [
+        "query_metric",
+        "price_change_12m",
+        "carpark_pct"
+      ],
+      "latency_ms": 13570,
+      "tokens_in": 6898,
+      "tokens_out": 3566,
+      "cost_usd": 0.023778,
+      "lines": [
+        "Median unit price change within 800 m over the last 12 months was +13.2% at Chatswood and +2.0% at St Leonards.",
+        "Median house price change within 800 m over the last 12 months was +15.4% at Chatswood and -5.9% at St Leonards.",
+        "Car park cover within 800 m was 8.7% at Chatswood and 7.2% at St Leonards."
+      ],
+      "errors": [],
+      "tokens_reasoning": 3008,
+      "timings_ms": {
+        "plan": 6209,
+        "tools": 1007,
+        "compose": 10249,
+        "total": 13570
+      },
+      "speculative": {
+        "used": 1,
+        "discarded": 0
+      },
+      "attempts": 1
+    },
+    {
+      "id": "q04",
+      "question": "Show me where sales are cheapest within 1 km of Westmead.",
+      "pass": true,
+      "schema": true,
+      "numbers_verified": true,
+      "wording": true,
+      "tool_choice": true,
+      "status": "verified",
+      "tools_used": [
+        "query_metric",
+        "median_price"
+      ],
+      "latency_ms": 16919,
+      "tokens_in": 6867,
+      "tokens_out": 4729,
+      "cost_usd": 0.028682,
+      "lines": [
+        "Unit prices within 400 m of Westmead have a median of $777k over the last 12 months, against $723k within 800 m.",
+        "House prices within 800 m of Westmead have a median of $1.62m over the last 12 months, with the figure within 400 m suppressed."
+      ],
+      "errors": [],
+      "tokens_reasoning": 4090,
+      "timings_ms": {
+        "plan": 9672,
+        "tools": 494,
+        "compose": 10257,
+        "total": 16919
+      },
+      "speculative": {
+        "used": 1,
+        "discarded": 0
+      },
+      "attempts": 1
+    },
+    {
+      "id": "q05",
+      "question": "What is the transit premium for houses at Chatswood?",
+      "pass": true,
+      "schema": true,
+      "numbers_verified": true,
+      "wording": true,
+      "tool_choice": true,
+      "status": "verified",
+      "tools_used": [
+        "query_metric",
+        "transit_premium"
+      ],
+      "latency_ms": 9048,
+      "tokens_in": 6204,
+      "tokens_out": 2420,
+      "cost_usd": 0.01804,
+      "lines": [
+        "The transit premium for houses at Chatswood, within 800 m vs 2 to 5 km, is 1.15×."
+      ],
+      "errors": [],
+      "tokens_reasoning": 2216,
+      "timings_ms": {
+        "plan": 4611,
+        "tools": 267,
+        "compose": 7002,
+        "total": 9048
+      },
+      "speculative": {
+        "used": 1,
+        "discarded": 0
+      },
+      "attempts": 1
+    },
+    {
+      "id": "q06",
+      "question": "How affordable are units near Auburn compared with the city median?",
+      "pass": true,
+      "schema": true,
+      "numbers_verified": true,
+      "wording": true,
+      "tool_choice": true,
+      "status": "verified",
+      "tools_used": [
+        "query_metric",
+        "affordable_share"
+      ],
+      "latency_ms": 9066,
+      "tokens_in": 6211,
+      "tokens_out": 2421,
+      "cost_usd": 0.018053,
+      "lines": [
+        "Within 800 m of Auburn, 96.4% of unit sales were at or below the city median."
+      ],
+      "errors": [],
+      "tokens_reasoning": 2200,
+      "timings_ms": {
+        "plan": 4908,
+        "tools": 138,
+        "compose": 6640,
+        "total": 9064
+      },
+      "speculative": {
+        "used": 1,
+        "discarded": 0
+      },
+      "attempts": 1
+    },
+    {
+      "id": "q07",
+      "question": "How busy is North Sydney station, and is patronage growing?",
+      "pass": true,
+      "schema": true,
+      "numbers_verified": true,
+      "wording": true,
+      "tool_choice": true,
+      "status": "verified",
+      "tools_used": [
+        "query_metric",
+        "patronage_12m",
+        "patronage_change_12m"
+      ],
+      "latency_ms": 9866,
+      "tokens_in": 6361,
+      "tokens_out": 2815,
+      "cost_usd": 0.019915,
+      "lines": [
+        "North Sydney station recorded 13.95m entries and exits in the last 12 months.",
+        "Patronage changed by +3.0% compared with the 12 months before."
+      ],
+      "errors": [],
+      "tokens_reasoning": 2530,
+      "timings_ms": {
+        "plan": 5753,
+        "tools": 19,
+        "compose": 6435,
+        "total": 9866
+      },
+      "speculative": {
+        "used": 1,
+        "discarded": 0
+      },
+      "attempts": 1
+    },
+    {
+      "id": "q08",
+      "question": "What is the land use within 800 m of Granville?",
+      "pass": true,
+      "schema": true,
+      "numbers_verified": true,
+      "wording": true,
+      "tool_choice": true,
+      "status": "verified",
+      "tools_used": [
+        "land_use"
+      ],
+      "latency_ms": 10143,
+      "tokens_in": 6310,
+      "tokens_out": 2744,
+      "cost_usd": 0.0195495,
+      "lines": [
+        "Within 800 m of Granville, building cover is 42.4% and tree canopy cover is 10.8%.",
+        "Car park cover is 10.2% and construction site cover is 3.8%."
+      ],
+      "errors": [],
+      "tokens_reasoning": 2487,
+      "timings_ms": {
+        "plan": 5896,
+        "tools": 9,
+        "compose": 6644,
+        "total": 10143
+      },
+      "speculative": {
+        "used": 1,
+        "discarded": 0
+      },
+      "attempts": 1
+    },
+    {
+      "id": "q09",
+      "question": "How much of the area within 400 m of Wynyard is car parks?",
+      "pass": true,
+      "schema": true,
+      "numbers_verified": true,
+      "wording": true,
+      "tool_choice": true,
+      "status": "verified",
+      "tools_used": [
+        "land_use"
+      ],
+      "latency_ms": 9503,
+      "tokens_in": 6317,
+      "tokens_out": 2838,
+      "cost_usd": 0.01995775,
+      "lines": [
+        "Car park cover within 400 m of Wynyard is 3.5%."
+      ],
+      "errors": [],
+      "tokens_reasoning": 2607,
+      "timings_ms": {
+        "plan": 6303,
+        "tools": 8,
+        "compose": 6372,
+        "total": 9503
+      },
+      "speculative": {
+        "used": 1,
+        "discarded": 0
+      },
+      "attempts": 1
+    },
+    {
+      "id": "q10",
+      "question": "Median unit price within 800 m of Harris Park?",
+      "pass": true,
+      "schema": true,
+      "numbers_verified": true,
+      "wording": true,
+      "tool_choice": true,
+      "status": "verified",
+      "tools_used": [
+        "query_metric",
+        "median_price"
+      ],
+      "latency_ms": 7175,
+      "tokens_in": 6206,
+      "tokens_out": 1906,
+      "cost_usd": 0.015858,
+      "lines": [
+        "Median price for units within 800 m of Harris Park is $709k over the last 12 months."
+      ],
+      "errors": [],
+      "tokens_reasoning": 1681,
+      "timings_ms": {
+        "plan": 3082,
+        "tools": 122,
+        "compose": 5385,
+        "total": 7175
+      },
+      "speculative": {
+        "used": 1,
+        "discarded": 0
+      },
+      "attempts": 1
+    },
+    {
+      "id": "q11",
+      "question": "How many sales were there near Milsons Point in the last year?",
+      "pass": true,
+      "schema": true,
+      "numbers_verified": true,
+      "wording": true,
+      "tool_choice": true,
+      "status": "verified",
+      "tools_used": [
+        "query_metric",
+        "sales_count"
+      ],
+      "latency_ms": 9053,
+      "tokens_in": 6207,
+      "tokens_out": 2415,
+      "cost_usd": 0.0180225,
+      "lines": [
+        "There were 140 sales within 800 m of Milsons Point in the last 12 months."
+      ],
+      "errors": [],
+      "tokens_reasoning": 2177,
+      "timings_ms": {
+        "plan": 5063,
+        "tools": 135,
+        "compose": 6322,
+        "total": 9053
+      },
+      "speculative": {
+        "used": 1,
+        "discarded": 0
+      },
+      "attempts": 1
+    },
+    {
+      "id": "q12",
+      "question": "Has the median house price near Parramatta gone up over the past year?",
+      "pass": true,
+      "schema": true,
+      "numbers_verified": true,
+      "wording": true,
+      "tool_choice": true,
+      "status": "verified",
+      "tools_used": [
+        "query_metric",
+        "price_change_12m"
+      ],
+      "latency_ms": 8969,
+      "tokens_in": 6247,
+      "tokens_out": 2688,
+      "cost_usd": 0.01923275,
+      "lines": [
+        "Median price for houses within 800 m of Parramatta changed by +17.5% over the past 12 months compared with the 12 months before."
+      ],
+      "errors": [],
+      "tokens_reasoning": 2450,
+      "timings_ms": {
+        "plan": 4580,
+        "tools": 235,
+        "compose": 5728,
+        "total": 8969
+      },
+      "speculative": {
+        "used": 1,
+        "discarded": 0
+      },
+      "attempts": 1
+    },
+    {
+      "id": "q13",
+      "question": "Compare construction activity near Parramatta and Westmead.",
+      "pass": true,
+      "schema": true,
+      "numbers_verified": true,
+      "wording": true,
+      "tool_choice": true,
+      "status": "verified",
+      "tools_used": [
+        "land_use"
+      ],
+      "latency_ms": 13104,
+      "tokens_in": 6515,
+      "tokens_out": 3882,
+      "cost_usd": 0.02464225,
+      "lines": [
+        "Construction site cover within 800 m is 7.2% near Parramatta, against 4.1% near Westmead."
+      ],
+      "errors": [],
+      "tokens_reasoning": 3632,
+      "timings_ms": {
+        "plan": 5769,
+        "tools": 27,
+        "compose": 9968,
+        "total": 13102
+      },
+      "speculative": {
+        "used": 1,
+        "discarded": 0
+      },
+      "attempts": 1
+    },
+    {
+      "id": "q14",
+      "question": "Which corridor has higher unit prices near stations, North Shore or Parramatta?",
+      "pass": true,
+      "schema": true,
+      "numbers_verified": true,
+      "wording": true,
+      "tool_choice": true,
+      "status": "verified",
+      "tools_used": [
+        "query_metric",
+        "median_price"
+      ],
+      "latency_ms": 19337,
+      "tokens_in": 6800,
+      "tokens_out": 4639,
+      "cost_usd": 0.02821575,
+      "lines": [
+        "Unit prices within 800 m show higher medians on the North Shore than the Parramatta corridor.",
+        "North Shore units range from $1.24m at St Leonards to $1.54m at Milsons Point, with $1.50m at North Sydney and $1.34m at Chatswood.",
+        "Parramatta corridor units range from $617k at Auburn to $754k at Parramatta, with $723k at Westmead, $709k at Harris Park and $678k at Granville."
+      ],
+      "errors": [],
+      "tokens_reasoning": 4226,
+      "timings_ms": {
+        "plan": 9444,
+        "tools": 1184,
+        "compose": 12095,
+        "total": 19337
+      },
+      "speculative": {
+        "used": 1,
+        "discarded": 0
+      },
+      "attempts": 1
+    },
+    {
+      "id": "q15",
+      "question": "Rank all stations by price momentum for units within 800 m.",
+      "pass": true,
+      "schema": true,
+      "numbers_verified": true,
+      "wording": true,
+      "tool_choice": true,
+      "status": "verified",
+      "tools_used": [
+        "query_metric",
+        "price_change_12m"
+      ],
+      "latency_ms": 12930,
+      "tokens_in": 7026,
+      "tokens_out": 3473,
+      "cost_usd": 0.02354275,
+      "lines": [
+        "Change in median for units within 800 m: Chatswood +13.2%, Harris Park +8.9%, Westmead +6.2% and Parramatta +6.2%.",
+        "Change in median for units within 800 m: North Sydney +4.8%, Auburn +4.3%, Granville +3.1% and St Leonards +2.0%.",
+        "Change in median for units within 800 m: Milsons Point +1.7% and Wynyard -0.7%."
+      ],
+      "errors": [],
+      "tokens_reasoning": 3075,
+      "timings_ms": {
+        "plan": 4499,
+        "tools": 1519,
+        "compose": 9160,
+        "total": 12930
+      },
+      "speculative": {
+        "used": 1,
+        "discarded": 0
+      },
+      "attempts": 1
+    },
+    {
+      "id": "q16",
+      "question": "Price per square metre of land for houses near St Leonards?",
+      "pass": true,
+      "schema": true,
+      "numbers_verified": true,
+      "wording": true,
+      "tool_choice": true,
+      "status": "verified",
+      "tools_used": [
+        "query_metric",
+        "median_price_per_m2"
+      ],
+      "latency_ms": 8140,
+      "tokens_in": 6232,
+      "tokens_out": 2291,
+      "cost_usd": 0.01752675,
+      "lines": [
+        "Median price per square metre of land for houses within 800 m of St Leonards is $6,302/m² over the last 12 months."
+      ],
+      "errors": [],
+      "tokens_reasoning": 2062,
+      "timings_ms": {
+        "plan": 4743,
+        "tools": 121,
+        "compose": 6317,
+        "total": 8140
+      },
+      "speculative": {
+        "used": 1,
+        "discarded": 0
+      },
+      "attempts": 1
+    },
+    {
+      "id": "q17",
+      "question": "Is Chatswood greener than St Leonards?",
+      "pass": true,
+      "schema": true,
+      "numbers_verified": true,
+      "wording": true,
+      "tool_choice": true,
+      "status": "verified",
+      "tools_used": [
+        "land_use"
+      ],
+      "latency_ms": 15370,
+      "tokens_in": 6509,
+      "tokens_out": 4200,
+      "cost_usd": 0.02598625,
+      "lines": [
+        "Tree canopy cover within 800 m is 21.5% at Chatswood, compared with 17.8% at St Leonards.",
+        "Building cover within 800 m is 42.5% at Chatswood and 47.5% at St Leonards."
+      ],
+      "errors": [],
+      "tokens_reasoning": 3937,
+      "timings_ms": {
+        "plan": 8515,
+        "tools": 17,
+        "compose": 9784,
+        "total": 15370
+      },
+      "speculative": {
+        "used": 1,
+        "discarded": 0
+      },
+      "attempts": 1
+    },
+    {
+      "id": "q18",
+      "question": "What data sources do you use?",
+      "pass": true,
+      "schema": true,
+      "numbers_verified": true,
+      "wording": true,
+      "tool_choice": true,
+      "status": "verified",
+      "tools_used": [
+        "list_datasets"
+      ],
+      "latency_ms": 8332,
+      "tokens_in": 6297,
+      "tokens_out": 2407,
+      "cost_usd": 0.018101,
+      "lines": [
+        "I use synthetic demo data for property sales, station patronage and land-use cover.",
+        "All datasets are synthetic and generated in this repo for demonstration.",
+        "I cover listed stations for prices and sales, patronage and land use."
+      ],
+      "errors": [],
+      "tokens_reasoning": 2236,
+      "timings_ms": {
+        "plan": 4225,
+        "tools": 1,
+        "compose": 7102,
+        "total": 8329
+      },
+      "speculative": {
+        "used": 1,
+        "discarded": 0
+      },
+      "attempts": 1
+    },
+    {
+      "id": "q19",
+      "question": "What is the weather in Perth tomorrow?",
+      "pass": true,
+      "schema": true,
+      "numbers_verified": true,
+      "wording": true,
+      "tool_choice": true,
+      "status": "verified",
+      "tools_used": [
+        "none"
+      ],
+      "latency_ms": 9059,
+      "tokens_in": 3417,
+      "tokens_out": 2613,
+      "cost_usd": 0.0153765,
+      "lines": [
+        "This is outside my coverage of property prices, patronage and land use for ten stations from Wynyard to Auburn."
+      ],
+      "errors": [],
+      "tokens_reasoning": 2516,
+      "timings_ms": {
+        "plan": 1607,
+        "compose": 7444,
+        "total": 9059
+      },
+      "speculative": {
+        "used": 0,
+        "discarded": 0
+      },
+      "attempts": 1
+    },
+    {
+      "id": "q20",
+      "question": "Should I buy an apartment in Parramatta now?",
+      "pass": true,
+      "schema": true,
+      "numbers_verified": true,
+      "wording": true,
+      "tool_choice": true,
+      "status": "verified",
+      "tools_used": [
+        "query_metric",
+        "median_price",
+        "price_change_12m",
+        "affordable_share",
+        "transit_premium",
+        "land_use"
+      ],
+      "latency_ms": 20791,
+      "tokens_in": 7177,
+      "tokens_out": 5230,
+      "cost_usd": 0.03119875,
+      "lines": [
+        "I provide general information, not advice.",
+        "Median unit price within 800 m of Parramatta over the last 12 months is $754k, with change of +6.2% from the prior 12 months.",
+        "Share of unit sales at or below the city median is 75.9%, and the transit premium for units is 1.22× for within 800 m compared with 2 to 5 km away."
+      ],
+      "errors": [],
+      "tokens_reasoning": 4569,
+      "timings_ms": {
+        "plan": 9828,
+        "tools": 997,
+        "compose": 12172,
+        "total": 20791
+      },
+      "speculative": {
+        "used": 1,
+        "discarded": 0
+      },
+      "attempts": 1
+    },
+    {
+      "id": "q21",
+      "question": "Tell me about Bondi Junction station.",
+      "pass": true,
+      "schema": true,
+      "numbers_verified": true,
+      "wording": true,
+      "tool_choice": true,
+      "status": "verified",
+      "tools_used": [
+        "none"
+      ],
+      "latency_ms": 9157,
+      "tokens_in": 3417,
+      "tokens_out": 2180,
+      "cost_usd": 0.01353625,
+      "lines": [
+        "Bondi Junction is outside the covered stations; I cover Wynyard to Auburn on prices, patronage and land use."
+      ],
+      "errors": [],
+      "tokens_reasoning": 2104,
+      "timings_ms": {
+        "plan": 1733,
+        "compose": 7418,
+        "total": 9157
+      },
+      "speculative": {
+        "used": 0,
+        "discarded": 0
+      },
+      "attempts": 1
+    },
+    {
+      "id": "q22",
+      "question": "Monthly sales counts for units within 800 m of Chatswood over the last year.",
+      "pass": true,
+      "schema": true,
+      "numbers_verified": true,
+      "wording": true,
+      "tool_choice": true,
+      "status": "verified",
+      "tools_used": [
+        "run_sql"
+      ],
+      "latency_ms": 13582,
+      "tokens_in": 7825,
+      "tokens_out": 3166,
+      "cost_usd": 0.02323675,
+      "lines": [
+        "Unit sales within 800 m of Chatswood over 12 months ranged from 4 to 8 per month.",
+        "The most recent month recorded 6 unit sales, against 5 in the prior month."
+      ],
+      "errors": [],
+      "tokens_reasoning": 2787,
+      "timings_ms": {
+        "plan": 6958,
+        "tools": 55,
+        "compose": 10931,
+        "total": 13581
+      },
+      "speculative": {
+        "used": 1,
+        "discarded": 0
+      },
+      "attempts": 1
+    }
+  ]
+}
