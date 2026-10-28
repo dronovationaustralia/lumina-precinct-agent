@@ -55,3 +55,4 @@ public/maplibre-gl-worker.mjs
 
 # raw source data (licences vary; never commit, the repo goes public)
 data/raw/
+data/derived/

@@ -19,7 +19,8 @@
     "predev": "node scripts/copy-map-worker.mjs",
     "prebuild": "node scripts/copy-map-worker.mjs",
     "db:setup": "tsx --tsconfig tsconfig.json scripts/db-setup.ts",
-    "package:azure": "node scripts/package-standalone.mjs"
+    "package:azure": "node scripts/package-standalone.mjs",
+    "ingest:vg": "tsx --tsconfig tsconfig.json scripts/ingest/vg.ts"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.12",
@@ -28,6 +29,7 @@
     "@langchain/langgraph": "^1.5.3",
     "@langchain/openai": "^1.7.1",
     "@meta-sam/parser": "^0.1.0",
+    "fflate": "^0.8.2",
     "libpg-query": "^18.2.1",
     "maplibre-gl": "6.15",
     "next": "16.4.3",

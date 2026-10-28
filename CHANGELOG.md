@@ -4,6 +4,17 @@ All work in this repository was built during the Meta Global AI Developer Hackat
 (27 Oct – 4 Nov 2026). Dates are Sydney time. No code is copied from earlier Lumina
 repositories (`LuminaSpatialInsightsXR`, `LuminaSpatial`, `extended-tableau-mcp`).
 
+## 2026-10-29 (Thu), early morning
+
+### Added
+- `npm run ingest:vg`: NSW Valuer General bulk sales parser (`scripts/ingest/vg-parse.ts`). Reads
+  annual and weekly zips (nested), joins B (sale) to C (lot/plan) records, classifies strata lots as
+  units, converts hectares, removes duplicates across weekly files, multi-property dealings,
+  part-interest sales, non-residential and nominal sales. Run on the real files: 608,337 sale
+  records to 302,540 residential sales in 24 months (23 Oct 2024 to 22 Oct 2026). Licence in
+  the files: Creative Commons Attribution, credit Valuation NSW.
+- Parser tests on a hand-made fixture (no real records committed). 47 tests.
+
 ## 2026-10-29 (Thu)
 
 ### Results
