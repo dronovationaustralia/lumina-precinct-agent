@@ -57,7 +57,7 @@ async function createPglite(): Promise<Db> {
   return db;
 }
 
-async function createPostgres(url: string, roUrl?: string): Promise<Db> {
+export async function createPostgres(url: string, roUrl?: string): Promise<Db> {
   const { Pool } = (await import('pg')).default;
   const pool = new Pool({ connectionString: url, max: 5 });
   const roPool = roUrl ? new Pool({ connectionString: roUrl, max: 5 }) : pool;
@@ -97,7 +97,9 @@ const globalForDb = globalThis as unknown as { __luminaDb?: Promise<Db> };
 /** Process-wide database (survives Next.js dev hot reloads). */
 export function getDb(): Promise<Db> {
   if (!globalForDb.__luminaDb) {
-    const url = process.env.DATABASE_URL;
+    // Deployed apps get only DATABASE_URL_RO (the read-only lumina_agent login); admin access
+    // (DATABASE_URL) is for db:setup and local development.
+    const url = process.env.DATABASE_URL ?? process.env.DATABASE_URL_RO;
     globalForDb.__luminaDb = (url ? createPostgres(url, process.env.DATABASE_URL_RO) : createPglite()).catch((e) => {
       globalForDb.__luminaDb = undefined;
       throw e;

@@ -1,0 +1,7 @@
+{
+  "name": "github-hackathon",
+  "issuer": "https://token.actions.githubusercontent.com",
+  "subject": "repo:dronovationaustralia/lumina-precinct-agent:environment:hackathon",
+  "description": "GitHub Actions deploys to the hackathon environment",
+  "audiences": ["api://AzureADTokenExchange"]
+}

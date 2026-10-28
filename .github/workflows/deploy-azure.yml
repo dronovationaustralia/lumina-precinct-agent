@@ -1,0 +1,75 @@
+# Builds the Next.js standalone server and deploys it to Azure App Service.
+#
+# Targets are GitHub environments:
+#   hackathon -> vars.AZURE_WEBAPP_NAME        (the judged deployment; freeze it with a
+#                                                required reviewer on the environment)
+#   quest     -> vars.AZURE_QUEST_WEBAPP_NAME  (second deployment for the Quest app)
+#
+# Auth is OpenID Connect (no stored Azure password). Setup: docs/deploy-azure.md.
+name: Deploy to Azure
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Which deployment
+        type: choice
+        options: [hackathon, quest]
+        default: hackathon
+  push:
+    branches: [main]
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: deploy-${{ inputs.target || 'hackathon' }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    # Pushes deploy only while vars.AZURE_DEPLOY_ON_PUSH is "true" (turn it off to freeze).
+    if: github.event_name == 'workflow_dispatch' || vars.AZURE_DEPLOY_ON_PUSH == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment:
+      name: ${{ inputs.target || 'hackathon' }}
+      url: ${{ steps.deploy.outputs.webapp-url }}
+    env:
+      APP_NAME: ${{ (inputs.target || 'hackathon') == 'quest' && vars.AZURE_QUEST_WEBAPP_NAME || vars.AZURE_WEBAPP_NAME }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - run: npm run package:azure
+
+      - name: Check the target app is configured
+        run: test -n "$APP_NAME" || (echo "Set the AZURE_WEBAPP_NAME (or AZURE_QUEST_WEBAPP_NAME) repository variable" && exit 1)
+
+      - uses: azure/login@v3
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - id: deploy
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ env.APP_NAME }}
+          package: .next/standalone
+
+      - name: Smoke test
+        run: |
+          url="https://${APP_NAME}.azurewebsites.net/api/v1/health"
+          for i in $(seq 1 20); do
+            body=$(curl -fsS --max-time 20 "$url") && echo "$body" | grep -q '"status":"ok"' && { echo "$body"; exit 0; }
+            echo "Waiting for $url ($i)"; sleep 15
+          done
+          echo "Health check failed"; exit 1

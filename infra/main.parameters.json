@@ -1,0 +1,12 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "namePrefix": { "value": "lumina-precinct" },
+    "pgAdminLogin": { "value": "luminaadmin" },
+    "appServiceSku": { "value": "B1" },
+    "postgresSku": { "value": "Standard_B1ms" },
+    "deployQuestApp": { "value": false },
+    "museSparkModel": { "value": "muse-spark-1.3" }
+  }
+}

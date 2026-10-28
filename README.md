@@ -67,6 +67,17 @@ npm run eval -- --provider baseten    # same on Muse Spark Open
 npm run eval -- --provider offline    # rule-based baseline
 ```
 
+## Deploy
+
+Azure: App Service (Node 22, Next.js standalone) and Azure Database for PostgreSQL Flexible
+Server 16 with PostGIS, in Australia East. Infrastructure is `infra/main.bicep`; deploys run
+from GitHub Actions with OpenID Connect. Step-by-step: [`docs/deploy-azure.md`](docs/deploy-azure.md).
+
+```bash
+npm run db:setup -- --agent-login --seed-demo   # schema, read-only agent login, demo data
+npm run build && npm run package:azure          # .next/standalone, started with `node server.js`
+```
+
 ## Evals
 
 Latest results are written to `evals/results-<provider>.md`. Baseline (offline rules, no model, demo data): 19 of 22 pass. Muse Spark and Muse Spark Open tables will be added after live runs.

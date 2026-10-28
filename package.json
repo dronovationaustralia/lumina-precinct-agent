@@ -17,7 +17,9 @@
     "eval": "tsx --tsconfig tsconfig.json scripts/eval.ts",
     "postinstall": "node scripts/copy-map-worker.mjs",
     "predev": "node scripts/copy-map-worker.mjs",
-    "prebuild": "node scripts/copy-map-worker.mjs"
+    "prebuild": "node scripts/copy-map-worker.mjs",
+    "db:setup": "tsx --tsconfig tsconfig.json scripts/db-setup.ts",
+    "package:azure": "node scripts/package-standalone.mjs"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.12",

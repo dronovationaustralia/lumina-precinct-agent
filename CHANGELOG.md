@@ -4,6 +4,24 @@ All work in this repository was built during the Meta Global AI Developer Hackat
 (27 Oct – 4 Nov 2026). Dates are Sydney time. No code is copied from earlier Lumina
 repositories (`LuminaSpatialInsightsXR`, `LuminaSpatial`, `extended-tableau-mcp`).
 
+## 2026-10-28 (Wed), late afternoon
+
+### Added
+- Azure deployment: `infra/main.bicep` (App Service Linux Node 22 running the Next.js standalone
+  server; PostgreSQL Flexible Server 16, Burstable, with PostGIS allowlisted; optional second web
+  app for the Quest deployment), parameters file and OIDC federated-credential files.
+- `npm run db:setup`: applies the schema, creates the read-only `lumina_agent` login (member of
+  `agent_ro`) and optionally seeds demo data. Tested against Postgres 16 + PostGIS with a
+  non-superuser admin, as on Azure.
+- `output: 'standalone'` and `npm run package:azure` (copies static assets into the package).
+- GitHub Actions: CI (type check, lint, tests, build) and "Deploy to Azure" with `hackathon` and
+  `quest` environments, OIDC login, and a health-check smoke test.
+- `docs/deploy-azure.md`: step-by-step PowerShell guide, freeze procedure and hardening list.
+
+### Changed
+- Deployed apps run with only `DATABASE_URL_RO`; the admin connection is for setup and local dev.
+- ESLint ignores the vendored MapLibre worker.
+
 ## 2026-10-28 (Wed), afternoon
 
 ### Added
