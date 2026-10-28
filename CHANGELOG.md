@@ -27,6 +27,11 @@ repositories (`LuminaSpatialInsightsXR`, `LuminaSpatial`, `extended-tableau-mcp`
   at Meta list prices (US$1.25 / US$4.25 per million tokens), and archives every run in `evals/runs/`.
 - Mock Meta server answers compose calls with a JSON draft and validates `reasoning_effort`.
 
+- Second live eval, low effort + speculative compose: 22/22 verified first time, p50 7.2 s,
+  p95 12.0 s, US$0.016 per answer. Medium effort: 22/22, p50 9.9 s, p95 19.3 s, US$0.021.
+  Low kept as the default.
+- `MUSE_COMPOSE_EFFORT` (eval `--compose-effort`) sets a separate effort for the compose step.
+
 ### Added
 - Tests (44): speculative compose path, dataset-context answers, note-token allowance.
 

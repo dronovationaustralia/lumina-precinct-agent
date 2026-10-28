@@ -26,6 +26,12 @@ export function reasoningEffort(): ReasoningEffort {
   return v && REASONING_EFFORTS.includes(v) ? v : 'low';
 }
 
+/** Effort for the compose step (writing the answer from facts). Defaults to the planning effort. */
+export function composeEffort(): ReasoningEffort {
+  const v = process.env.MUSE_COMPOSE_EFFORT as ReasoningEffort | undefined;
+  return v && REASONING_EFFORTS.includes(v) ? v : reasoningEffort();
+}
+
 export interface AgentModel {
   readonly provider: ProviderId;
   readonly model: string;
@@ -45,10 +51,15 @@ function usageOf(m: AIMessage): Usage {
 
 class OpenAICompatibleModel implements AgentModel {
   private readonly llm: ChatOpenAI;
-  readonly effort: ReasoningEffort | undefined;
-  constructor(readonly provider: ProviderId, readonly model: string, baseURL: string, apiKey: string, effort?: ReasoningEffort) {
-    this.effort = effort;
-    this.llm = new ChatOpenAI({
+  private readonly composer: ChatOpenAI;
+  readonly effort: string | undefined;
+  constructor(readonly provider: ProviderId, readonly model: string, baseURL: string, apiKey: string, effort?: ReasoningEffort, composeWith?: ReasoningEffort) {
+    this.effort = effort && composeWith && composeWith !== effort ? `${effort}/${composeWith}` : effort;
+    this.llm = this.client(model, baseURL, apiKey, effort);
+    this.composer = composeWith && composeWith !== effort ? this.client(model, baseURL, apiKey, composeWith) : this.llm;
+  }
+  private client(model: string, baseURL: string, apiKey: string, effort?: ReasoningEffort) {
+    return new ChatOpenAI({
       model,
       apiKey,
       configuration: { baseURL },
@@ -67,7 +78,7 @@ class OpenAICompatibleModel implements AgentModel {
     return (await this.llm.bindTools(tools).invoke(messages)) as AIMessage;
   }
   async compose(messages: BaseMessage[]) {
-    const m = (await this.llm.invoke(messages)) as AIMessage;
+    const m = (await this.composer.invoke(messages)) as AIMessage;
     return { text: m.text, usage: usageOf(m) };
   }
 }
@@ -88,7 +99,7 @@ export function getModel(requested?: ProviderId): AgentModel {
   if (provider === 'meta') {
     const key = process.env.MODEL_API_KEY;
     if (!key) throw new Error('MODEL_API_KEY is not set');
-    return new OpenAICompatibleModel('meta', process.env.MUSE_SPARK_MODEL ?? 'muse-spark-1.3', process.env.META_BASE_URL ?? 'https://api.meta.ai/v1', key, reasoningEffort());
+    return new OpenAICompatibleModel('meta', process.env.MUSE_SPARK_MODEL ?? 'muse-spark-1.3', process.env.META_BASE_URL ?? 'https://api.meta.ai/v1', key, reasoningEffort(), composeEffort());
   }
   if (provider === 'baseten') {
     const key = process.env.BASETEN_API_KEY;

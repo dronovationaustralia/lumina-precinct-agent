@@ -58,6 +58,8 @@ function arg(name: string): string | undefined {
 const providerArg = arg('provider') as 'meta' | 'baseten' | 'offline' | undefined;
 const effortArg = arg('effort');
 if (effortArg) process.env.MUSE_REASONING_EFFORT = effortArg;
+const composeEffortArg = arg('compose-effort');
+if (composeEffortArg) process.env.MUSE_COMPOSE_EFFORT = composeEffortArg;
 const only = arg('only');
 const model = getModel(providerArg);
 const db = await getDb();
@@ -133,6 +135,6 @@ await writeFile(path.join('evals', `results-${model.provider}.md`), md);
 // Keep every run so latency and cost can be compared across settings.
 await mkdir(path.join('evals', 'runs'), { recursive: true });
 const stamp = summary.run_at.replace(/[:.]/g, '-').slice(0, 19);
-await writeFile(path.join('evals', 'runs', `${stamp}-${model.provider}-${effort}.json`), JSON.stringify({ summary, results }, null, 2));
+await writeFile(path.join('evals', 'runs', `${stamp}-${model.provider}-${effort.replace('/', '-')}.json`), JSON.stringify({ summary, results }, null, 2));
 console.log(`\n${passed}/${results.length} passed · p50 ${p50} ms · p95 ${p95} ms → evals/results-${model.provider}.{json,md}`);
 await db.close();

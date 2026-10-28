@@ -84,10 +84,13 @@ Latest results are written to `evals/results-<provider>.md`; every run is archiv
 
 | Run (demo data) | Pass | p50 | p95 | Cost per answer |
 | --- | --- | --- | --- | --- |
+| Muse Spark 1.3, reasoning effort low + speculative compose (29 Oct) | 22 / 22, all verified first time | 7.2 s | 12.0 s | US$0.016 |
+| Muse Spark 1.3, reasoning effort medium (29 Oct) | 22 / 22 | 9.9 s | 19.3 s | US$0.021 |
 | Muse Spark 1.3, default reasoning (28 Oct) | 22 / 22, all verified first time | 15.1 s | 25.9 s | US$0.024 |
 | Offline rules baseline (no model) | 19 / 22 | 0.3 s | 1.3 s | none |
 
-Next: Muse Spark at `reasoning_effort` low (now the default) to bring p95 under 8 s, then Muse Spark Open.
+Low effort is the default. Composing the answer is now the slowest step, so `MUSE_COMPOSE_EFFORT`
+(eval: `--compose-effort minimal`) can give it a lighter setting than planning. Next: Muse Spark Open.
 
 ## Day-1 spikes
 
