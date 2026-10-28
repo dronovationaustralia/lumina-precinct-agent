@@ -1,0 +1,517 @@
+{
+  "summary": {
+    "run_at": "2026-10-28T03:55:14.645Z",
+    "provider": "offline",
+    "model": "offline-rules-v1",
+    "database": "pglite",
+    "passed": 19,
+    "total": 22,
+    "p50_ms": 322,
+    "p95_ms": 1316,
+    "tokens_in": 0,
+    "tokens_out": 0,
+    "cost_usd_per_answer": null
+  },
+  "results": [
+    {
+      "id": "q01",
+      "question": "How do prices near Parramatta station compare with 2 to 5 km away?",
+      "pass": true,
+      "schema": true,
+      "numbers_verified": true,
+      "wording": true,
+      "tool_choice": true,
+      "status": "verified",
+      "tools_used": [
+        "query_metric",
+        "median_price",
+        "transit_premium"
+      ],
+      "latency_ms": 632,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "cost_usd": null,
+      "lines": [
+        "Median price (units), within 800 m: Parramatta $754k.",
+        "Median price (units), 2 to 5 km: Parramatta $620k.",
+        "Transit premium (units) (within 800 m vs 2 to 5 km): Parramatta 1.22×."
+      ],
+      "errors": []
+    },
+    {
+      "id": "q02",
+      "question": "Which of the 10 stations has the most tree canopy within 800 m?",
+      "pass": true,
+      "schema": true,
+      "numbers_verified": true,
+      "wording": true,
+      "tool_choice": true,
+      "status": "verified",
+      "tools_used": [
+        "query_metric",
+        "canopy_pct"
+      ],
+      "latency_ms": 116,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "cost_usd": null,
+      "lines": [
+        "Tree canopy, within 800 m: highest at Chatswood 21.5%, lowest at Wynyard 9.4%."
+      ],
+      "errors": []
+    },
+    {
+      "id": "q03",
+      "question": "Compare Chatswood and St Leonards on price momentum and car-park cover.",
+      "pass": true,
+      "schema": true,
+      "numbers_verified": true,
+      "wording": true,
+      "tool_choice": true,
+      "status": "verified",
+      "tools_used": [
+        "query_metric",
+        "price_change_12m",
+        "carpark_pct"
+      ],
+      "latency_ms": 528,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "cost_usd": null,
+      "lines": [
+        "Price momentum (12 months) (units), within 800 m: Chatswood +13.2%, St Leonards +2.0%.",
+        "Car park, within 800 m: Chatswood 8.7%, St Leonards 7.2%."
+      ],
+      "errors": []
+    },
+    {
+      "id": "q04",
+      "question": "Show me where sales are cheapest within 1 km of Westmead.",
+      "pass": true,
+      "schema": true,
+      "numbers_verified": true,
+      "wording": true,
+      "tool_choice": true,
+      "status": "verified",
+      "tools_used": [
+        "query_metric",
+        "median_price"
+      ],
+      "latency_ms": 441,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "cost_usd": null,
+      "lines": [
+        "Median price (units), within 400 m: Westmead $777k.",
+        "Median price (units), within 800 m: Westmead $723k.",
+        "Median price (units), 800 m to 2 km: Westmead $725k."
+      ],
+      "errors": []
+    },
+    {
+      "id": "q05",
+      "question": "What is the transit premium for houses at Chatswood?",
+      "pass": true,
+      "schema": true,
+      "numbers_verified": true,
+      "wording": true,
+      "tool_choice": true,
+      "status": "verified",
+      "tools_used": [
+        "query_metric",
+        "median_price",
+        "transit_premium"
+      ],
+      "latency_ms": 544,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "cost_usd": null,
+      "lines": [
+        "Median price (houses), within 800 m: Chatswood $4.23m.",
+        "Median price (houses), 2 to 5 km: Chatswood $4.39m.",
+        "Transit premium (houses) (within 800 m vs 2 to 5 km): Chatswood 1.15×."
+      ],
+      "errors": []
+    },
+    {
+      "id": "q06",
+      "question": "How affordable are units near Auburn compared with the city median?",
+      "pass": true,
+      "schema": true,
+      "numbers_verified": true,
+      "wording": true,
+      "tool_choice": true,
+      "status": "verified",
+      "tools_used": [
+        "query_metric",
+        "affordable_share"
+      ],
+      "latency_ms": 203,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "cost_usd": null,
+      "lines": [
+        "Transit-affordable share (units), within 800 m: Auburn 96.4%."
+      ],
+      "errors": []
+    },
+    {
+      "id": "q07",
+      "question": "How busy is North Sydney station, and is patronage growing?",
+      "pass": true,
+      "schema": true,
+      "numbers_verified": true,
+      "wording": true,
+      "tool_choice": true,
+      "status": "verified",
+      "tools_used": [
+        "query_metric",
+        "patronage_12m"
+      ],
+      "latency_ms": 18,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "cost_usd": null,
+      "lines": [
+        "Station patronage (12 months): North Sydney 13.95m trips."
+      ],
+      "errors": []
+    },
+    {
+      "id": "q08",
+      "question": "What is the land use within 800 m of Granville?",
+      "pass": true,
+      "schema": true,
+      "numbers_verified": true,
+      "wording": true,
+      "tool_choice": true,
+      "status": "verified",
+      "tools_used": [
+        "land_use"
+      ],
+      "latency_ms": 23,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "cost_usd": null,
+      "lines": [
+        "Building, within 800 m: Granville 42.4%.",
+        "Tree canopy, within 800 m: Granville 10.8%.",
+        "Car park, within 800 m: Granville 10.2%."
+      ],
+      "errors": []
+    },
+    {
+      "id": "q09",
+      "question": "How much of the area within 400 m of Wynyard is car parks?",
+      "pass": true,
+      "schema": true,
+      "numbers_verified": true,
+      "wording": true,
+      "tool_choice": true,
+      "status": "verified",
+      "tools_used": [
+        "query_metric",
+        "carpark_pct"
+      ],
+      "latency_ms": 18,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "cost_usd": null,
+      "lines": [
+        "Car park, within 400 m: Wynyard 3.5%."
+      ],
+      "errors": []
+    },
+    {
+      "id": "q10",
+      "question": "Median unit price within 800 m of Harris Park?",
+      "pass": true,
+      "schema": true,
+      "numbers_verified": true,
+      "wording": true,
+      "tool_choice": true,
+      "status": "verified",
+      "tools_used": [
+        "query_metric",
+        "median_price"
+      ],
+      "latency_ms": 161,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "cost_usd": null,
+      "lines": [
+        "Median price (units), within 800 m: Harris Park $709k."
+      ],
+      "errors": []
+    },
+    {
+      "id": "q11",
+      "question": "How many sales were there near Milsons Point in the last year?",
+      "pass": true,
+      "schema": true,
+      "numbers_verified": true,
+      "wording": true,
+      "tool_choice": true,
+      "status": "verified",
+      "tools_used": [
+        "query_metric",
+        "price_change_12m",
+        "sales_count"
+      ],
+      "latency_ms": 442,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "cost_usd": null,
+      "lines": [
+        "Price momentum (12 months) (units), within 800 m: Milsons Point +1.7%.",
+        "Sales count, within 800 m: Milsons Point 140."
+      ],
+      "errors": []
+    },
+    {
+      "id": "q12",
+      "question": "Has the median house price near Parramatta gone up over the past year?",
+      "pass": true,
+      "schema": true,
+      "numbers_verified": true,
+      "wording": true,
+      "tool_choice": true,
+      "status": "verified",
+      "tools_used": [
+        "query_metric",
+        "median_price",
+        "price_change_12m"
+      ],
+      "latency_ms": 398,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "cost_usd": null,
+      "lines": [
+        "Median price (houses), within 800 m: Parramatta $1.52m.",
+        "Price momentum (12 months) (houses), within 800 m: Parramatta +17.5%."
+      ],
+      "errors": []
+    },
+    {
+      "id": "q13",
+      "question": "Compare construction activity near Parramatta and Westmead.",
+      "pass": true,
+      "schema": true,
+      "numbers_verified": true,
+      "wording": true,
+      "tool_choice": true,
+      "status": "verified",
+      "tools_used": [
+        "query_metric",
+        "construction_pct"
+      ],
+      "latency_ms": 15,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "cost_usd": null,
+      "lines": [
+        "Construction site, within 800 m: Parramatta 7.2%, Westmead 4.1%."
+      ],
+      "errors": []
+    },
+    {
+      "id": "q14",
+      "question": "Which corridor has higher unit prices near stations, North Shore or Parramatta?",
+      "pass": true,
+      "schema": true,
+      "numbers_verified": true,
+      "wording": true,
+      "tool_choice": true,
+      "status": "verified",
+      "tools_used": [
+        "query_metric",
+        "median_price"
+      ],
+      "latency_ms": 1316,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "cost_usd": null,
+      "lines": [
+        "Median price (units), within 800 m: highest at Milsons Point $1.54m, lowest at Auburn $617k."
+      ],
+      "errors": []
+    },
+    {
+      "id": "q15",
+      "question": "Rank all stations by price momentum for units within 800 m.",
+      "pass": true,
+      "schema": true,
+      "numbers_verified": true,
+      "wording": true,
+      "tool_choice": true,
+      "status": "verified",
+      "tools_used": [
+        "query_metric",
+        "price_change_12m"
+      ],
+      "latency_ms": 3024,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "cost_usd": null,
+      "lines": [
+        "Price momentum (12 months) (units), within 800 m: highest at Chatswood +13.2%, lowest at Wynyard -0.7%."
+      ],
+      "errors": []
+    },
+    {
+      "id": "q16",
+      "question": "Price per square metre of land for houses near St Leonards?",
+      "pass": false,
+      "schema": true,
+      "numbers_verified": true,
+      "wording": true,
+      "tool_choice": false,
+      "status": "verified",
+      "tools_used": [
+        "query_metric",
+        "median_price"
+      ],
+      "latency_ms": 176,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "cost_usd": null,
+      "lines": [
+        "Median price (houses), within 800 m: St Leonards $4.18m."
+      ],
+      "errors": []
+    },
+    {
+      "id": "q17",
+      "question": "Is Chatswood greener than St Leonards?",
+      "pass": false,
+      "schema": true,
+      "numbers_verified": true,
+      "wording": true,
+      "tool_choice": false,
+      "status": "verified",
+      "tools_used": [
+        "query_metric",
+        "median_price",
+        "price_change_12m"
+      ],
+      "latency_ms": 930,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "cost_usd": null,
+      "lines": [
+        "Median price (units), within 800 m: Chatswood $1.34m, St Leonards $1.24m.",
+        "Price momentum (12 months) (units), within 800 m: Chatswood +13.2%, St Leonards +2.0%."
+      ],
+      "errors": []
+    },
+    {
+      "id": "q18",
+      "question": "What data sources do you use?",
+      "pass": true,
+      "schema": true,
+      "numbers_verified": true,
+      "wording": true,
+      "tool_choice": true,
+      "status": "verified",
+      "tools_used": [
+        "list_datasets"
+      ],
+      "latency_ms": 11,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "cost_usd": null,
+      "lines": [
+        "I can answer questions about property, transport and land use around Wynyard, Milsons Point, North Sydney, St Leonards, Chatswood, Westmead, Parramatta, Harris Park, Granville, Auburn."
+      ],
+      "errors": []
+    },
+    {
+      "id": "q19",
+      "question": "What is the weather in Perth tomorrow?",
+      "pass": true,
+      "schema": true,
+      "numbers_verified": true,
+      "wording": true,
+      "tool_choice": true,
+      "status": "verified",
+      "tools_used": [
+        "none"
+      ],
+      "latency_ms": 7,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "cost_usd": null,
+      "lines": [
+        "I can answer questions about property, transport and land use around Wynyard, Milsons Point, North Sydney, St Leonards, Chatswood, Westmead, Parramatta, Harris Park, Granville, Auburn."
+      ],
+      "errors": []
+    },
+    {
+      "id": "q20",
+      "question": "Should I buy an apartment in Parramatta now?",
+      "pass": true,
+      "schema": true,
+      "numbers_verified": true,
+      "wording": true,
+      "tool_choice": true,
+      "status": "verified",
+      "tools_used": [
+        "query_metric",
+        "median_price",
+        "price_change_12m"
+      ],
+      "latency_ms": 470,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "cost_usd": null,
+      "lines": [
+        "Median price (units), within 800 m: Parramatta $754k.",
+        "Price momentum (12 months) (units), within 800 m: Parramatta +6.2%."
+      ],
+      "errors": []
+    },
+    {
+      "id": "q21",
+      "question": "Tell me about Bondi Junction station.",
+      "pass": true,
+      "schema": true,
+      "numbers_verified": true,
+      "wording": true,
+      "tool_choice": true,
+      "status": "verified",
+      "tools_used": [
+        "none"
+      ],
+      "latency_ms": 7,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "cost_usd": null,
+      "lines": [
+        "I can answer questions about property, transport and land use around Wynyard, Milsons Point, North Sydney, St Leonards, Chatswood, Westmead, Parramatta, Harris Park, Granville, Auburn."
+      ],
+      "errors": []
+    },
+    {
+      "id": "q22",
+      "question": "Monthly sales counts for units within 800 m of Chatswood over the last year.",
+      "pass": false,
+      "schema": true,
+      "numbers_verified": true,
+      "wording": true,
+      "tool_choice": false,
+      "status": "verified",
+      "tools_used": [
+        "query_metric",
+        "price_change_12m"
+      ],
+      "latency_ms": 322,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "cost_usd": null,
+      "lines": [
+        "Price momentum (12 months) (units), within 800 m: Chatswood +13.2%."
+      ],
+      "errors": []
+    }
+  ]
+}

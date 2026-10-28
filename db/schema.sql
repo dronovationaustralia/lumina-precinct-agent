@@ -1,0 +1,171 @@
+-- Lumina Precinct Agent schema (Postgres 15+ with PostGIS 3).
+-- Base tables hold row-level data and are NOT readable by the agent role.
+-- The agent reads only the aggregate views at the bottom (governed access).
+
+create extension if not exists postgis;
+
+create table if not exists datasets (
+  id text primary key,
+  name text not null,
+  description text not null,
+  source_url text,
+  licence text not null,
+  as_of date not null,
+  coverage text not null,
+  is_demo boolean not null default false
+);
+
+create table if not exists stations (
+  id text primary key,
+  name text not null,
+  corridor text not null,
+  geom geography(Point, 4326) not null,
+  coord_source text not null
+);
+
+create table if not exists rings (
+  id text primary key,
+  min_m integer not null,
+  max_m integer not null,
+  label text not null
+);
+
+create table if not exists sales (
+  id bigserial primary key,
+  dataset_id text not null references datasets(id),
+  contract_date date not null,
+  price numeric not null check (price > 0),
+  property_type text not null check (property_type in ('house', 'unit')),
+  land_area_m2 numeric,
+  geom geography(Point, 4326) not null
+);
+create index if not exists sales_geom_idx on sales using gist (geom);
+create index if not exists sales_date_idx on sales (contract_date);
+
+-- Precomputed distance from each sale to each station within 5 km.
+create table if not exists sale_station (
+  sale_id bigint not null references sales(id) on delete cascade,
+  station_id text not null references stations(id),
+  distance_m double precision not null,
+  primary key (sale_id, station_id)
+);
+create index if not exists sale_station_station_idx on sale_station (station_id, distance_m);
+
+create table if not exists patronage (
+  dataset_id text not null references datasets(id),
+  station_id text not null references stations(id),
+  month date not null,
+  entries integer not null,
+  exits integer not null,
+  primary key (station_id, month)
+);
+
+create table if not exists land_use_ring (
+  dataset_id text not null references datasets(id),
+  station_id text not null references stations(id),
+  ring_id text not null references rings(id),
+  class text not null check (class in ('building', 'tree_canopy', 'car_park', 'construction_site')),
+  cover_pct numeric not null check (cover_pct between 0 and 100),
+  capture_date date not null,
+  method text not null,
+  primary key (station_id, ring_id, class)
+);
+
+-- ---------------------------------------------------------------------------
+-- Governed views. Minimum cell size: medians and shares built from fewer than
+-- 10 sales are returned as NULL with suppressed = true.
+-- ---------------------------------------------------------------------------
+
+create or replace view v_stations as
+select id as station_id, name, corridor,
+       st_y(geom::geometry) as lat, st_x(geom::geometry) as lon, coord_source
+from stations;
+
+create or replace view v_datasets as
+select id as dataset_id, name, description, source_url, licence, to_char(as_of, 'YYYY-MM-DD') as as_of, coverage, is_demo from datasets;
+
+-- Sales in each station ring, split into the last 12 months and the 12 before,
+-- anchored on the latest contract date in the data (not today's date).
+create or replace view v_sales_period as
+with bounds as (select max(contract_date) as as_of from sales),
+tagged as (
+  select ss.station_id, r.id as ring_id, s.property_type, s.price, s.land_area_m2, s.dataset_id,
+         case when s.contract_date > b.as_of - interval '12 months' then 'last_12m'
+              when s.contract_date > b.as_of - interval '24 months' then 'prior_12m' end as period,
+         b.as_of
+  from sales s
+  join sale_station ss on ss.sale_id = s.id
+  join rings r on ss.distance_m >= r.min_m and ss.distance_m < r.max_m
+  cross join bounds b
+),
+typed as (
+  select station_id, ring_id, property_type, period, price, land_area_m2, dataset_id, as_of from tagged where period is not null
+  union all
+  select station_id, ring_id, 'all', period, price, null, dataset_id, as_of from tagged where period is not null
+)
+select station_id, ring_id, property_type, period,
+       count(*)::int as sales_count,
+       case when count(*) >= 10 then percentile_cont(0.5) within group (order by price) end as median_price,
+       case when count(land_area_m2) >= 10 and property_type = 'house'
+            then percentile_cont(0.5) within group (order by price / nullif(land_area_m2, 0)) end as median_price_per_m2,
+       count(*) < 10 as suppressed,
+       min(dataset_id) as dataset_id,
+       to_char(max(as_of), 'YYYY-MM-DD') as as_of
+from typed
+group by station_id, ring_id, property_type, period;
+
+-- Monthly sale counts per ring (counts only, no prices).
+create or replace view v_sales_monthly as
+select ss.station_id, r.id as ring_id, s.property_type,
+       to_char(date_trunc('month', s.contract_date), 'YYYY-MM') as month,
+       count(*)::int as sales_count
+from sales s
+join sale_station ss on ss.sale_id = s.id
+join rings r on ss.distance_m >= r.min_m and ss.distance_m < r.max_m
+group by 1, 2, 3, 4;
+
+-- Share of last-12-month sales in a ring at or below the median of all sales of the
+-- same type in the dataset over the same 12 months ("city median").
+create or replace view v_affordable_share as
+with bounds as (select max(contract_date) as as_of from sales),
+recent as (
+  select s.* from sales s, bounds b where s.contract_date > b.as_of - interval '12 months'
+),
+city as (
+  select property_type, percentile_cont(0.5) within group (order by price) as city_median
+  from recent group by property_type
+)
+select ss.station_id, r.id as ring_id, s.property_type,
+       count(*)::int as sales_count,
+       case when count(*) >= 10 then (avg(case when s.price <= c.city_median then 1.0 else 0.0 end) * 100)::float8 end as affordable_pct,
+       count(*) < 10 as suppressed,
+       min(c.city_median)::float8 as city_median,
+       min(s.dataset_id) as dataset_id,
+       to_char((select as_of from bounds), 'YYYY-MM-DD') as as_of
+from recent s
+join city c on c.property_type = s.property_type
+join sale_station ss on ss.sale_id = s.id
+join rings r on ss.distance_m >= r.min_m and ss.distance_m < r.max_m
+group by 1, 2, 3;
+
+create or replace view v_patronage_monthly as
+select station_id, to_char(month, 'YYYY-MM') as month, entries, exits, entries + exits as total, dataset_id from patronage;
+
+create or replace view v_land_use as
+select station_id, ring_id, class, cover_pct::float8 as cover_pct, to_char(capture_date, 'YYYY-MM-DD') as capture_date, method, dataset_id from land_use_ring;
+
+-- ---------------------------------------------------------------------------
+-- Read-only role for the agent. It can read the views above and nothing else.
+-- On managed Postgres, create a login user that is a member of agent_ro and put
+-- its connection string in DATABASE_URL_RO.
+-- ---------------------------------------------------------------------------
+do $$ begin
+  if not exists (select 1 from pg_roles where rolname = 'agent_ro') then
+    create role agent_ro nologin;
+  end if;
+end $$;
+
+revoke all on all tables in schema public from agent_ro;
+grant usage on schema public to agent_ro;
+grant select on v_stations, v_datasets, v_sales_period, v_sales_monthly, v_affordable_share,
+  v_patronage_monthly, v_land_use to agent_ro;
