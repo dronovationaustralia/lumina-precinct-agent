@@ -17,6 +17,10 @@ repositories (`LuminaSpatialInsightsXR`, `LuminaSpatial`, `extended-tableau-mcp`
   zip, written to the committed `src/lib/station-coords.json`; the station registry uses them
   when present (`coord_source: gtfs`).
 
+### Changed
+- The portal's demo-data notice names only the datasets that are still synthetic (now land use),
+  instead of implying every figure is synthetic.
+
 ### Results
 - Real G-NAF geocoding run: **98.9%** of sales in the stations' own postcodes matched (12,838 of
   12,975); 52,605 sales located within reach of the stations, almost all by lot/plan. Loaded

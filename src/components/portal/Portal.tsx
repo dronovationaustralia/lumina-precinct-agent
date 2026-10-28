@@ -27,7 +27,7 @@ export function Portal() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [landUse, setLandUse] = useState<LandUseDto | null>(null);
   const [note, setNote] = useState<string | null>(null);
-  const [health, setHealth] = useState<{ demo_data: boolean; provider: string } | null>(null);
+  const [health, setHealth] = useState<{ demo_data: boolean; provider: string; datasets?: { id: string; demo: boolean }[] } | null>(null);
   const [map, setMap] = useState<MapState>({ focus: null, radius_m: 800, compare: null, highlight: [], view: 'overview', flyNonce: 0 });
   const listRef = useRef<HTMLDivElement>(null);
   const stationsRef = useRef<StationDto[]>([]);
@@ -101,7 +101,15 @@ export function Portal() {
   }, [busy, map.focus, runActions]);
 
   const focusName = stations.find((s) => s.id === map.focus)?.name;
-  const demo = Boolean(health?.demo_data) || turns.some((t) => t.answer?.meta.demo_data);
+  // Name what is still synthetic, so real datasets are not tarred with the same brush.
+  const TOPIC: Record<string, string> = { demo_sales: 'Property sales', demo_patronage: 'Station patronage', demo_land_use: 'Land use' };
+  const demoTopics = (health?.datasets ?? []).filter((d) => d.demo).map((d) => TOPIC[d.id] ?? d.id);
+  const demo = demoTopics.length > 0 || Boolean(health?.demo_data) || turns.some((t) => t.answer?.meta.demo_data);
+  const demoText = !demoTopics.length
+    ? 'Demo data: some figures are synthetic.'
+    : demoTopics.length === 3
+      ? 'Demo data: figures are synthetic until the NSW datasets are loaded.'
+      : `Demo data: ${demoTopics.join(' and ').toLowerCase().replace(/^./, (c) => c.toUpperCase())} ${demoTopics.length > 1 ? 'are' : 'is'} synthetic for now. Other figures are real NSW data.`;
 
   return (
     <div className="portal">
@@ -149,7 +157,7 @@ export function Portal() {
         <header className="talk-head">
           <h1>Lumina Precinct Agent</h1>
           <p>Ask about prices, transport and land use around ten Sydney stations. Every figure is checked against the data before you see it.</p>
-          {demo && <p className="demo-flag">Demo data: figures are synthetic until the NSW datasets are loaded.</p>}
+          {demo && <p className="demo-flag">{demoText}</p>}
           {health?.provider === 'offline' && <p className="demo-flag">No model key set: answers come from the offline rule-based planner.</p>}
         </header>
 
