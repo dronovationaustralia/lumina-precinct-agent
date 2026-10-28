@@ -6,6 +6,13 @@ repositories (`LuminaSpatialInsightsXR`, `LuminaSpatial`, `extended-tableau-mcp`
 
 ## 2026-10-29 (Thu), early morning
 
+### Results
+- Real G-NAF geocoding run: **98.9%** of sales in the stations' own postcodes matched (12,838 of
+  12,975); 52,605 sales located within reach of the stations, almost all by lot/plan. Loaded
+  locally: every station has enough unit sales within 400 m and 800 m to publish medians; house
+  medians within 400 m are suppressed at most stations (fewer than 10 sales), as expected near
+  centres. Offline eval on real sales: 19 of 22, same as on demo data.
+
 ### Added
 - `npm run ingest:vg`: NSW Valuer General bulk sales parser (`scripts/ingest/vg-parse.ts`). Reads
   annual and weekly zips (nested), joins B (sale) to C (lot/plan) records, classifies strata lots as
