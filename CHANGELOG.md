@@ -14,6 +14,8 @@ repositories (`LuminaSpatialInsightsXR`, `LuminaSpatial`, `extended-tableau-mcp`
   records to 302,540 residential sales in 24 months (23 Oct 2024 to 22 Oct 2026). Licence in
   the files: Creative Commons Attribution, credit Valuation NSW.
 - Parser tests on a hand-made fixture (no real records committed). 47 tests.
+- `infra/main.bicep` can reuse an existing PostgreSQL Flexible Server (`existingPostgresHost`,
+  `databaseName`) and then creates only the App Service resources. Guide section added.
 
 ## 2026-10-29 (Thu)
 

@@ -42,6 +42,25 @@ az deployment group show -g $rg -n main --query properties.outputs -o json
 
 Note `webAppName`, `webAppUrl` and `adminConnectionTemplate`.
 
+### Already have a PostgreSQL Flexible Server?
+
+Use it instead of creating one: switch on PostGIS, add a `lumina` database, and let Azure services
+(the web app) connect. Then deploy only the app with `existingPostgresHost`.
+
+```powershell
+$pg = "<server name>"   # e.g. the part before .postgres.database.azure.com
+az postgres flexible-server show -g $rg -n $pg --query "{tier:sku.tier, sku:sku.name, version:version}" -o table
+az postgres flexible-server parameter show -g $rg -s $pg -n azure.extensions --query value -o tsv
+az postgres flexible-server parameter set -g $rg -s $pg -n azure.extensions -v POSTGIS
+az postgres flexible-server db create -g $rg -s $pg -d lumina
+az postgres flexible-server firewall-rule create -g $rg -n $pg -r AllowAzureServices --start-ip-address 0.0.0.0 --end-ip-address 0.0.0.0
+az deployment group create -g $rg -n main -f infra/main.bicep -p infra/main.parameters.json -p existingPostgresHost="$pg.postgres.database.azure.com" pgAdminLogin=<admin login>
+```
+
+If the second command already lists other extensions, keep them: pass the full comma-separated
+list with POSTGIS added (for example `-v PG_STAT_STATEMENTS,POSTGIS`). The first command shows the
+tier; General Purpose costs several times more than Burstable, and Burstable B1ms is enough here.
+
 ## 2. Set up the database from your machine
 
 Put these in `.env.local` (gitignored). Replace `<password>` in the admin template, URL-encoding any

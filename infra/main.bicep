@@ -25,9 +25,8 @@ param namePrefix string = 'lumina-precinct'
 param pgAdminLogin string = 'luminaadmin'
 
 @secure()
-@minLength(12)
-@description('PostgreSQL admin password. Used only by db:setup from your machine, never by the web apps.')
-param pgAdminPassword string
+@description('PostgreSQL admin password for a new server (12+ characters). Not needed with existingPostgresHost. Never given to the web apps.')
+param pgAdminPassword string = ''
 
 @secure()
 @minLength(16)
@@ -60,14 +59,21 @@ param clientIp string = ''
 @description('Allowed CORS origin for browser clients such as the Quest web app.')
 param corsAllowOrigin string = '*'
 
+@description('Use an existing PostgreSQL server instead of creating one: its host name, e.g. myserver.postgres.database.azure.com. Leave empty to create a new server.')
+param existingPostgresHost string = ''
+
+@description('Database name on the server.')
+param databaseName string = 'lumina'
+
 var suffix = take(uniqueString(resourceGroup().id), 6)
 var pgName = '${namePrefix}-pg-${suffix}'
 var planName = '${namePrefix}-plan-${suffix}'
 var webName = '${namePrefix}-${suffix}'
 var questName = '${namePrefix}-quest-${suffix}'
-var dbName = 'lumina'
+var dbName = databaseName
+var createPostgres = empty(existingPostgresHost)
 
-resource pg 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' = {
+resource pg 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' = if (createPostgres) {
   name: pgName
   location: location
   sku: {
@@ -100,7 +106,7 @@ resource pg 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' = {
 }
 
 // Server operations are serialised (dependsOn) because Flexible Server rejects concurrent updates.
-resource pgExtensions 'Microsoft.DBforPostgreSQL/flexibleServers/configurations@2024-08-01' = {
+resource pgExtensions 'Microsoft.DBforPostgreSQL/flexibleServers/configurations@2024-08-01' = if (createPostgres) {
   parent: pg
   name: 'azure.extensions'
   properties: {
@@ -109,7 +115,7 @@ resource pgExtensions 'Microsoft.DBforPostgreSQL/flexibleServers/configurations@
   }
 }
 
-resource pgDatabase 'Microsoft.DBforPostgreSQL/flexibleServers/databases@2024-08-01' = {
+resource pgDatabase 'Microsoft.DBforPostgreSQL/flexibleServers/databases@2024-08-01' = if (createPostgres) {
   parent: pg
   name: dbName
   properties: {
@@ -120,7 +126,7 @@ resource pgDatabase 'Microsoft.DBforPostgreSQL/flexibleServers/databases@2024-08
 }
 
 // 0.0.0.0 is Azure's convention for "allow connections from Azure services" (the web apps).
-resource pgAllowAzure 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2024-08-01' = {
+resource pgAllowAzure 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2024-08-01' = if (createPostgres) {
   parent: pg
   name: 'AllowAzureServices'
   properties: {
@@ -130,7 +136,7 @@ resource pgAllowAzure 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2
   dependsOn: [pgDatabase]
 }
 
-resource pgAllowClient 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2024-08-01' = if (!empty(clientIp)) {
+resource pgAllowClient 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2024-08-01' = if (createPostgres && !empty(clientIp)) {
   parent: pg
   name: 'AllowDeveloperMachine'
   properties: {
@@ -152,7 +158,8 @@ resource plan 'Microsoft.Web/serverfarms@2024-04-01' = {
   }
 }
 
-var agentDbUrl = 'postgres://lumina_agent:${uriComponent(agentDbPassword)}@${pg.properties.fullyQualifiedDomainName}:5432/${dbName}?sslmode=require'
+var pgHost = createPostgres ? pg!.properties.fullyQualifiedDomainName : existingPostgresHost
+var agentDbUrl = 'postgres://lumina_agent:${uriComponent(agentDbPassword)}@${pgHost}:5432/${dbName}?sslmode=require'
 
 var appSettings = [
   { name: 'NODE_ENV', value: 'production' }
@@ -208,6 +215,6 @@ resource quest 'Microsoft.Web/sites@2024-04-01' = if (deployQuestApp) {
 output webAppName string = web.name
 output webAppUrl string = 'https://${web.properties.defaultHostName}'
 output questAppName string = deployQuestApp ? questName : ''
-output postgresHost string = pg.properties.fullyQualifiedDomainName
-output postgresServerName string = pg.name
-output adminConnectionTemplate string = 'postgres://${pgAdminLogin}:<password>@${pg.properties.fullyQualifiedDomainName}:5432/${dbName}?sslmode=require'
+output postgresHost string = pgHost
+output postgresServerName string = createPostgres ? pgName : split(existingPostgresHost, '.')[0]
+output adminConnectionTemplate string = 'postgres://${pgAdminLogin}:<password>@${pgHost}:5432/${dbName}?sslmode=require'
