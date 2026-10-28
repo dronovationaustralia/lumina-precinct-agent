@@ -115,7 +115,11 @@ export type FilterStats = Record<string, number>;
  * - Drop multi-property dealings (one price for several properties) and part-interest sales.
  * - Drop non-residential, prices under A$50,000 (typically not arm's length) and bad dates.
  */
-export function cleanSales(all: VgSale[], months = 24): { sales: VgSale[]; asOf: string; stats: FilterStats } {
+/**
+ * `lagMonths`: sales are lodged weeks to months after contract, so the latest months are incomplete.
+ * The window ends at the last day of the month `lagMonths` before the latest contract date.
+ */
+export function cleanSales(all: VgSale[], months = 24, lagMonths = 0): { sales: VgSale[]; asOf: string; latestContract: string; stats: FilterStats } {
   const stats: FilterStats = { b_records: all.length };
   const byKey = new Map<string, VgSale>();
   for (const s of all) {
@@ -142,7 +146,14 @@ export function cleanSales(all: VgSale[], months = 24): { sales: VgSale[]; asOf:
   rows = rows.filter((s) => s.price >= 50_000 && s.contract_date);
   stats.after_price_and_date = rows.length;
 
-  const asOf = rows.reduce((m, s) => (s.contract_date > m ? s.contract_date : m), '');
+  const latestContract = rows.reduce((m, s) => (s.contract_date > m ? s.contract_date : m), '');
+  let asOf = latestContract;
+  if (lagMonths > 0) {
+    const d = new Date(`${latestContract.slice(0, 7)}-01T00:00:00Z`);
+    d.setUTCMonth(d.getUTCMonth() - lagMonths + 1);
+    d.setUTCDate(0); // last day of the month lagMonths before
+    asOf = d.toISOString().slice(0, 10);
+  }
   const start = new Date(`${asOf}T00:00:00Z`);
   start.setUTCMonth(start.getUTCMonth() - months);
   const startStr = start.toISOString().slice(0, 10);
@@ -150,5 +161,5 @@ export function cleanSales(all: VgSale[], months = 24): { sales: VgSale[]; asOf:
   stats.in_window = rows.length;
   stats.units = rows.filter((s) => s.property_type === 'unit').length;
   stats.houses = rows.filter((s) => s.property_type === 'house').length;
-  return { sales: rows, asOf, stats };
+  return { sales: rows, asOf, latestContract, stats };
 }

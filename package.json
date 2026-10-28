@@ -21,7 +21,10 @@
     "db:setup": "tsx --tsconfig tsconfig.json scripts/db-setup.ts",
     "package:azure": "node scripts/package-standalone.mjs",
     "ingest:vg": "tsx --tsconfig tsconfig.json scripts/ingest/vg.ts",
-    "ingest:gnaf-sample": "tsx --tsconfig tsconfig.json scripts/ingest/gnaf-sample.ts"
+    "ingest:gnaf-sample": "tsx --tsconfig tsconfig.json scripts/ingest/gnaf-sample.ts",
+    "ingest:gnaf": "tsx --tsconfig tsconfig.json scripts/ingest/gnaf.ts",
+    "ingest:geocode": "tsx --tsconfig tsconfig.json scripts/ingest/geocode.ts",
+    "ingest:sales": "npm run ingest:vg && npm run ingest:gnaf && npm run ingest:geocode"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.12",

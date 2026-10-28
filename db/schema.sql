@@ -42,6 +42,17 @@ create table if not exists sales (
 create index if not exists sales_geom_idx on sales using gist (geom);
 create index if not exists sales_date_idx on sales (contract_date);
 
+-- Region-wide medians used as the "city median" in the affordability metric (e.g. Greater Sydney).
+create table if not exists reference_medians (
+  dataset_id text not null references datasets(id),
+  region text not null,
+  property_type text not null,
+  period text not null,
+  median_price double precision,
+  sales_count integer not null,
+  primary key (dataset_id, region, property_type, period)
+);
+
 -- Precomputed distance from each sale to each station within 5 km.
 create table if not exists sale_station (
   sale_id bigint not null references sales(id) on delete cascade,
@@ -131,9 +142,14 @@ with bounds as (select max(contract_date) as as_of from sales),
 recent as (
   select s.* from sales s, bounds b where s.contract_date > b.as_of - interval '12 months'
 ),
+-- Greater Sydney median when the ingest supplied one, otherwise the median of all sales loaded.
 city as (
-  select property_type, percentile_cont(0.5) within group (order by price) as city_median
-  from recent group by property_type
+  select t.property_type,
+         coalesce(
+           (select r.median_price from reference_medians r
+             where r.property_type = t.property_type and r.period = 'last_12m' order by r.region limit 1),
+           percentile_cont(0.5) within group (order by t.price)) as city_median
+  from recent t group by t.property_type
 )
 select ss.station_id, r.id as ring_id, s.property_type,
        count(*)::int as sales_count,

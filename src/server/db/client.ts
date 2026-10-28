@@ -29,7 +29,7 @@ export async function schemaSql(): Promise<string> {
   return readFile(path.join(process.cwd(), 'db', 'schema.sql'), 'utf8');
 }
 
-async function createPglite(): Promise<Db> {
+async function createPglite(opts: { realSales?: boolean } = {}): Promise<Db> {
   const { PGlite } = await import('@electric-sql/pglite');
   const { postgis } = await import('@electric-sql/pglite-postgis');
   const pg = await PGlite.create({ extensions: { postgis } });
@@ -54,6 +54,11 @@ async function createPglite(): Promise<Db> {
   await db.exec(await schemaSql());
   const { seedDemo } = await import('./seed-demo');
   await seedDemo(db);
+  // Local development: use the real sales if the ingest has produced them (LUMINA_REAL_SALES=off to skip).
+  if (opts.realSales !== false && process.env.LUMINA_REAL_SALES !== 'off') {
+    const { loadRealSales, realSalesAvailable } = await import('./real-sales');
+    if (realSalesAvailable()) await loadRealSales(db);
+  }
   return db;
 }
 
@@ -109,6 +114,7 @@ export function getDb(): Promise<Db> {
 }
 
 /** A fresh in-memory database, for tests. */
+/** A fresh in-memory database with demo data only (tests never load local real data). */
 export function createTestDb(): Promise<Db> {
-  return createPglite();
+  return createPglite({ realSales: false });
 }

@@ -2,7 +2,10 @@
  * Step 1 of the sales ingest: parse every Valuer General zip in data/raw/vg into one clean CSV.
  *
  *   npm run ingest:vg                     # writes data/derived/vg_sales.csv and vg_summary.json
- *   npm run ingest:vg -- --months 24
+ *   npm run ingest:vg -- --months 24 --lag-months 3
+ *
+ * --lag-months (default 3): recent months are incomplete because sales are lodged after contract,
+ * so the window ends at the end of the month this many months before the latest contract date.
  *
  * Next step: ingest:geocode joins these addresses to G-NAF coordinates.
  */
@@ -15,6 +18,8 @@ const RAW = process.env.VG_RAW_DIR ?? path.join('data', 'raw', 'vg');
 const OUT = path.join('data', 'derived');
 const monthsArg = process.argv.indexOf('--months');
 const months = monthsArg > 0 ? Number(process.argv[monthsArg + 1]) : 24;
+const lagArg = process.argv.indexOf('--lag-months');
+const lagMonths = lagArg > 0 ? Number(process.argv[lagArg + 1]) : 3;
 
 const zips = readdirSync(RAW).filter((f) => f.toLowerCase().endsWith('.zip')).sort();
 if (!zips.length) {
@@ -32,7 +37,7 @@ for (const z of zips) {
 }
 console.log();
 
-const { sales, asOf, stats } = cleanSales(all, months);
+const { sales, asOf, latestContract, stats } = cleanSales(all, months, lagMonths);
 mkdirSync(OUT, { recursive: true });
 
 const cols: (keyof VgSale)[] = [
@@ -44,6 +49,14 @@ const esc = (v: unknown) => {
   return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 };
 writeFileSync(path.join(OUT, 'vg_sales.csv'), [cols.join(','), ...sales.map((s) => cols.map((c) => esc(s[c])).join(','))].join('\n') + '\n');
-const summary = { source: 'NSW Valuer General bulk property sales (Valuation NSW), Creative Commons Attribution', zips: zips.length, dat_files: datFiles, as_of: asOf, months, stats };
+// Monthly counts show the reporting lag that the cutoff avoids.
+const monthly: Record<string, number> = {};
+for (const s of all) if (s.nature === 'R' && s.contract_date) monthly[s.contract_date.slice(0, 7)] = (monthly[s.contract_date.slice(0, 7)] ?? 0) + 1;
+const recent = Object.fromEntries(Object.entries(monthly).sort().slice(-8));
+const summary = {
+  source: 'NSW Valuer General bulk property sales (Valuation NSW), Creative Commons Attribution',
+  zips: zips.length, dat_files: datFiles, latest_contract_date: latestContract, as_of: asOf, months, lag_months: lagMonths,
+  note: `Window ends ${asOf}: later months are still being lodged.`, recent_monthly_records: recent, stats,
+};
 writeFileSync(path.join(OUT, 'vg_summary.json'), JSON.stringify(summary, null, 2));
 console.log(JSON.stringify(summary, null, 2));

@@ -12,9 +12,26 @@ Only per-ring aggregates computed from them are published.
 
 ## Steps
 
-1. `npm run ingest:vg`: parses every zip in `data/raw/vg` into `data/derived/vg_sales.csv`
-   (residential, whole-property, arm's-length sales in the last 24 months; one row per transfer).
-2. Geocode against G-NAF (next).
-3. Load into Postgres, replacing the demo sales.
+```powershell
+npm run ingest:sales                       # = ingest:vg, ingest:gnaf, ingest:geocode
+npm run dev                                # local database loads the real sales automatically
+npm run db:setup -- --load-sales           # or load them into Postgres (DATABASE_URL)
+```
 
-`data/derived/` is gitignored too.
+1. `ingest:vg` parses every zip in `data/raw/vg` into `data/derived/vg_sales.csv`: residential,
+   whole-property, arm's-length sales, one row per transfer. The 24-month window ends three months
+   before the latest contract date (`--lag-months 3`), because recent sales are still being lodged.
+2. `ingest:gnaf` streams the G-NAF zip (no extraction needed) and keeps addresses within 5.6 km of
+   a station: `data/derived/gnaf_near_stations.csv`.
+3. `ingest:geocode` matches sales to those addresses (lot/plan, then street address, then building)
+   and computes Greater Sydney reference medians. `geocode_summary.json` reports match rates.
+4. Loading keeps only date, price, type, land area and the point; street addresses are not stored.
+
+`data/derived/` is gitignored too. Set `LUMINA_REAL_SALES=off` to run locally on demo sales.
+
+## Credits
+
+- Property sales: Valuation NSW, NSW Valuer General bulk sales data (Creative Commons Attribution).
+- Address locations: Incorporates or developed using G-NAF © Geoscape Australia licensed by the
+  Commonwealth of Australia under the Open Geo-coded National Address File (G-NAF) End User Licence
+  Agreement.

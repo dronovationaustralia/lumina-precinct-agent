@@ -4,6 +4,7 @@
  *   npm run db:setup                        # apply db/schema.sql (idempotent)
  *   npm run db:setup -- --agent-login       # also create/rotate the read-only agent login
  *   npm run db:setup -- --seed-demo         # also load labelled demo data (skipped if data exists)
+ *   npm run db:setup -- --load-sales        # replace demo sales with real sales from data/derived
  *
  * Reads DATABASE_URL (the admin connection string) from .env.local or the environment.
  * For --agent-login, set AGENT_DB_PASSWORD; the login is `lumina_agent`, a member of agent_ro.
@@ -56,6 +57,12 @@ try {
       await seedDemo(db);
       console.log('Demo data loaded (labelled "Demo data" everywhere).');
     }
+  }
+  if (flags.has('--load-sales')) {
+    const { loadRealSales, realSalesAvailable } = await import('@/server/db/real-sales');
+    if (!realSalesAvailable()) throw new Error('No data/derived/sales_geocoded.csv. Run ingest:vg, ingest:gnaf and ingest:geocode first.');
+    const r = await loadRealSales(db, undefined, (m) => console.log(m));
+    console.log(`Loaded ${r.sales.toLocaleString()} real sales (as of ${r.asOf}); demo sales removed.`);
   }
 } finally {
   await db.close();

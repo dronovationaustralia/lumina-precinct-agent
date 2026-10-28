@@ -14,6 +14,16 @@ repositories (`LuminaSpatialInsightsXR`, `LuminaSpatial`, `extended-tableau-mcp`
   records to 302,540 residential sales in 24 months (23 Oct 2024 to 22 Oct 2026). Licence in
   the files: Creative Commons Attribution, credit Valuation NSW.
 - Parser tests on a hand-made fixture (no real records committed). 47 tests.
+- Sales geocoding pipeline: `ingest:gnaf` streams the full G-NAF zip without extracting it and
+  keeps addresses within 5.6 km of the stations; `ingest:geocode` matches sales by lot/plan, street
+  address (Valuer General abbreviations mapped to G-NAF street type codes), address without type,
+  then building for units; `ingest:sales` runs all three steps. Greater Sydney reference medians
+  feed the affordability metric (`reference_medians` table).
+- Reporting-lag cutoff: the window ends three months before the latest contract date (31 Jul 2026
+  for the current files), because recent months are only partly lodged. Window: 328,334 sales.
+- Real sales load (`db:setup -- --load-sales`, and automatically in the local dev database) replaces
+  the demo sales and stores no street addresses. Tested end to end on Postgres 16 + PostGIS.
+- Tests for address normalisation and matching (found and fixed a multi-lot parsing bug). 54 tests.
 - `infra/main.bicep` can reuse an existing PostgreSQL Flexible Server (`existingPostgresHost`,
   `databaseName`) and then creates only the App Service resources. Guide section added.
 
