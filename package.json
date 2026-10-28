@@ -20,7 +20,8 @@
     "prebuild": "node scripts/copy-map-worker.mjs",
     "db:setup": "tsx --tsconfig tsconfig.json scripts/db-setup.ts",
     "package:azure": "node scripts/package-standalone.mjs",
-    "ingest:vg": "tsx --tsconfig tsconfig.json scripts/ingest/vg.ts"
+    "ingest:vg": "tsx --tsconfig tsconfig.json scripts/ingest/vg.ts",
+    "ingest:gnaf-sample": "tsx --tsconfig tsconfig.json scripts/ingest/gnaf-sample.ts"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.12",
@@ -40,6 +41,7 @@
     "vega": "^6.4.0",
     "vega-embed": "^7.3.0",
     "vega-lite": "^6.5.0",
+    "yauzl": "^3.4.0",
     "zod": "^4.6.7"
   },
   "devDependencies": {
@@ -48,6 +50,7 @@
     "@types/pg": "^8.23.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/yauzl": "^3.4.0",
     "eslint": "^9",
     "eslint-config-next": "16.4.3",
     "tailwindcss": "^4",
