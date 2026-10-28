@@ -15,7 +15,16 @@ import { offlineComposeFromFacts, offlinePlan } from './offline';
 
 export type ProviderId = 'meta' | 'baseten' | 'offline';
 
-export type Usage = { input: number; output: number };
+export type Usage = { input: number; output: number; reasoning?: number };
+
+export const REASONING_EFFORTS = ['minimal', 'low', 'medium', 'high', 'xhigh', 'max'] as const;
+export type ReasoningEffort = (typeof REASONING_EFFORTS)[number];
+
+/** Muse Spark always reasons; lower effort trades depth for latency. Default: low. */
+export function reasoningEffort(): ReasoningEffort {
+  const v = process.env.MUSE_REASONING_EFFORT as ReasoningEffort | undefined;
+  return v && REASONING_EFFORTS.includes(v) ? v : 'low';
+}
 
 export interface AgentModel {
   readonly provider: ProviderId;
@@ -27,12 +36,18 @@ export interface AgentModel {
 }
 
 function usageOf(m: AIMessage): Usage {
-  return { input: m.usage_metadata?.input_tokens ?? 0, output: m.usage_metadata?.output_tokens ?? 0 };
+  return {
+    input: m.usage_metadata?.input_tokens ?? 0,
+    output: m.usage_metadata?.output_tokens ?? 0,
+    reasoning: m.usage_metadata?.output_token_details?.reasoning ?? 0,
+  };
 }
 
 class OpenAICompatibleModel implements AgentModel {
   private readonly llm: ChatOpenAI;
-  constructor(readonly provider: ProviderId, readonly model: string, baseURL: string, apiKey: string) {
+  readonly effort: ReasoningEffort | undefined;
+  constructor(readonly provider: ProviderId, readonly model: string, baseURL: string, apiKey: string, effort?: ReasoningEffort) {
+    this.effort = effort;
     this.llm = new ChatOpenAI({
       model,
       apiKey,
@@ -42,6 +57,9 @@ class OpenAICompatibleModel implements AgentModel {
       timeout: 30_000,
       // Chat Completions until the Responses spike confirms LangChain's stateless replay works on Meta.
       useResponsesApi: false,
+      // Meta's Chat Completions field. Passed via modelKwargs because LangChain only forwards its
+      // own `reasoning` option for model names it recognises as OpenAI reasoning models.
+      ...(effort ? { modelKwargs: { reasoning_effort: effort } } : {}),
     });
   }
   async plan(messages: BaseMessage[], tools: StructuredToolInterface[]) {
@@ -70,7 +88,7 @@ export function getModel(requested?: ProviderId): AgentModel {
   if (provider === 'meta') {
     const key = process.env.MODEL_API_KEY;
     if (!key) throw new Error('MODEL_API_KEY is not set');
-    return new OpenAICompatibleModel('meta', process.env.MUSE_SPARK_MODEL ?? 'muse-spark-1.3', process.env.META_BASE_URL ?? 'https://api.meta.ai/v1', key);
+    return new OpenAICompatibleModel('meta', process.env.MUSE_SPARK_MODEL ?? 'muse-spark-1.3', process.env.META_BASE_URL ?? 'https://api.meta.ai/v1', key, reasoningEffort());
   }
   if (provider === 'baseten') {
     const key = process.env.BASETEN_API_KEY;

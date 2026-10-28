@@ -171,7 +171,9 @@ export const AskResponse = z.object({
     model: z.string(),
     demo_data: z.boolean(),
     timings_ms: z.record(z.string(), z.number()),
-    tokens: z.object({ input: z.number(), output: z.number() }),
+    reasoning_effort: z.string().optional(),
+    tokens: z.object({ input: z.number(), output: z.number(), reasoning: z.number().optional() }),
+    speculative_compose: z.object({ used: z.number(), discarded: z.number() }).optional(),
     tool_calls: z.array(ToolTrace),
   }),
 });

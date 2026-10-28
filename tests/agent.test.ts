@@ -71,6 +71,31 @@ describe('agent graph', () => {
     expect(r.verification.errors.join(' ')).toMatch(/upstream 503/);
   });
 
+  test('speculative compose: one compose call when no more tools are needed', async () => {
+    let composes = 0;
+    const model: AgentModel = {
+      provider: 'offline',
+      model: 'counting-test',
+      async plan(messages: BaseMessage[]) {
+        return offlinePlan(messages) as AIMessage;
+      },
+      async compose(_m, ctx) {
+        composes += 1;
+        return { text: offlineComposeFromFacts(ctx.question, ctx.facts), usage: { input: 10, output: 5 } };
+      },
+    };
+    const r = await runAgent(db, { question: 'Tree canopy near Chatswood' }, { model });
+    expect(r.verification.status).toBe('verified');
+    expect(composes).toBe(1);
+    expect(r.meta.speculative_compose).toEqual({ used: 1, discarded: 0 });
+  });
+
+  test('dataset questions get dataset names as context, not as figures', async () => {
+    const r = await runAgent(db, { question: 'What data sources do you use?' }, { provider: 'offline' });
+    expect(r.meta.tool_calls.map((t) => t.tool)).toEqual(['list_datasets']);
+    expect(r.verification.status).toBe('verified');
+  });
+
   test('stays in scope', async () => {
     const r = await runAgent(db, { question: 'What is the weather in Perth?' }, { provider: 'offline' });
     expect(r.meta.tool_calls).toHaveLength(0);

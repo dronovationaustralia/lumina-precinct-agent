@@ -57,7 +57,12 @@ const LAND_USE_WORDS = /\b(canopy|trees?|car ?parks?|parking|construction|buildi
 const NEW_WORDS = /\b(new|newly|recent(?:ly)?|emerging)\b/i;
 const LAND_USE_METRICS = new Set(['canopy_pct', 'carpark_pct', 'building_pct', 'construction_pct']);
 
-export function verifyDraft(draft: Draft, facts: Fact[], trace: ToolTrace[]): VerifyResult {
+/**
+ * `notes` are non-numeric context lines from tools (dataset names, licences). Tokens containing
+ * digits that appear verbatim in a note (for example "CC BY 4.0") are not treated as figures.
+ */
+export function verifyDraft(draft: Draft, facts: Fact[], trace: ToolTrace[], notes: string[] = []): VerifyResult {
+  const noteTokens = [...new Set(notes.flatMap((n) => n.match(/[^\s,;()]*\d[^\s,;()]*/g) ?? []))].sort((a, b) => b.length - a.length);
   const checks: CheckResult[] = [];
   const errors: string[] = [];
   const byId = new Map(facts.map((f) => [f.id, f]));
@@ -88,6 +93,7 @@ export function verifyDraft(draft: Draft, facts: Fact[], trace: ToolTrace[]): Ve
     let rest = line.replace(PLACEHOLDER, ' ');
     if (/[{}]/.test(rest)) numbers.push(`line ${i + 1} has a malformed placeholder; use {fN}`);
     for (const re of ALLOWED_NUMBER_PHRASES) rest = rest.replace(re, ' ');
+    for (const tok of noteTokens) rest = rest.split(tok.replace(/\.$/, '')).join(' ');
     const stray = rest.match(/\d[\d,.]*\s?%?/g);
     if (stray) numbers.push(`line ${i + 1} contains unverified number(s) ${stray.map((s) => `"${s.trim()}"`).join(', ')}; every figure must be a {fN} placeholder`);
   }

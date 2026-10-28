@@ -80,7 +80,14 @@ npm run build && npm run package:azure          # .next/standalone, started with
 
 ## Evals
 
-Latest results are written to `evals/results-<provider>.md`. Baseline (offline rules, no model, demo data): 19 of 22 pass. Muse Spark and Muse Spark Open tables will be added after live runs.
+Latest results are written to `evals/results-<provider>.md`; every run is archived in `evals/runs/`.
+
+| Run (demo data) | Pass | p50 | p95 | Cost per answer |
+| --- | --- | --- | --- | --- |
+| Muse Spark 1.3, default reasoning (28 Oct) | 22 / 22, all verified first time | 15.1 s | 25.9 s | US$0.024 |
+| Offline rules baseline (no model) | 19 / 22 | 0.3 s | 1.3 s | none |
+
+Next: Muse Spark at `reasoning_effort` low (now the default) to bring p95 under 8 s, then Muse Spark Open.
 
 ## Day-1 spikes
 

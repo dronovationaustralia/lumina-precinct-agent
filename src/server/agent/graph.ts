@@ -3,6 +3,8 @@
  *
  *   START -> plan <-> tools        Muse Spark picks governed tools (at most 5 calls)
  *            plan -> compose       writes up to 3 lines with {fN} placeholders, actions, follow-ups, chart
+ *            plan -> verify        speculative compose: after tools have run, the answer is drafted in
+ *                                  parallel with the next planning turn and used if no more tools are needed
  *         compose -> verify        deterministic checks, no model
  *          verify -> compose       retry once with the errors listed
  *          verify -> fallback      template answer built from facts if the retry fails too
@@ -27,7 +29,7 @@ import { Draft, fillPlaceholders, verifyDraft, type VerifyResult } from './verif
 export type AgentEvent =
   | { type: 'plan'; tool_calls: { name: string; args: unknown }[] }
   | { type: 'tool'; name: string; ok: boolean; ms: number; facts: number }
-  | { type: 'compose'; attempt: number }
+  | { type: 'compose'; attempt: number; speculative?: boolean }
   | { type: 'verify'; ok: boolean; errors: string[] }
   | { type: 'fallback'; reason: string };
 
@@ -40,7 +42,11 @@ const State = Annotation.Root({
   attempts: Annotation<number>({ reducer: (_, b) => b, default: () => 0 }),
   verification: Annotation<VerifyResult | null>({ reducer: (_, b) => b, default: () => null }),
   fallbackReason: Annotation<string | null>({ reducer: (_, b) => b, default: () => null }),
+  speculated: Annotation<boolean>({ reducer: (_, b) => b, default: () => false }),
 });
+
+/** Draft the answer in parallel with the post-tools planning turn (saves one model round trip). */
+const SPECULATIVE_COMPOSE = process.env.AGENT_SPECULATIVE_COMPOSE !== 'false';
 type S = typeof State.State;
 
 /** Pull a JSON object out of model text (tolerates code fences and stray prose). */
@@ -60,6 +66,8 @@ export function parseDraft(text: string): { draft: Draft | null; error?: string 
 
 export type RunOptions = { provider?: ProviderId; model?: AgentModel; onEvent?: (e: AgentEvent) => void };
 
+export type RunStats = { speculative_used: number; speculative_discarded: number; reasoning_tokens: number };
+
 export async function runAgent(db: Db, req: AskRequest, opts: RunOptions = {}): Promise<AskResponse> {
   const t0 = performance.now();
   const timings: Record<string, number> = {};
@@ -70,7 +78,9 @@ export async function runAgent(db: Db, req: AskRequest, opts: RunOptions = {}): 
   const model = opts.model ?? getModel(opts.provider);
   const facts = new FactStore();
   const trace: ToolTrace[] = [];
-  const tools = buildTools({ db, facts, trace });
+  const notes: string[] = [];
+  const tools = buildTools({ db, facts, trace, notes });
+  const stats: RunStats = { speculative_used: 0, speculative_discarded: 0, reasoning_tokens: 0 };
   const byName = new Map(tools.map((t) => [t.name, t]));
   const usage: Usage = { input: 0, output: 0 };
   const emit = (e: AgentEvent) => opts.onEvent?.(e);
@@ -78,12 +88,41 @@ export async function runAgent(db: Db, req: AskRequest, opts: RunOptions = {}): 
   const contextLine = req.station_context ? ` [station_context=${req.station_context}]` : '';
   const history = (req.history ?? []).map((h) => (h.role === 'user' ? new HumanMessage(h.content) : new AIMessage(h.content)));
 
+  const addUsage = (u: Usage) => {
+    usage.input += u.input;
+    usage.output += u.output;
+    stats.reasoning_tokens += u.reasoning ?? 0;
+  };
+
+  /** One compose call: the model drafts JSON from the facts and tool notes. */
+  const composeOnce = async (errors: string[]) => {
+    const msgs = [new SystemMessage(COMPOSE_SYSTEM), new HumanMessage(composeUser(req.question, factsForModel(facts.all()), errors, notes))];
+    const { text, usage: u } = await time('compose', () => model.compose(msgs, { question: req.question, facts: facts.all() }));
+    return { ...parseDraft(text), usage: u };
+  };
+
   const plan = async (s: S): Promise<Partial<S>> => {
+    // After at least one round of tools, start drafting the answer while the model decides
+    // whether it needs more data. If it does, the draft is discarded.
+    const speculate = SPECULATIVE_COMPOSE && s.planTurns >= 1 && s.toolCalls > 0;
+    const drafting = speculate ? composeOnce([]) : null;
+    drafting?.catch(() => {});
     const ai = await time('plan', () => model.plan(s.messages, tools));
-    usage.input += usageOf(ai).input;
-    usage.output += usageOf(ai).output;
+    addUsage(usageOf(ai));
     emit({ type: 'plan', tool_calls: (ai.tool_calls ?? []).map((c) => ({ name: c.name, args: c.args })) });
-    return { messages: [ai], planTurns: s.planTurns + 1 };
+    const wantsTools = Boolean(ai.tool_calls?.length) && s.toolCalls < MAX_TOOL_CALLS && s.planTurns < MAX_TOOL_CALLS;
+    if (drafting && !wantsTools) {
+      emit({ type: 'compose', attempt: 1, speculative: true });
+      const c = await drafting;
+      addUsage(c.usage);
+      stats.speculative_used += 1;
+      return { messages: [ai], planTurns: s.planTurns + 1, draft: c.draft, attempts: 1, composeErrors: c.error ? [c.error] : [], speculated: true };
+    }
+    if (drafting) {
+      stats.speculative_discarded += 1;
+      void drafting.then((c) => addUsage(c.usage), () => {});
+    }
+    return { messages: [ai], planTurns: s.planTurns + 1, speculated: false };
   };
 
   const runTools = async (s: S): Promise<Partial<S>> => {
@@ -119,17 +158,14 @@ export async function runAgent(db: Db, req: AskRequest, opts: RunOptions = {}): 
   const compose = async (s: S): Promise<Partial<S>> => {
     const attempt = s.attempts + 1;
     emit({ type: 'compose', attempt });
-    const msgs = [new SystemMessage(COMPOSE_SYSTEM), new HumanMessage(composeUser(req.question, factsForModel(facts.all()), s.composeErrors))];
-    const { text, usage: u } = await time('compose', () => model.compose(msgs, { question: req.question, facts: facts.all() }));
-    usage.input += u.input;
-    usage.output += u.output;
-    const { draft, error } = parseDraft(text);
+    const { draft, error, usage: u } = await composeOnce(s.composeErrors);
+    addUsage(u);
     return { draft, attempts: attempt, composeErrors: error ? [error] : [] };
   };
 
   const verify = async (s: S): Promise<Partial<S>> => {
     const result = s.draft
-      ? verifyDraft(s.draft, facts.all(), trace)
+      ? verifyDraft(s.draft, facts.all(), trace, notes)
       : { ok: false, checks: [{ name: 'answer_shape', passed: false, detail: s.composeErrors.join('; ') }], errors: s.composeErrors, actions: [], followups: [], chart: null };
     emit({ type: 'verify', ok: result.ok, errors: result.errors });
     return { verification: result, composeErrors: result.ok ? [] : result.errors };
@@ -139,7 +175,7 @@ export async function runAgent(db: Db, req: AskRequest, opts: RunOptions = {}): 
     const reason = s.verification?.errors.join('; ') || 'verification failed';
     emit({ type: 'fallback', reason });
     const { draft } = parseDraft(offlineComposeFromFacts(req.question, facts.all()));
-    const result = draft ? verifyDraft(draft, facts.all(), trace) : null;
+    const result = draft ? verifyDraft(draft, facts.all(), trace, notes) : null;
     return { draft, verification: result, fallbackReason: reason };
   };
 
@@ -151,9 +187,10 @@ export async function runAgent(db: Db, req: AskRequest, opts: RunOptions = {}): 
     .addNode('fallback', fallback)
     .addEdge(START, 'plan')
     .addConditionalEdges('plan', (s: S) => {
+      if (s.speculated) return 'verify';
       const last = s.messages.at(-1) as AIMessage;
       return last.tool_calls?.length && s.toolCalls < MAX_TOOL_CALLS && s.planTurns <= MAX_TOOL_CALLS ? 'tools' : 'compose';
-    }, ['tools', 'compose'])
+    }, ['tools', 'compose', 'verify'])
     .addEdge('tools', 'plan')
     .addEdge('compose', 'verify')
     .addConditionalEdges('verify', (s: S) => (s.verification?.ok ? END : s.attempts < 2 ? 'compose' : 'fallback'), ['compose', 'fallback', END])
@@ -171,11 +208,11 @@ export async function runAgent(db: Db, req: AskRequest, opts: RunOptions = {}): 
     const reason = `model call failed: ${e instanceof Error ? e.message : String(e)}`;
     emit({ type: 'fallback', reason });
     const { draft } = parseDraft(offlineComposeFromFacts(req.question, facts.all()));
-    final = { messages: [], toolCalls: trace.length, planTurns: 0, draft, composeErrors: [], attempts: 0, verification: draft ? verifyDraft(draft, facts.all(), trace) : null, fallbackReason: reason };
+    final = { messages: [], toolCalls: trace.length, planTurns: 0, draft, composeErrors: [], attempts: 0, verification: draft ? verifyDraft(draft, facts.all(), trace, notes) : null, fallbackReason: reason, speculated: false };
   }
 
   timings.total = Math.round(performance.now() - t0);
-  return respond(db, final, facts.all(), trace, { model, usage, timings });
+  return respond(db, final, facts.all(), trace, { model, usage, timings, stats });
 }
 
 async function respond(
@@ -183,7 +220,7 @@ async function respond(
   s: S,
   facts: Fact[],
   trace: ToolTrace[],
-  ctx: { model: AgentModel; usage: Usage; timings: Record<string, number> },
+  ctx: { model: AgentModel; usage: Usage; timings: Record<string, number>; stats: RunStats },
 ): Promise<AskResponse> {
   const v = s.verification;
   const ok = Boolean(v?.ok && s.draft);
@@ -221,7 +258,9 @@ async function respond(
       model: ctx.model.model,
       demo_data: demo,
       timings_ms: ctx.timings,
-      tokens: ctx.usage,
+      reasoning_effort: (ctx.model as { effort?: string }).effort,
+      tokens: { input: ctx.usage.input, output: ctx.usage.output, reasoning: ctx.stats.reasoning_tokens },
+      speculative_compose: { used: ctx.stats.speculative_used, discarded: ctx.stats.speculative_discarded },
       tool_calls: trace,
     },
   };

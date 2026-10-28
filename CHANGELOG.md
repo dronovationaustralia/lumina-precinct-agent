@@ -4,6 +4,32 @@ All work in this repository was built during the Meta Global AI Developer Hackat
 (27 Oct – 4 Nov 2026). Dates are Sydney time. No code is copied from earlier Lumina
 repositories (`LuminaSpatialInsightsXR`, `LuminaSpatial`, `extended-tableau-mcp`).
 
+## 2026-10-29 (Thu)
+
+### Results
+- First live eval on Muse Spark 1.3 (default reasoning, demo data): **22 of 22 pass**, all verified on
+  the first attempt (no retries or fallbacks). Latency p50 15.1 s, p95 25.9 s; about 3,900 output
+  tokens per answer, about US$0.024 per answer. Offline rules baseline: 19 of 22.
+
+### Changed
+- Reasoning effort is now set explicitly (`MUSE_REASONING_EFFORT`, default `low`; sent as
+  `reasoning_effort` via `modelKwargs`, because LangChain drops its own `reasoning` option for
+  non-OpenAI model names). Eval takes `--effort` to compare settings.
+- Speculative compose: after tools have run, the answer is drafted in parallel with the next
+  planning turn and used if no more tools are needed, saving one model round trip.
+- The compose step now sees non-numeric tool context (dataset names and licences, unmatched
+  places) and the covered stations; digits that appear verbatim in that context are allowed.
+- Prompts: compare like with like (units vs houses, not all-property medians across rings), name
+  the property type with every price, use "associated with" only when relating two measures,
+  clearer out-of-scope and no-advice replies.
+- Patronage figures display without a duplicated "trips" unit.
+- Eval records reasoning tokens, stage timings, attempts and speculative-compose use, prices runs
+  at Meta list prices (US$1.25 / US$4.25 per million tokens), and archives every run in `evals/runs/`.
+- Mock Meta server answers compose calls with a JSON draft and validates `reasoning_effort`.
+
+### Added
+- Tests (44): speculative compose path, dataset-context answers, note-token allowance.
+
 ## 2026-10-28 (Wed), late afternoon
 
 ### Added

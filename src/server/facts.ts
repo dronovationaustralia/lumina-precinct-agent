@@ -27,7 +27,7 @@ export function formatValue(value: number | null, unit: Unit | string): string {
     case 'ratio':
       return `${value.toFixed(2)}×`;
     case 'trips':
-      return value >= 1_000_000 ? `${(value / 1_000_000).toFixed(2)}m trips` : `${Math.round(value / 1000)}k trips`;
+      return value >= 1_000_000 ? `${(value / 1_000_000).toFixed(2)}m` : `${Math.round(value / 1000)}k`;
     case 'count':
       return Math.round(value).toLocaleString('en-AU');
     default:

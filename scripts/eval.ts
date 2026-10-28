@@ -56,11 +56,16 @@ function arg(name: string): string | undefined {
 }
 
 const providerArg = arg('provider') as 'meta' | 'baseten' | 'offline' | undefined;
+const effortArg = arg('effort');
+if (effortArg) process.env.MUSE_REASONING_EFFORT = effortArg;
 const only = arg('only');
 const model = getModel(providerArg);
 const db = await getDb();
-const priceIn = Number(process.env.PRICE_INPUT_PER_MTOK ?? NaN);
-const priceOut = Number(process.env.PRICE_OUTPUT_PER_MTOK ?? NaN);
+// Meta list prices for Muse Spark 1.3 (USD per million tokens, 29 Oct 2026); override with env.
+const DEFAULT_PRICES: Record<string, [number, number]> = { meta: [1.25, 4.25] };
+const priceIn = Number(process.env.PRICE_INPUT_PER_MTOK ?? DEFAULT_PRICES[model.provider]?.[0] ?? NaN);
+const priceOut = Number(process.env.PRICE_OUTPUT_PER_MTOK ?? DEFAULT_PRICES[model.provider]?.[1] ?? NaN);
+const effort = (model as { effort?: string }).effort ?? 'n/a';
 
 const results = [];
 for (const c of CASES.filter((x) => !only || only.split(',').includes(x.id))) {
@@ -87,6 +92,8 @@ for (const c of CASES.filter((x) => !only || only.split(',').includes(x.id))) {
       id: c.id, question: c.q, pass, schema: schemaOk, numbers_verified: numbersOk, wording: wordingOk, tool_choice: toolOk,
       status: r.verification.status, tools_used: [...used], latency_ms: ms, tokens_in: r.meta.tokens.input, tokens_out: r.meta.tokens.output,
       cost_usd: cost, lines: r.lines, errors: r.verification.errors,
+      tokens_reasoning: r.meta.tokens.reasoning ?? 0, timings_ms: r.meta.timings_ms,
+      speculative: r.meta.speculative_compose, attempts: r.verification.attempts,
     };
   } catch (e) {
     row = { id: c.id, question: c.q, pass: false, error: e instanceof Error ? e.message : String(e), latency_ms: Math.round(performance.now() - t0) };
@@ -103,14 +110,14 @@ const tokIn = results.reduce((a, r) => a + Number(r.tokens_in ?? 0), 0);
 const tokOut = results.reduce((a, r) => a + Number(r.tokens_out ?? 0), 0);
 const costs = results.map((r) => r.cost_usd).filter((x): x is number => typeof x === 'number');
 const summary = {
-  run_at: new Date().toISOString(), provider: model.provider, model: model.model, database: db.kind,
+  run_at: new Date().toISOString(), provider: model.provider, model: model.model, reasoning_effort: effort, database: db.kind,
   passed, total: results.length, p50_ms: p50, p95_ms: p95, tokens_in: tokIn, tokens_out: tokOut,
   cost_usd_per_answer: costs.length ? costs.reduce((a, b) => a + b, 0) / costs.length : null,
 };
 
 const yes = (b: unknown) => (b ? 'yes' : '**no**');
 const md = [
-  `### Eval: ${model.provider} (${model.model})`,
+  `### Eval: ${model.provider} (${model.model}${effort !== 'n/a' ? `, reasoning effort ${effort}` : ''})`,
   '',
   `Run ${summary.run_at.slice(0, 16).replace('T', ' ')} UTC on ${db.kind}. **${passed} of ${results.length} pass.** p50 ${p50} ms, p95 ${p95} ms. Tokens ${tokIn} in / ${tokOut} out.${summary.cost_usd_per_answer !== null ? ` Cost per answer US$${summary.cost_usd_per_answer.toFixed(4)}.` : ''}`,
   '',
@@ -123,5 +130,9 @@ const md = [
 await mkdir('evals', { recursive: true });
 await writeFile(path.join('evals', `results-${model.provider}.json`), JSON.stringify({ summary, results }, null, 2));
 await writeFile(path.join('evals', `results-${model.provider}.md`), md);
+// Keep every run so latency and cost can be compared across settings.
+await mkdir(path.join('evals', 'runs'), { recursive: true });
+const stamp = summary.run_at.replace(/[:.]/g, '-').slice(0, 19);
+await writeFile(path.join('evals', 'runs', `${stamp}-${model.provider}-${effort}.json`), JSON.stringify({ summary, results }, null, 2));
 console.log(`\n${passed}/${results.length} passed · p50 ${p50} ms · p95 ${p95} ms → evals/results-${model.provider}.{json,md}`);
 await db.close();

@@ -67,6 +67,14 @@ async function handle(req: IncomingMessage, res: ServerResponse) {
     const problems = toolRequestProblems(parsed);
     if (problems.length) return json(res, 400, { error: { message: problems.join('; ') } });
     const msgs = parsed.messages as { role: string; content: unknown }[];
+    if (parsed.reasoning_effort !== undefined && !['minimal', 'low', 'medium', 'high', 'xhigh', 'max'].includes(parsed.reasoning_effort)) {
+      return json(res, 400, { error: { message: `invalid reasoning_effort ${parsed.reasoning_effort}` } });
+    }
+    // A compose call (no tools bound): answer with a JSON draft citing the first fact.
+    if (!parsed.tools) {
+      const draft = { lines: ['Mock answer: the first figure is {f1}.'], actions: [], followups: [], chart: null };
+      return json(res, 200, { id: 'mock', object: 'chat.completion', created: 0, model: parsed.model, usage: { prompt_tokens: 900, completion_tokens: 60, total_tokens: 960, completion_tokens_details: { reasoning_tokens: 40 } }, choices: [{ index: 0, finish_reason: 'stop', message: { role: 'assistant', content: JSON.stringify(draft) } }] });
+    }
     const hasToolResult = msgs.some((m) => m.role === 'tool');
     const question = String(msgs.findLast((m) => m.role === 'user')?.content ?? '');
     const usage = { prompt_tokens: 420, completion_tokens: 40, total_tokens: 460 };

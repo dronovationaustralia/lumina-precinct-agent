@@ -34,6 +34,12 @@ describe('verifier', () => {
     expect(errorsOf({ lines: ['Prices rose 13% near {f1}.'] })).toMatch(/unverified number/);
   });
 
+  test('allows digits that come verbatim from tool notes (dataset names, licences)', () => {
+    const d = draft({ lines: ['Sales come from NSW Valuer General data under CC BY 4.0, with {f1} as the median.'] });
+    expect(verifyDraft(d, FACTS, [], []).errors.join(' ')).toMatch(/unverified number/);
+    expect(verifyDraft(d, FACTS, [], ['Dataset: NSW Valuer General bulk sales. Licence: CC BY 4.0.']).errors).toEqual([]);
+  });
+
   test('rejects unknown and unusable placeholders', () => {
     expect(errorsOf({ lines: ['The median is {f9}.'] })).toMatch(/no tool returned/);
     expect(errorsOf({ lines: ['The median is {f3}.'] })).toMatch(/has no value/);

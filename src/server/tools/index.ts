@@ -19,7 +19,8 @@ import { guardSql, VIEW_DATASET } from './sql-guard';
 
 export const MAX_TOOL_CALLS = 5;
 
-export type ToolContext = { db: Db; facts: FactStore; trace: ToolTrace[] };
+/** `notes` carries non-numeric context (dataset names, unmatched places) to the compose step. */
+export type ToolContext = { db: Db; facts: FactStore; trace: ToolTrace[]; notes: string[] };
 
 export const queryMetricArgs = z.object({
   metric: z.enum(METRIC_IDS).describe('Catalogued metric id'),
@@ -74,6 +75,7 @@ export function buildTools(ctx: ToolContext): StructuredToolInterface[] {
     async () =>
       traced(ctx, 'list_datasets', {}, async () => {
         const rows = await listDatasets(ctx.db);
+        for (const d of rows) ctx.notes.push(`Dataset: ${d.name}. Licence: ${d.licence}.${d.is_demo ? ' Synthetic demo data.' : ''}`);
         return { result: rows.map((d) => ({ id: d.dataset_id, name: d.name, coverage: d.coverage, licence: d.licence, as_of: d.as_of, demo: d.is_demo })), fact_ids: [] };
       }),
     { name: 'list_datasets', description: 'List the datasets available, with coverage, licence and as-of date.', schema: z.object({}) },
@@ -164,6 +166,7 @@ export function buildTools(ctx: ToolContext): StructuredToolInterface[] {
     async (args) =>
       traced(ctx, 'search_place', args, async () => {
         const s = findStation(args.query);
+        ctx.notes.push(s ? `"${args.query}" is ${s.name} station.` : `"${args.query}" is not one of the covered stations.`);
         return {
           result: s
             ? { station_id: s.id, name: s.name, corridor: s.corridor, lat: s.lat, lon: s.lon }
