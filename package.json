@@ -25,7 +25,8 @@
     "ingest:gnaf": "tsx --tsconfig tsconfig.json scripts/ingest/gnaf.ts",
     "ingest:geocode": "tsx --tsconfig tsconfig.json scripts/ingest/geocode.ts",
     "ingest:sales": "npm run ingest:vg && npm run ingest:gnaf && npm run ingest:geocode",
-    "ingest:patronage": "tsx --tsconfig tsconfig.json scripts/ingest/patronage.ts"
+    "ingest:patronage": "tsx --tsconfig tsconfig.json scripts/ingest/patronage.ts",
+    "ingest:gtfs": "tsx --tsconfig tsconfig.json scripts/ingest/gtfs.ts"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.12",

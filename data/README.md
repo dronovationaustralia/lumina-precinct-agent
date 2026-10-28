@@ -15,6 +15,7 @@ Only per-ring aggregates computed from them are published.
 ```powershell
 npm run ingest:sales                       # = ingest:vg, ingest:gnaf, ingest:geocode
 npm run ingest:patronage                   # TfNSW entries and exits -> data/derived/patronage.csv
+npm run ingest:gtfs                        # exact station locations -> src/lib/station-coords.json (committed)
 npm run dev                                # local database loads the real data automatically
 npm run db:setup -- --load-real            # or load sales and patronage into Postgres (DATABASE_URL)
 ```
@@ -31,12 +32,16 @@ npm run db:setup -- --load-real            # or load sales and patronage into Po
    monthly) and keeps each station's own train row (Chatswood's shared train/metro row). Nearby light
    rail stops and separate metro stations (Victoria Cross, Crows Nest, Barangaroo) are not added in.
 
+6. `ingest:gtfs` reads `stops.txt` from the GTFS zip in `data/raw/gtfs` (no extraction) and takes
+   each station's parent stop. Its small output is committed, so deployed apps use it too.
+
 `data/derived/` is gitignored too. Set `LUMINA_REAL_DATA=off` to run locally on demo data.
 
 ## Credits
 
 - Property sales: Valuation NSW, NSW Valuer General bulk sales data (Creative Commons Attribution).
-- Station patronage: Transport for NSW, Train Station Entries and Exits (CC BY 4.0).
+- Station patronage and locations: Transport for NSW, Train Station Entries and Exits and GTFS
+  Timetables Complete (CC BY 4.0).
 - Address locations: Incorporates or developed using G-NAF © Geoscape Australia licensed by the
   Commonwealth of Australia under the Open Geo-coded National Address File (G-NAF) End User Licence
   Agreement.

@@ -13,6 +13,9 @@ repositories (`LuminaSpatialInsightsXR`, `LuminaSpatial`, `extended-tableau-mcp`
 - Real patronage replaces the demo patronage in local dev automatically and with
   `db:setup -- --load-patronage` (`--load-real` loads sales and patronage). `LUMINA_REAL_DATA=off`
   keeps demo data. Parser tests. 56 tests. Only land use is still demo data.
+- `npm run ingest:gtfs`: station locations from the TfNSW GTFS parent stops, streamed from the
+  zip, written to the committed `src/lib/station-coords.json`; the station registry uses them
+  when present (`coord_source: gtfs`).
 
 ### Results
 - Real G-NAF geocoding run: **98.9%** of sales in the stations' own postcodes matched (12,838 of

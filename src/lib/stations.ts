@@ -1,10 +1,12 @@
 /**
  * Station registry for the 10 hackathon stations on two corridors.
  *
- * Coordinates are APPROXIMATE (platform centres read off a map) until the TfNSW GTFS
- * `stops.txt` ingest replaces them; `coord_source` says which applies.
+ * Coordinates come from TfNSW GTFS `stops.txt` (parent station) via `npm run ingest:gtfs`, which
+ * writes `station-coords.json`. Until then the approximate values below apply; `coord_source`
+ * says which.
  */
 import type { StationId } from './contracts';
+import GTFS from './station-coords.json';
 
 export type Station = {
   id: StationId;
@@ -16,7 +18,7 @@ export type Station = {
   coord_source: 'approximate' | 'gtfs';
 };
 
-export const STATIONS: readonly Station[] = [
+const BASE: readonly Station[] = [
   { id: 'wynyard', name: 'Wynyard', corridor: 'north_shore', lat: -33.8658, lon: 151.2058, aliases: [], coord_source: 'approximate' },
   { id: 'milsons_point', name: 'Milsons Point', corridor: 'north_shore', lat: -33.8461, lon: 151.2118, aliases: ['milsons'], coord_source: 'approximate' },
   { id: 'north_sydney', name: 'North Sydney', corridor: 'north_shore', lat: -33.8406, lon: 151.2072, aliases: ['n sydney', 'north syd'], coord_source: 'approximate' },
@@ -28,6 +30,13 @@ export const STATIONS: readonly Station[] = [
   { id: 'granville', name: 'Granville', corridor: 'parramatta', lat: -33.8326, lon: 151.0119, aliases: [], coord_source: 'approximate' },
   { id: 'auburn', name: 'Auburn', corridor: 'parramatta', lat: -33.8494, lon: 151.0330, aliases: [], coord_source: 'approximate' },
 ];
+
+const gtfs = (GTFS as { stations: Record<string, { lat: number; lon: number }> }).stations;
+
+export const STATIONS: readonly Station[] = BASE.map((s) => {
+  const g = gtfs[s.id];
+  return g ? { ...s, lat: g.lat, lon: g.lon, coord_source: 'gtfs' as const } : s;
+});
 
 export const STATION_BY_ID = new Map(STATIONS.map((s) => [s.id, s]));
 
