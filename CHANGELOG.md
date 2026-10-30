@@ -4,6 +4,12 @@ All work in this repository was built during the Meta Global AI Developer Hackat
 (27 Oct – 4 Nov 2026). Dates are Sydney time. No code is copied from earlier Lumina
 repositories (`LuminaSpatialInsightsXR`, `LuminaSpatial`, `extended-tableau-mcp`).
 
+## 2026-10-30 (Fri)
+
+### Changed
+- Station locations now come from the TfNSW GTFS parent stops (Greater Sydney GTFS static):
+  all 10 stations matched, each within 100 m of the earlier approximate location.
+
 ## 2026-10-29 (Thu), early morning
 
 ### Added
