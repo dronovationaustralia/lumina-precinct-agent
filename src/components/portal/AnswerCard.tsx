@@ -64,11 +64,14 @@ function renderLine(template: string, facts: Map<string, Fact>, order: Map<strin
   });
 }
 
-export function AnswerCard({ turn, stationName, onFollowUp, onFocusFact }: {
+export type AnswerActions = { onSave: () => void; onPdf: () => void; onMarkdown: () => void; onCopy: () => void; saved: boolean };
+
+export function AnswerCard({ turn, stationName, onFollowUp, onFocusFact, actions }: {
   turn: Turn;
   stationName?: string;
   onFollowUp: (q: string) => void;
   onFocusFact: (f: Fact | null) => void;
+  actions?: AnswerActions;
 }) {
   const anchor = useId().replace(/:/g, '');
   const [hover, setHover] = useState<string | null>(null);
@@ -99,6 +102,16 @@ export function AnswerCard({ turn, stationName, onFollowUp, onFocusFact }: {
       ))}
 
       {a && <AnswerBody a={a} anchor={anchor} hover={hover} onHot={hot} open={open} setOpen={setOpen} onFollowUp={onFollowUp} />}
+      {a && actions && (
+        <div className="answer-actions" role="group" aria-label="Export or save this answer">
+          <button type="button" onClick={actions.onCopy} title="Copy the answer, figures and sources as text">Copy</button>
+          <button type="button" onClick={actions.onMarkdown} title="Download as a Markdown file">Markdown</button>
+          <button type="button" onClick={actions.onPdf} title="Opens the print dialog: choose Save as PDF">Export PDF</button>
+          <button type="button" className={actions.saved ? 'is-on' : ''} onClick={actions.onSave} aria-pressed={actions.saved} title="Keep this analysis in Saved (this browser)">
+            {actions.saved ? 'Saved' : 'Save'}
+          </button>
+        </div>
+      )}
     </article>
   );
 }

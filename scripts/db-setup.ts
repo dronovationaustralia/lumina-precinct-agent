@@ -78,6 +78,8 @@ try {
     if (!realLandUseAvailable()) throw new Error('No data/derived/landuse.ndjson. Run fetch:landuse and ingest:landuse first.');
     const r = await loadRealLandUse(db, undefined, (m) => console.log(m));
     console.log(`Loaded ${r.polygons.toLocaleString()} land-use polygons and ring shares.`);
+    const { loadRealCover, realCoverAvailable } = await import('@/server/db/real-cover');
+    if (realCoverAvailable()) console.log(`Loaded SAM 3.1 aerial cover for ${(await loadRealCover(db)).stations} stations.`);
   }
 } finally {
   await db.close();

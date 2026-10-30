@@ -1,0 +1,198 @@
+/**
+ * SAM 3.1 aerial land cover around stations (run on a machine that can reach NSW Spatial Services
+ * and the Meta Model API: your laptop).
+ *
+ *   npm run sam:batch                         # the 10 featured stations
+ *   npm run sam:batch -- --stations chatswood,parramatta
+ *   npm run sam:batch -- --res 0.5            # finer imagery (4x the requests)
+ *   npm run sam:batch -- --mock               # against the local mock server (npm run spike:mock)
+ *
+ * For each station: aerial imagery chips (1024 px) from the NSW Imagery service covering the
+ * 800 m ring, SAM 3.1 segments four concepts per chip (building, tree canopy, car park,
+ * construction site), masks are merged into one station grid, and cover % is measured inside
+ * 400 m and 800 m. Results are cached per chip, so a re-run only calls SAM for what is missing.
+ *
+ * Output: data/derived/sam_cover.csv, data/derived/sam/<station>.svg (overlay for review),
+ *         data/derived/sam/summary.json. Load with `npm run dev` (automatic) or db:setup --load-real.
+ */
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import path from 'node:path';
+
+import { decodeMaskToRaster, decodeMaskToSVGPath, parseImageStream, recordsOfKind, type ImageSegmentationResult, type ResponsesEvent } from '@meta-sam/parser';
+import OpenAI from 'openai';
+
+import { STATIONS } from '../../src/lib/stations';
+
+for (const f of ['.env.local', '.env']) if (existsSync(f)) process.loadEnvFile(f);
+const arg = (name: string) => { const i = process.argv.indexOf(`--${name}`); return i > 0 ? process.argv[i + 1] : undefined; };
+const MOCK = process.argv.includes('--mock');
+const BASE = MOCK ? `http://127.0.0.1:${process.env.MOCK_PORT ?? 8787}/v1` : (process.env.META_BASE_URL ?? 'https://api.meta.ai/v1');
+const MODEL = process.env.SAM_MODEL ?? 'sam-3.1';
+const KEY = MOCK ? 'mock-key' : process.env.MODEL_API_KEY;
+if (!KEY) throw new Error('MODEL_API_KEY is not set in .env.local');
+const IMAGERY = process.env.NSW_IMAGERY_EXPORT_URL ?? 'https://maps.six.nsw.gov.au/arcgis/rest/services/public/NSW_Imagery/MapServer/export';
+
+const CHIP_PX = 1024;
+const RES = Number(arg('res') ?? 1); // metres per pixel
+const RINGS = [{ id: '0-400m', r: 400 }, { id: '0-800m', r: 800 }];
+const CONCEPTS = [
+  { cls: 'building', prompt: 'building' },
+  { cls: 'tree_canopy', prompt: 'tree canopy' },
+  { cls: 'car_park', prompt: 'car park' },
+  { cls: 'construction_site', prompt: 'construction site' },
+] as const;
+const COLOURS: Record<string, string> = { building: '#e4572e', tree_canopy: '#29bf12', car_park: '#4361ee', construction_site: '#ffc914' };
+const CONCURRENCY = Number(arg('concurrency') ?? 3);
+
+const wanted = arg('stations')?.split(',').map((s) => s.trim());
+const stations = wanted ? STATIONS.filter((s) => wanted.includes(s.id)) : STATIONS.filter((s) => s.featured);
+if (!stations.length) throw new Error('No matching stations');
+
+const OUT = path.join('data', 'derived');
+const DIR = path.join(OUT, 'sam');
+const CACHE = path.join(DIR, 'cache');
+mkdirSync(CACHE, { recursive: true });
+
+const client = new OpenAI({ baseURL: BASE, apiKey: KEY, timeout: 180_000, maxRetries: 2 });
+
+/** The API may skip `response.output_text.done`, which the parser needs; synthesise it once per lane. */
+async function* withTextDone(stream: AsyncIterable<unknown>): AsyncIterable<ResponsesEvent> {
+  const closed = new Set<string>();
+  for await (const raw of stream) {
+    const ev = raw as Record<string, unknown> & { type?: string };
+    const lane = `${ev.item_id}:${ev.output_index}:${ev.content_index}`;
+    if (ev.type === 'response.output_text.done') {
+      if (closed.has(lane)) continue;
+      closed.add(lane);
+    }
+    yield ev as unknown as ResponsesEvent;
+    const part = ev.part as { type?: string; text?: string } | undefined;
+    if (ev.type === 'response.content_part.done' && part?.type === 'output_text' && !closed.has(lane)) {
+      closed.add(lane);
+      yield { type: 'response.output_text.done', item_id: ev.item_id, output_index: ev.output_index, content_index: ev.content_index, text: part.text ?? '' } as unknown as ResponsesEvent;
+    }
+  }
+}
+
+async function segment(dataUrl: string, prompt: string): Promise<ImageSegmentationResult> {
+  const stream = await client.responses.create({
+    model: MODEL,
+    stream: true,
+    input: [{ type: 'message', role: 'user', content: [{ type: 'input_text', text: prompt }, { type: 'input_image', image_url: dataUrl, detail: 'auto' }] }],
+  });
+  return parseImageStream(withTextDone(stream as AsyncIterable<unknown>)).finalResult;
+}
+
+const R = 6378137;
+const merc = (lat: number, lon: number) => ({ x: (R * lon * Math.PI) / 180, y: R * Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 360)) });
+
+async function fetchChip(lat: number, lon: number, file: string): Promise<Buffer> {
+  if (existsSync(file)) return readFileSync(file);
+  const { x, y } = merc(lat, lon);
+  const half = ((CHIP_PX / 2) * RES) / Math.cos((lat * Math.PI) / 180);
+  const q = new URLSearchParams({
+    bbox: [x - half, y - half, x + half, y + half].map((v) => v.toFixed(2)).join(','), bboxSR: '3857', imageSR: '3857',
+    size: `${CHIP_PX},${CHIP_PX}`, format: 'jpg', transparent: 'false', f: 'image',
+  });
+  const res = await fetch(`${IMAGERY}?${q}`);
+  if (!res.ok || !(res.headers.get('content-type') ?? '').startsWith('image/')) throw new Error(`Imagery export failed: HTTP ${res.status}`);
+  const bytes = Buffer.from(await res.arrayBuffer());
+  writeFileSync(file, bytes);
+  return bytes;
+}
+
+type Mask = { left: number; top: number; right: number; bottom: number; w: number; h: number; raster: number[]; svg: string };
+
+async function chipMasks(dataUrl: string, cacheFile: string, prompt: string): Promise<{ masks: Mask[]; objects: number; ms: number }> {
+  if (existsSync(cacheFile)) return JSON.parse(readFileSync(cacheFile, 'utf8'));
+  const t0 = performance.now();
+  const result = await segment(dataUrl, prompt);
+  const masks = recordsOfKind(result.records, 'mask').map((rec) => {
+    const raster = decodeMaskToRaster(rec.mask);
+    return { ...rec.bounds, w: rec.mask.width, h: rec.mask.height, raster: Array.from(raster, (v) => (v ? 1 : 0)), svg: decodeMaskToSVGPath(rec.mask) };
+  });
+  const out = { masks, objects: masks.length, ms: Math.round(performance.now() - t0) };
+  writeFileSync(cacheFile, JSON.stringify(out));
+  return out;
+}
+
+async function pool<T>(items: T[], n: number, fn: (t: T) => Promise<void>) {
+  const q = [...items];
+  await Promise.all(Array.from({ length: n }, async () => { for (let t = q.shift(); t; t = q.shift()) await fn(t); }));
+}
+
+const rows: string[] = ['station_id,ring_id,class,cover_pct,res_m,chips,method,fetched'];
+const summary: Record<string, unknown>[] = [];
+const fetched = new Date().toISOString().slice(0, 10);
+
+for (const s of stations) {
+  // A square grid of chips centred on the station, just covering the 800 m ring.
+  const chipM = CHIP_PX * RES;
+  const n = Math.max(1, Math.ceil((2 * 800) / chipM));
+  const size = n * CHIP_PX; // station grid in pixels
+  const grid = Object.fromEntries(CONCEPTS.map((c) => [c.cls, new Uint8Array(size * size)]));
+  const svgLayers: string[] = [];
+  const chips: { file: string; px: number; py: number }[] = [];
+  const mPerDegLat = 111_320, mPerDegLon = 111_320 * Math.cos((s.lat * Math.PI) / 180);
+  for (let gy = 0; gy < n; gy++) for (let gx = 0; gx < n; gx++) {
+    // Chip centre offset from the station, in metres (east, north).
+    const ex = (gx - (n - 1) / 2) * chipM, ny = ((n - 1) / 2 - gy) * chipM;
+    const lat = s.lat + ny / mPerDegLat, lon = s.lon + ex / mPerDegLon;
+    const file = path.join(CACHE, `${s.id}-${RES}-${gx}-${gy}.jpg`);
+    chips.push({ file, px: gx * CHIP_PX, py: gy * CHIP_PX });
+    await fetchChip(lat, lon, file);
+  }
+  const jobs = chips.flatMap((c) => CONCEPTS.map((k) => ({ c, k })));
+  let calls = 0, cached = 0, ms = 0;
+  const objects: Record<string, number> = {};
+  await pool(jobs, CONCURRENCY, async ({ c, k }) => {
+    const cacheFile = c.file.replace(/\.jpg$/, `-${k.cls}.json`);
+    const was = existsSync(cacheFile);
+    const dataUrl = `data:image/jpeg;base64,${readFileSync(c.file).toString('base64')}`;
+    const r = await chipMasks(dataUrl, cacheFile, k.prompt);
+    if (was) cached++; else { calls++; ms += r.ms; }
+    objects[k.cls] = (objects[k.cls] ?? 0) + r.objects;
+    const bmp = grid[k.cls]!;
+    for (const m of r.masks) {
+      const sx = (m.right - m.left) / m.w, sy = (m.bottom - m.top) / m.h;
+      for (let my = 0; my < m.h; my++) for (let mx = 0; mx < m.w; mx++) {
+        if (!m.raster[my * m.w + mx]) continue;
+        const x0 = Math.floor(m.left + mx * sx), x1 = Math.max(x0 + 1, Math.floor(m.left + (mx + 1) * sx));
+        const y0 = Math.floor(m.top + my * sy), y1 = Math.max(y0 + 1, Math.floor(m.top + (my + 1) * sy));
+        for (let y = Math.max(0, y0); y < Math.min(CHIP_PX, y1); y++)
+          for (let x = Math.max(0, x0); x < Math.min(CHIP_PX, x1); x++) bmp[(c.py + y) * size + c.px + x] = 1;
+      }
+      svgLayers.push(`<path d="${m.svg}" transform="translate(${c.px + m.left} ${c.py + m.top}) scale(${sx} ${sy})" fill="${COLOURS[k.cls]}" fill-opacity="0.45" fill-rule="evenodd"/>`);
+    }
+    process.stdout.write(`\r${s.name}: ${calls + cached}/${jobs.length} chip prompts`);
+  });
+
+  // Cover % inside each ring (station at the grid centre).
+  const cxy = size / 2;
+  const cover: Record<string, Record<string, number>> = {};
+  for (const ring of RINGS) {
+    const rPx = ring.r / RES;
+    for (const k of CONCEPTS) {
+      let on = 0, total = 0;
+      const bmp = grid[k.cls]!;
+      for (let y = Math.max(0, Math.floor(cxy - rPx)); y < Math.min(size, Math.ceil(cxy + rPx)); y++)
+        for (let x = Math.max(0, Math.floor(cxy - rPx)); x < Math.min(size, Math.ceil(cxy + rPx)); x++) {
+          if ((x + 0.5 - cxy) ** 2 + (y + 0.5 - cxy) ** 2 > rPx * rPx) continue;
+          total++;
+          on += bmp[y * size + x]!;
+        }
+      const pct = total ? Math.round((on / total) * 1000) / 10 : 0;
+      (cover[ring.id] ??= {})[k.cls] = pct;
+      rows.push(`${s.id},${ring.id},${k.cls},${pct},${RES},${chips.length},sam-3.1,${fetched}`);
+    }
+  }
+  const img = chips.map((c) => `<image href="cache/${path.basename(c.file)}" x="${c.px}" y="${c.py}" width="${CHIP_PX}" height="${CHIP_PX}"/>`).join('');
+  const ringsSvg = RINGS.map((r) => `<circle cx="${cxy}" cy="${cxy}" r="${r.r / RES}" fill="none" stroke="#fff" stroke-width="4" stroke-dasharray="16 10"/>`).join('');
+  writeFileSync(path.join(DIR, `${s.id}.svg`), `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">${img}${svgLayers.join('')}${ringsSvg}</svg>\n`);
+  summary.push({ station: s.id, chips: chips.length, res_m: RES, sam_calls: calls, cached, sam_ms_avg: calls ? Math.round(ms / calls) : null, objects, cover });
+  console.log(`\r${s.name}: ${chips.length} chips, ${calls} SAM calls (${cached} cached), within 800 m: ${CONCEPTS.map((k) => `${k.cls} ${cover['0-800m']![k.cls]}%`).join(', ')}`);
+}
+
+writeFileSync(path.join(OUT, 'sam_cover.csv'), rows.join('\n') + '\n');
+writeFileSync(path.join(DIR, 'summary.json'), JSON.stringify({ model: MODEL, base_url: BASE, imagery: IMAGERY, run_at: new Date().toISOString(), note: 'Classes can overlap (canopy over a car park). One imagery capture; cover per class, not a partition.', stations: summary }, null, 2));
+console.log(`\nWrote data/derived/sam_cover.csv and overlays in data/derived/sam/ (open the .svg files in a browser to review).`);

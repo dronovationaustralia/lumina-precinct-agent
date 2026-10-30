@@ -4,6 +4,8 @@
  * Land use around a station: the official NSW land-use mix per ring as stacked bars (sums to 100%),
  * then aerial land cover (SAM 3.1 classes; labelled demo until the batch has run).
  */
+import { useState } from 'react';
+
 import { LAND_USE_CATEGORIES, type LandUseCategory } from '@/lib/landuse';
 
 import type { LandUseDto } from './api';
@@ -16,6 +18,16 @@ export function LandUsePanel({ data, stationName, onClose }: { data: LandUseDto;
   const mix = data.mix ?? {};
   const rings = ['0-400m', '0-800m', '800m-2km'].filter((r) => mix[r]);
   const present = ORDER.filter((c) => rings.some((r) => (mix[r]?.[c] ?? 0) >= 0.5));
+  const [min, setMin] = useState(false);
+  if (min) {
+    return (
+      <button type="button" className="landuse-pill" onClick={() => setMin(false)} title="Show the land-use breakdown">
+        <span className="mix-bar mini">{ORDER.filter((c) => (mix['0-800m']?.[c] ?? 0) > 0).map((c) => <span key={c} style={{ width: `${mix['0-800m']![c]}%`, background: LAND_USE_CATEGORIES[c].colour }} />)}</span>
+        Land use · {stationName}
+        <svg viewBox="0 0 12 12" width="10" height="10" aria-hidden="true"><path d="m3 7.5 3-3 3 3" fill="none" stroke="currentColor" strokeWidth="1.5" /></svg>
+      </button>
+    );
+  }
   return (
     <aside className="landuse" aria-label={`Land use near ${stationName}`}>
       <div className="landuse-head">
@@ -23,8 +35,15 @@ export function LandUsePanel({ data, stationName, onClose }: { data: LandUseDto;
           <p className="kicker">Land use</p>
           <h2>{stationName}</h2>
         </div>
-        <button type="button" className="icon-button" onClick={onClose} aria-label="Close land use">×</button>
+        <div className="layers-actions">
+          <button type="button" className="hide-button" onClick={() => setMin(true)} title="Minimise to a small bar; click it to open again">
+            Minimise
+            <svg viewBox="0 0 12 12" width="10" height="10" aria-hidden="true"><path d="m3 4.5 3 3 3-3" fill="none" stroke="currentColor" strokeWidth="1.5" /></svg>
+          </button>
+          <button type="button" className="icon-button" onClick={onClose} aria-label="Close land use" title="Close">×</button>
+        </div>
       </div>
+      <p className="landuse-how">Each bar is one ring around the station, split by what the land is used for. Hover a colour on the map for detail.</p>
 
       {rings.length > 0 ? (
         <>

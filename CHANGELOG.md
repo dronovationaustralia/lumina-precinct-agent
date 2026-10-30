@@ -4,6 +4,28 @@ All work in this repository was built during the Meta Global AI Developer Hackat
 (27 Oct – 4 Nov 2026). Dates are Sydney time. No code is copied from earlier Lumina
 repositories (`LuminaSpatialInsightsXR`, `LuminaSpatial`, `extended-tableau-mcp`).
 
+## 2026-10-30 (Fri), late night
+
+### Added
+- Screen split: map 60%, answers 40% by default, with an Answers / Split / Map switch in the header.
+- Layers panel folds to a "Layers · n on" button ("Hide" in its header); the land-use panel
+  minimises to a small bar. "How to read the map" explains stations, rings, lines, price hexagons
+  (size, colour groups, why some are dashed), land use and boundaries; the hexagon legend says it too.
+- Export and save: under every answer, Copy, Markdown, Export PDF (a clean print report with every
+  figure, its source and date, and how the answer was made) and Save. "Saved" lists saved analyses
+  (kept in the browser for the signed-in user) and exports them as one report; "Report" exports the
+  whole session.
+- `npm run sam:batch`: SAM 3.1 aerial land cover for the featured stations (NSW imagery chips over
+  the 800 m ring, four concepts per chip, cached per chip, overlays for review); loaded in place of
+  the demo cover (`sam_land_cover`). Tested against the mock server; loader test added (57 tests).
+- Muse Code task pack (`docs/muse-code/`): five ready-to-run tasks mapped to the judging criteria,
+  and project rules for coding agents in `AGENTS.md`.
+
+### Changed
+- Charts of one station's categories (such as a land-use mix) are horizontal bars with readable
+  labels; land-use series use category names.
+- Muse Spark Open (Baseten) removed from the in-app model list; the provider code stays unused.
+
 ## 2026-10-30 (Fri), night
 
 ### Fixed

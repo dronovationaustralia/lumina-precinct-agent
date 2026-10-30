@@ -4,19 +4,13 @@
 export type Health = { provider: string; model: string; demo_data?: boolean; datasets?: { id: string; demo: boolean }[] };
 
 export function ModelsPanel({ health, onClose }: { health: Health | null; onClose: () => void }) {
-  const live = health?.provider === 'meta' || health?.provider === 'baseten';
+  const live = health?.provider === 'meta';
   const rows = [
     {
       name: 'Muse Spark', id: health?.provider === 'meta' ? health.model : 'muse-spark-1.3',
       role: 'The agent. Plans which governed data calls answer the question (native tool calling), then writes the answer with a placeholder for every figure, and the map actions.',
       where: 'Every answer: see "How this answer was made" under it.',
       status: live ? 'Live' : 'Not connected here: the offline planner is answering', ok: live,
-    },
-    {
-      name: 'Muse Spark Open', id: 'meta-models/muse-spark-open-1026',
-      role: 'The same agent on open weights (Baseten), for councils and lenders who must self-host. Run against the same evaluation questions.',
-      where: 'Evaluation table in the README; switchable provider.',
-      status: health?.provider === 'baseten' ? 'Live' : 'Evaluation', ok: health?.provider === 'baseten',
     },
     {
       name: 'SAM 3.1', id: 'sam-3.1',

@@ -116,6 +116,10 @@ export function MapView({
       const m = new maplibre.Map({ container: el.current, style, center: SYDNEY, zoom: 10.6, attributionControl: { compact: true } });
       m.addControl(new maplibre.NavigationControl({ showCompass: false }), 'bottom-right');
       map.current = m;
+      // Keep the canvas sized to its pane (the screen split can change at any time).
+      const ro = new ResizeObserver(() => m.resize());
+      ro.observe(el.current);
+      m.once('remove', () => ro.disconnect());
       if (process.env.NODE_ENV !== 'production') (window as unknown as { __luminaMap?: MlMap }).__luminaMap = m;
       // Tile or data errors are reported, never fatal: the rest of the map keeps working.
       m.on('error', (e: { error?: { message?: string }; sourceId?: string }) => {

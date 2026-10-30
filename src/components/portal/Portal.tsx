@@ -11,7 +11,10 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Fact, MapAction } from '@/lib/contracts';
 import { PERSONA_INFO } from '@/lib/personas';
 
-import { AnswerCard, type Turn } from './AnswerCard';
+import { AnswerCard, type AnswerActions, type Turn } from './AnswerCard';
+import { answerMarkdown, download, loadSaved, slug, storeSaved, type Saved } from './exporting';
+import { PrintReport } from './PrintReport';
+import { SavedPanel } from './SavedPanel';
 import { ask, fetchLandUse, fetchStations, fetchSummary, fetchUser, type LandUseDto, type StationDto, type StationSummary, type User } from './api';
 import { LandUsePanel } from './LandUsePanel';
 import { LayerPanel } from './LayerPanel';
@@ -37,6 +40,12 @@ export function Portal() {
   const [note, setNote] = useState<string | null>(null);
   const [health, setHealth] = useState<Health | null>(null);
   const [showModels, setShowModels] = useState(false);
+  // Screen split: answers and map side by side (40/60), or one of them full width.
+  const [view, setView] = useState<'split' | 'chat' | 'map'>('split');
+  const [saved, setSaved] = useState<Saved[]>([]);
+  const [showSaved, setShowSaved] = useState(false);
+  const [printTurns, setPrintTurns] = useState<Turn[] | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
   const [layers, setLayers] = useState<LayerState>({ lines: true, rings: true, hex: 'off', bounds: 'off', landuse: true });
   const [hexMeta, setHexMeta] = useState<HexMeta | null>(null);
   const [map, setMap] = useState<MapState>({ focus: null, radius_m: 800, compare: null, highlight: [], view: 'overview', flyNonce: 0 });
@@ -51,6 +60,25 @@ export function Portal() {
     fetchSummary().then((r) => setSummary(r.stations)).catch(() => setSummary([]));
     fetchUser().then(setUser).catch(() => setUser(null));
   }, []);
+
+  useEffect(() => {
+    if (user) setSaved(loadSaved(user.sub));
+  }, [user]);
+
+  // Export PDF: render the report, open the print dialog (choose "Save as PDF"), then clear it.
+  useEffect(() => {
+    if (!printTurns) return;
+    const done = () => setPrintTurns(null);
+    window.addEventListener('afterprint', done, { once: true });
+    const t = setTimeout(() => window.print(), 50);
+    return () => { clearTimeout(t); window.removeEventListener('afterprint', done); };
+  }, [printTurns]);
+
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 2500);
+    return () => clearTimeout(t);
+  }, [toast]);
 
   useEffect(() => {
     listRef.current?.querySelector('.answer-card:last-of-type')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -137,6 +165,25 @@ export function Portal() {
     window.location.assign('/signin');
   };
 
+  const nameOf = (id?: string) => stations.find((x) => x.id === id)?.name;
+  const actionsFor = (t: Turn): AnswerActions => ({
+    saved: saved.some((x) => x.id === t.id),
+    onCopy: () => {
+      void navigator.clipboard?.writeText(answerMarkdown(t, nameOf(t.station))).then(() => setToast('Copied'), () => setToast('Copy is blocked in this browser'));
+    },
+    onMarkdown: () => download(`lumina-${slug(t.question)}.md`, answerMarkdown(t, nameOf(t.station))),
+    onPdf: () => setPrintTurns([t]),
+    onSave: () => {
+      if (!t.answer) return;
+      const next = saved.some((x) => x.id === t.id)
+        ? saved.filter((x) => x.id !== t.id)
+        : [{ id: t.id, saved_at: new Date().toISOString(), question: t.question, station: t.station, answer: t.answer }, ...saved];
+      setSaved(next);
+      storeSaved(user?.sub, next);
+      setToast(next.length > saved.length ? 'Saved. Find it under Saved at the top.' : 'Removed from Saved');
+    },
+  });
+
   const focus = stations.find((s) => s.id === map.focus) ?? null;
   const kpis = Object.fromEntries(summary.map((k) => [k.id, k.unit_median_800m ? `${money(k.unit_median_800m)} unit median` : '']));
   const TOPIC: Record<string, string> = { demo_sales: 'Property sales', demo_patronage: 'Station patronage', demo_land_use: 'Aerial land cover (until the SAM 3.1 run)' };
@@ -146,7 +193,7 @@ export function Portal() {
   const featured = stations.filter((s) => s.featured);
 
   return (
-    <div className="ws">
+    <div className={`ws ws-${view}`}>
       <header className="ws-head">
         <Link className="brand" href="/">
           <span className="brand-mark" aria-hidden="true" />
@@ -154,12 +201,24 @@ export function Portal() {
         </Link>
         <StationSearch stations={stations} value={map.focus} onChange={select} />
         <div className="head-right">
+          <div className="seg view-switch" role="radiogroup" aria-label="Screen layout">
+            {([['chat', 'Answers'], ['split', 'Split'], ['map', 'Map']] as const).map(([v, label]) => (
+              <button key={v} type="button" role="radio" aria-checked={view === v} className={view === v ? 'is-on' : ''} onClick={() => setView(v)}
+                title={v === 'split' ? 'Answers 40%, map 60%' : v === 'chat' ? 'Answers full width' : 'Map full width'}>{label}</button>
+            ))}
+          </div>
           <label className="persona-select">
             <span className="sr-only">Work type</span>
             <select value={persona} onChange={(e) => changePersona(e.target.value as Persona)}>
               {(Object.keys(PERSONA_INFO) as Persona[]).map((p) => <option key={p} value={p}>{PERSONA_INFO[p].short}</option>)}
             </select>
           </label>
+          <button type="button" className="head-button" onClick={() => setShowSaved(true)} title="Saved analyses and the session report">
+            Saved{saved.length ? ` (${saved.length})` : ''}
+          </button>
+          {turns.some((t) => t.answer) && (
+            <button type="button" className="head-button" onClick={() => setPrintTurns(turns)} title="All answers in this session as one PDF report">Report</button>
+          )}
           <button type="button" className="meta-button" onClick={() => setShowModels(true)}>
             <span className="meta-dot" aria-hidden="true" />
             {offline ? 'Meta AI (offline)' : 'Meta AI'}
@@ -223,7 +282,7 @@ export function Portal() {
             {focus && <PrecinctSnapshot station={focus} persona={persona} onAsk={submit} />}
 
             {turns.map((t) => (
-              <AnswerCard key={t.id} turn={t} stationName={stations.find((s) => s.id === t.station)?.name} onFollowUp={submit} onFocusFact={focusFact} />
+              <AnswerCard key={t.id} turn={t} stationName={stations.find((s) => s.id === t.station)?.name} onFollowUp={submit} onFocusFact={focusFact} actions={actionsFor(t)} />
             ))}
           </div>
         </div>
@@ -270,6 +329,18 @@ export function Portal() {
       </section>
 
       {showModels && <ModelsPanel health={health} onClose={() => setShowModels(false)} />}
+      {showSaved && (
+        <SavedPanel
+          items={saved}
+          names={nameOf}
+          onClose={() => setShowSaved(false)}
+          onRemove={(id) => { const next = saved.filter((x) => x.id !== id); setSaved(next); storeSaved(user?.sub, next); }}
+          onOpen={(x) => { setTurns((ts) => (ts.some((t) => t.id === x.id) ? ts : [...ts, { id: x.id, question: x.question, station: x.station, progress: [], answer: x.answer }])); setShowSaved(false); }}
+          onExportAll={() => { setShowSaved(false); setPrintTurns(saved.map((x) => ({ id: x.id, question: x.question, station: x.station, progress: [], answer: x.answer }))); }}
+        />
+      )}
+      {printTurns && <PrintReport turns={printTurns} names={nameOf} user={user?.name} />}
+      {toast && <div className="toast" role="status">{toast}</div>}
     </div>
   );
 }

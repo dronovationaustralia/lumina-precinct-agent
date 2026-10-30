@@ -19,7 +19,6 @@ const secs = (ms?: number) => (ms === undefined ? '' : ms < 1000 ? `${ms} ms` : 
 
 export function modelLabel(meta: AskResponse['meta']): { name: string; host: string; meta: boolean } {
   if (meta.provider === 'meta') return { name: meta.model.replace(/^muse-spark-/, 'Muse Spark ').replace(/-/g, ' '), host: 'Meta Model API', meta: true };
-  if (meta.provider === 'baseten') return { name: 'Muse Spark Open', host: 'Baseten (open weights)', meta: true };
   return { name: 'Offline planner', host: 'rules, no model key', meta: false };
 }
 
