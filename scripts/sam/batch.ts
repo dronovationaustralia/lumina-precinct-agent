@@ -20,6 +20,7 @@ import path from 'node:path';
 
 import { decodeMaskToRaster, decodeMaskToSVGPath, parseImageStream, recordsOfKind, type ImageSegmentationResult, type ResponsesEvent } from '@meta-sam/parser';
 import OpenAI from 'openai';
+import sharp from 'sharp';
 
 import { STATIONS } from '../../src/lib/stations';
 
@@ -37,10 +38,11 @@ const CHIP_PX = 1024;
 const RES = Number(arg('res') ?? 0.5); // metres per pixel
 const RINGS = [{ id: '0-400m', r: 400 }, { id: '0-800m', r: 800 }];
 // Short, literal noun phrases work best for SAM 3 concepts; a class can union several prompts
-// ("house" catches the detached roofs "building" misses; "parking lot" beats "car park").
+// ("house" catches the detached roofs "building" misses; "tree" finds single crowns and "forest"
+// the continuous canopy of bushland and parks; "parking lot" beats "car park").
 const CONCEPTS = [
   { cls: 'building', prompts: ['building', 'house'] },
-  { cls: 'tree_canopy', prompts: ['tree'] },
+  { cls: 'tree_canopy', prompts: ['tree', 'forest'] },
   { cls: 'car_park', prompts: ['parking lot'] },
   { cls: 'construction_site', prompts: ['construction site'] },
 ] as const;
@@ -105,18 +107,45 @@ async function fetchChip(lat: number, lon: number, file: string): Promise<Buffer
 }
 
 type Mask = { left: number; top: number; right: number; bottom: number; w: number; h: number; raster: number[]; svg: string };
+type Tile = { masks: Mask[]; objects: number; ms: number; complete?: boolean };
 
-async function chipMasks(dataUrl: string, cacheFile: string, prompt: string): Promise<{ masks: Mask[]; objects: number; ms: number }> {
-  if (existsSync(cacheFile)) return JSON.parse(readFileSync(cacheFile, 'utf8'));
+async function callSam(dataUrl: string, cacheFile: string, prompt: string): Promise<Tile & { cached: boolean }> {
+  if (existsSync(cacheFile)) return { ...(JSON.parse(readFileSync(cacheFile, 'utf8')) as Tile), cached: true };
   const t0 = performance.now();
   const result = await segment(dataUrl, prompt);
   const masks = recordsOfKind(result.records, 'mask').map((rec) => {
     const raster = decodeMaskToRaster(rec.mask);
     return { ...rec.bounds, w: rec.mask.width, h: rec.mask.height, raster: Array.from(raster, (v) => (v ? 1 : 0)), svg: decodeMaskToSVGPath(rec.mask) };
   });
-  const out = { masks, objects: masks.length, ms: Math.round(performance.now() - t0) };
+  const out: Tile = { masks, objects: masks.length, ms: Math.round(performance.now() - t0), complete: result.outcome.status === 'completed' };
   writeFileSync(cacheFile, JSON.stringify(out));
-  return out;
+  return { ...out, cached: false };
+}
+
+// SAM returns at most ~100 objects per image. A tile that hits the ceiling (or whose response was
+// cut short) is split into four quarters, each enlarged to 1024 px and segmented again, down to
+// 256 px quarters (0.125 m per source pixel after enlargement). Masks come back in chip pixels.
+const CEILING = Number(process.env.SAM_CEILING ?? 80);
+const MIN_TILE = 256;
+
+async function segmentTile(
+  chipFile: string, prompt: string, x: number, y: number, sz: number, stats: { calls: number; cached: number; ms: number; split: number },
+): Promise<Mask[]> {
+  const base = chipFile.replace(/\.jpg$/, `-v2-${prompt.replace(/\W+/g, '_')}`); // v2: records whether the response completed
+  const cacheFile = sz === CHIP_PX ? `${base}.json` : `${base}-q${x}_${y}_${sz}.json`;
+  const bytes = sz === CHIP_PX
+    ? readFileSync(chipFile)
+    : await sharp(chipFile).extract({ left: x, top: y, width: sz, height: sz }).resize(CHIP_PX, CHIP_PX, { kernel: 'lanczos3' }).jpeg({ quality: 92 }).toBuffer();
+  const r = await callSam(`data:image/jpeg;base64,${bytes.toString('base64')}`, cacheFile, prompt);
+  if (r.cached) stats.cached++; else { stats.calls++; stats.ms += r.ms; }
+  if ((r.objects >= CEILING || r.complete === false) && sz / 2 >= MIN_TILE) {
+    stats.split++;
+    const h = sz / 2;
+    const parts = await Promise.all([[0, 0], [h, 0], [0, h], [h, h]].map(([dx, dy]) => segmentTile(chipFile, prompt, x + dx!, y + dy!, h, stats)));
+    return parts.flat();
+  }
+  const k = sz / CHIP_PX;
+  return r.masks.map((m) => ({ ...m, left: x + m.left * k, top: y + m.top * k, right: x + m.right * k, bottom: y + m.bottom * k }));
 }
 
 async function pool<T>(items: T[], n: number, fn: (t: T) => Promise<void>) {
@@ -146,17 +175,14 @@ for (const s of stations) {
     await fetchChip(lat, lon, file);
   }
   const jobs = chips.flatMap((c) => CONCEPTS.flatMap((k) => k.prompts.map((prompt) => ({ c, k, prompt }))));
-  let calls = 0, cached = 0, ms = 0;
+  const stats = { calls: 0, cached: 0, ms: 0, split: 0 };
   const objects: Record<string, number> = {};
+  let done = 0;
   await pool(jobs, CONCURRENCY, async ({ c, k, prompt }) => {
-    const cacheFile = c.file.replace(/\.jpg$/, `-${prompt.replace(/\W+/g, '_')}.json`);
-    const was = existsSync(cacheFile);
-    const dataUrl = `data:image/jpeg;base64,${readFileSync(c.file).toString('base64')}`;
-    const r = await chipMasks(dataUrl, cacheFile, prompt);
-    if (was) cached++; else { calls++; ms += r.ms; }
-    objects[k.cls] = (objects[k.cls] ?? 0) + r.objects;
+    const masks = await segmentTile(c.file, prompt, 0, 0, CHIP_PX, stats);
+    objects[k.cls] = (objects[k.cls] ?? 0) + masks.length;
     const bmp = grid[k.cls]!;
-    for (const m of r.masks) {
+    for (const m of masks) {
       const sx = (m.right - m.left) / m.w, sy = (m.bottom - m.top) / m.h;
       for (let my = 0; my < m.h; my++) for (let mx = 0; mx < m.w; mx++) {
         if (!m.raster[my * m.w + mx]) continue;
@@ -167,7 +193,7 @@ for (const s of stations) {
       }
       svgLayers.push(`<path d="${m.svg}" transform="translate(${c.px + m.left} ${c.py + m.top}) scale(${sx} ${sy})" fill="${COLOURS[k.cls]}" fill-opacity="0.45" fill-rule="evenodd"/>`);
     }
-    process.stdout.write(`\r${s.name}: ${calls + cached}/${jobs.length} chip prompts`);
+    process.stdout.write(`\r${s.name}: ${++done}/${jobs.length} chip prompts, ${stats.calls + stats.cached} SAM calls`);
   });
 
   // Cover % inside each ring (station at the grid centre).
@@ -192,8 +218,8 @@ for (const s of stations) {
   const img = chips.map((c) => `<image href="cache/${path.basename(c.file)}" x="${c.px}" y="${c.py}" width="${CHIP_PX}" height="${CHIP_PX}"/>`).join('');
   const ringsSvg = RINGS.map((r) => `<circle cx="${cxy}" cy="${cxy}" r="${r.r / RES}" fill="none" stroke="#fff" stroke-width="4" stroke-dasharray="16 10"/>`).join('');
   writeFileSync(path.join(DIR, `${s.id}.svg`), `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">${img}${svgLayers.join('')}${ringsSvg}</svg>\n`);
-  summary.push({ station: s.id, chips: chips.length, res_m: RES, sam_calls: calls, cached, sam_ms_avg: calls ? Math.round(ms / calls) : null, objects, cover });
-  console.log(`\r${s.name}: ${chips.length} chips, ${calls} SAM calls (${cached} cached), within 800 m: ${CONCEPTS.map((k) => `${k.cls} ${cover['0-800m']![k.cls]}%`).join(', ')}`);
+  summary.push({ station: s.id, chips: chips.length, res_m: RES, sam_calls: stats.calls, cached: stats.cached, tiles_split: stats.split, sam_ms_avg: stats.calls ? Math.round(stats.ms / stats.calls) : null, objects, cover });
+  console.log(`\r${s.name}: ${chips.length} chips, ${stats.calls} SAM calls (${stats.cached} cached, ${stats.split} tiles split), within 800 m: ${CONCEPTS.map((k) => `${k.cls} ${cover['0-800m']![k.cls]}%`).join(', ')}`);
 }
 
 writeFileSync(path.join(OUT, 'sam_cover.csv'), rows.join('\n') + '\n');

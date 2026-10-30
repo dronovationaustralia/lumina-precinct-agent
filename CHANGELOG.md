@@ -12,6 +12,10 @@ repositories (`LuminaSpatialInsightsXR`, `LuminaSpatial`, `extended-tableau-mcp`
   refreshes the aggregates after any load.
 
 ### Fixed
+- SAM 3.1 batch: SAM returns at most about 100 objects per image, so dense suburbs were cut off and
+  bushland was missed. A tile that hits that ceiling (or whose response is cut short) is now split
+  into four quarters, enlarged and segmented again (down to 256 px quarters). Tree cover adds a
+  "forest" prompt for continuous canopy. Cache files are versioned (v2), so the next run re-asks.
 - Hydration warning caused by form-filling browser extensions that add `fdprocessedid` to buttons.
 - While the local database is rebuilding (first start after a data change, about 3 minutes) the
   workspace now says so, instead of showing an empty map and blank snapshot. "Open the land-use
