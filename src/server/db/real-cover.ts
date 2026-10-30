@@ -30,7 +30,7 @@ export async function loadRealCover(db: Db, dir = DERIVED_DIR): Promise<{ statio
     `insert into datasets (id, name, description, source_url, licence, as_of, coverage, is_demo) values ($1,$2,$3,$4,$5,$6,$7,false)`,
     [
       SAM_DATASET, 'Aerial land cover (SAM 3.1 on NSW imagery)',
-      'Meta SAM 3.1 segmentation of NSW Spatial Services aerial imagery into building, tree canopy, car park and construction site; percent of ring area per class (classes can overlap).',
+      'Meta SAM 3.1 segmentation of NSW Spatial Services aerial imagery (0.5 m) into building, tree canopy, car park and construction site; percent of ring area per class, water included (classes can overlap). Tree canopy counts individual crowns and larger bush patches and is likely an undercount where canopy is continuous or shaded; construction sites are the least reliable class.',
       'https://www.spatial.nsw.gov.au/', 'Imagery: NSW Spatial Services (CC BY 4.0). Segmentation: Meta SAM 3.1', fetched,
       `${stations.length} stations, within 800 m`,
     ],
