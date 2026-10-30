@@ -8,7 +8,7 @@
  *   npm run sam:batch -- --mock               # against the local mock server (npm run spike:mock)
  *
  * For each station: aerial imagery chips (1024 px) from the NSW Imagery service covering the
- * 800 m ring, SAM 3.1 segments four concepts per chip (building, tree canopy, car park,
+ * 800 m ring (0.5 m per pixel), SAM 3.1 segments four classes per chip (building, tree canopy, car park,
  * construction site), masks are merged into one station grid, and cover % is measured inside
  * 400 m and 800 m. Results are cached per chip, so a re-run only calls SAM for what is missing.
  *
@@ -33,13 +33,16 @@ if (!KEY) throw new Error('MODEL_API_KEY is not set in .env.local');
 const IMAGERY = process.env.NSW_IMAGERY_EXPORT_URL ?? 'https://maps.six.nsw.gov.au/arcgis/rest/services/public/NSW_Imagery/MapServer/export';
 
 const CHIP_PX = 1024;
-const RES = Number(arg('res') ?? 1); // metres per pixel
+// 0.5 m per pixel: a 512 m chip, so a house roof is ~20 px wide. At 1 m SAM only found large buildings.
+const RES = Number(arg('res') ?? 0.5); // metres per pixel
 const RINGS = [{ id: '0-400m', r: 400 }, { id: '0-800m', r: 800 }];
+// Short, literal noun phrases work best for SAM 3 concepts; a class can union several prompts
+// ("house" catches the detached roofs "building" misses; "parking lot" beats "car park").
 const CONCEPTS = [
-  { cls: 'building', prompt: 'building' },
-  { cls: 'tree_canopy', prompt: 'tree canopy' },
-  { cls: 'car_park', prompt: 'car park' },
-  { cls: 'construction_site', prompt: 'construction site' },
+  { cls: 'building', prompts: ['building', 'house'] },
+  { cls: 'tree_canopy', prompts: ['tree'] },
+  { cls: 'car_park', prompts: ['parking lot'] },
+  { cls: 'construction_site', prompts: ['construction site'] },
 ] as const;
 const COLOURS: Record<string, string> = { building: '#e4572e', tree_canopy: '#29bf12', car_park: '#4361ee', construction_site: '#ffc914' };
 const CONCURRENCY = Number(arg('concurrency') ?? 3);
@@ -78,7 +81,7 @@ async function segment(dataUrl: string, prompt: string): Promise<ImageSegmentati
   const stream = await client.responses.create({
     model: MODEL,
     stream: true,
-    input: [{ type: 'message', role: 'user', content: [{ type: 'input_text', text: prompt }, { type: 'input_image', image_url: dataUrl, detail: 'auto' }] }],
+    input: [{ type: 'message', role: 'user', content: [{ type: 'input_text', text: prompt }, { type: 'input_image', image_url: dataUrl, detail: 'high' }] }],
   });
   return parseImageStream(withTextDone(stream as AsyncIterable<unknown>)).finalResult;
 }
@@ -142,14 +145,14 @@ for (const s of stations) {
     chips.push({ file, px: gx * CHIP_PX, py: gy * CHIP_PX });
     await fetchChip(lat, lon, file);
   }
-  const jobs = chips.flatMap((c) => CONCEPTS.map((k) => ({ c, k })));
+  const jobs = chips.flatMap((c) => CONCEPTS.flatMap((k) => k.prompts.map((prompt) => ({ c, k, prompt }))));
   let calls = 0, cached = 0, ms = 0;
   const objects: Record<string, number> = {};
-  await pool(jobs, CONCURRENCY, async ({ c, k }) => {
-    const cacheFile = c.file.replace(/\.jpg$/, `-${k.cls}.json`);
+  await pool(jobs, CONCURRENCY, async ({ c, k, prompt }) => {
+    const cacheFile = c.file.replace(/\.jpg$/, `-${prompt.replace(/\W+/g, '_')}.json`);
     const was = existsSync(cacheFile);
     const dataUrl = `data:image/jpeg;base64,${readFileSync(c.file).toString('base64')}`;
-    const r = await chipMasks(dataUrl, cacheFile, k.prompt);
+    const r = await chipMasks(dataUrl, cacheFile, prompt);
     if (was) cached++; else { calls++; ms += r.ms; }
     objects[k.cls] = (objects[k.cls] ?? 0) + r.objects;
     const bmp = grid[k.cls]!;

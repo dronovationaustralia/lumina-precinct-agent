@@ -56,7 +56,7 @@ npm run db:setup -- --load-real            # or load sales and patronage into Po
 `npm run sam:batch` measures tree canopy, buildings, grass and paved area within 400 m and 800 m
 of the featured stations from NSW aerial imagery, using SAM 3.1 on the Meta Model API (key in
 `.env.local`). Options: `--stations chatswood,parramatta` (default: the featured 10),
-`--res 1` (metres per pixel; 1 m is about 16 SAM calls per station), `--concurrency 4`.
+`--res 0.5` (metres per pixel, the default; about 80 SAM calls per station: 16 chips, five prompts. At 1 m SAM misses houses and street trees), `--concurrency 4`.
 Results are cached per chip under `data/derived/sam/cache`, so re-runs are cheap. Outputs:
 `data/derived/sam_cover.csv` (loaded by the app in place of the demo cover), one overlay SVG per
 station for review, and `summary.json`. Restart `npm run dev` after a run.

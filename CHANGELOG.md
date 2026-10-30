@@ -4,6 +4,13 @@ All work in this repository was built during the Meta Global AI Developer Hackat
 (27 Oct – 4 Nov 2026). Dates are Sydney time. No code is copied from earlier Lumina
 repositories (`LuminaSpatialInsightsXR`, `LuminaSpatial`, `extended-tableau-mcp`).
 
+## 2026-10-31 (Sat)
+
+### Fixed
+- SAM 3.1 aerial cover undercounted: at 1 m per pixel it outlined only large buildings and found
+  almost no trees or car parks. Chips are now 0.5 m per pixel (512 m across), images are sent at
+  high detail, and prompts are literal ("building" plus "house", "tree", "parking lot").
+
 ## 2026-10-30 (Fri), late night
 
 ### Added
