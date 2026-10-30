@@ -23,6 +23,7 @@ import OpenAI from 'openai';
 import sharp from 'sharp';
 
 import { STATIONS } from '../../src/lib/stations';
+import { CHIP_PX, CONCEPTS } from './concepts';
 
 for (const f of ['.env.local', '.env']) if (existsSync(f)) process.loadEnvFile(f);
 const arg = (name: string) => { const i = process.argv.indexOf(`--${name}`); return i > 0 ? process.argv[i + 1] : undefined; };
@@ -33,22 +34,10 @@ const KEY = MOCK ? 'mock-key' : process.env.MODEL_API_KEY;
 if (!KEY) throw new Error('MODEL_API_KEY is not set in .env.local');
 const IMAGERY = process.env.NSW_IMAGERY_EXPORT_URL ?? 'https://maps.six.nsw.gov.au/arcgis/rest/services/public/NSW_Imagery/MapServer/export';
 
-const CHIP_PX = 1024;
 // 0.5 m per pixel: a 512 m chip, so a house roof is ~20 px wide. At 1 m SAM only found large buildings.
 const RES = Number(arg('res') ?? 0.5); // metres per pixel
 const RINGS = [{ id: '0-400m', r: 400 }, { id: '0-800m', r: 800 }];
-// Short, literal noun phrases work best for SAM 3 concepts; a class can union several prompts
-// ("house" catches the detached roofs "building" misses; "tree" finds single crowns and "forest"
-// the continuous canopy of bushland and parks; "parking lot" beats "car park").
-// `tile`: the largest area sent in one request, in chip pixels. Dense, small objects (roofs, tree
-// crowns) start at 512 px quarters: on whole 1024 px chips SAM sometimes returned almost nothing
-// for streets of 300 houses. Large objects (car parks, construction sites) use whole chips.
-const CONCEPTS = [
-  { cls: 'building', prompts: ['building', 'house'], tile: 512 },
-  { cls: 'tree_canopy', prompts: ['tree', 'forest'], tile: 512 },
-  { cls: 'car_park', prompts: ['parking lot'], tile: 1024 },
-  { cls: 'construction_site', prompts: ['construction site'], tile: 1024 },
-] as const;
+// Class concepts (prompts + start tiles) live in ./concepts.ts, shared with check.ts.
 const COLOURS: Record<string, string> = { building: '#e4572e', tree_canopy: '#29bf12', car_park: '#4361ee', construction_site: '#ffc914' };
 const CONCURRENCY = Number(arg('concurrency') ?? 3);
 

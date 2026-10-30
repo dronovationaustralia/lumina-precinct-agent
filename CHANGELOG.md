@@ -6,6 +6,23 @@ repositories (`LuminaSpatialInsightsXR`, `LuminaSpatial`, `extended-tableau-mcp`
 
 ## 2026-10-31 (Sat)
 
+### Added
+- `npm run sam:check`: a per-chip, per-class health check for the SAM batch. For each
+  chip it reports objects and cover % per class plus a rough vegetation share from the
+  imagery (excess green, calibrated on dark eucalypt canopy), and flags chips with under
+  10 building objects or tree cover under a third of the vegetation share. Class prompts
+  and tiling moved to the shared `scripts/sam/concepts.ts` so the batch and the check
+  can never disagree; the vegetation threshold is pinned by a test (built with Muse Code).
+
+### Results
+- SAM tuning on Chatswood: re-running with the current code (512 px start tiles, quarter
+  splitting, "forest" prompt) fixed both known problems with no prompt changes needed.
+  800 m building cover 22.8% to 29% (east-side chips now find 700+ roofs each, checked on
+  overlays) and tree canopy 4% to 13.4% (bushland and street trees checked on overlays
+  against the excess-green reference). 286 new SAM calls used; the other nine stations
+  need about 3,400 more calls, over the 1,500-call tuning budget, so the full run is left
+  for a follow-up (their cover stays labelled demo until then).
+
 ### Changed
 - Azure: the Bicep template now sets the sign-in settings (`AUTH_SECRET`, `AUTH_URL`, optional
   Microsoft app), and no longer sets the unused Baseten key. `db:setup` gains `--load-cover` and
