@@ -7,6 +7,12 @@ repositories (`LuminaSpatialInsightsXR`, `LuminaSpatial`, `extended-tableau-mcp`
 ## 2026-10-31 (Sat)
 
 ### Fixed
+- While the local database is rebuilding (first start after a data change, about 3 minutes) the
+  workspace now says so, instead of showing an empty map and blank snapshot. "Open the land-use
+  breakdown" shows that it is loading, and says why if it can't open.
+- Meta models panel: plain status for each model (Live, Offline: no API key set, Not run yet,
+  Planned, Development tool, Checking…) with a key explaining them; it no longer says "not
+  connected" while the server is still starting.
 - SAM 3.1 aerial cover undercounted: at 1 m per pixel it outlined only large buildings and found
   almost no trees or car parks. Chips are now 0.5 m per pixel (512 m across), images are sent at
   high detail, and prompts are literal ("building" plus "house", "tree", "parking lot").

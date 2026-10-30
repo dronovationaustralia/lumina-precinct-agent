@@ -46,6 +46,9 @@ export function Portal() {
   const [showSaved, setShowSaved] = useState(false);
   const [printTurns, setPrintTurns] = useState<Turn[] | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  // The first start after a data change rebuilds the local database (a few minutes); say so.
+  const [warming, setWarming] = useState(false);
+  const [checked, setChecked] = useState(false);
   const [layers, setLayers] = useState<LayerState>({ lines: true, rings: true, hex: 'off', bounds: 'off', landuse: true });
   const [hexMeta, setHexMeta] = useState<HexMeta | null>(null);
   const [map, setMap] = useState<MapState>({ focus: null, radius_m: 800, compare: null, highlight: [], view: 'overview', flyNonce: 0 });
@@ -56,7 +59,8 @@ export function Portal() {
 
   useEffect(() => {
     fetchStations().then(setStations).catch((e: Error) => setLoadError(e.message));
-    fetch('/api/v1/health').then((r) => r.json()).then(setHealth).catch(() => setHealth(null));
+    const slow = setTimeout(() => setWarming(true), 2500);
+    fetch('/api/v1/health').then((r) => r.json()).then(setHealth).catch(() => setHealth(null)).finally(() => { clearTimeout(slow); setWarming(false); setChecked(true); });
     fetchSummary().then((r) => setSummary(r.stations)).catch(() => setSummary([]));
     fetchUser().then(setUser).catch(() => setUser(null));
   }, []);
@@ -238,6 +242,8 @@ export function Portal() {
           <div className="talk-inner">
             {(demoTopics.length > 0 || offline) && (
               <div className="notices">
+                {warming && <p className="notice">Loading the data. The first start after a data change rebuilds the local database, which takes about 3 minutes; the snapshot, map layers and land use appear when it is ready.</p>}
+                {checked && !health && <p className="notice">The server did not answer the health check. Check the terminal running the app.</p>}
                 {demoTopics.length > 0 && <p className="notice">Demo data: {demoTopics.join(' and ').toLowerCase()} {demoTopics.length > 1 ? 'are' : 'is'} synthetic for now. Other figures are real NSW data.</p>}
                 {offline && <p className="notice">No Meta model key is set here, so a rule-based planner is answering. With the key, Muse Spark plans and writes every answer.</p>}
               </div>
@@ -322,13 +328,18 @@ export function Portal() {
         </div>
         {note && <div className="map-note">{note}</div>}
         <LayerPanel layers={layers} onChange={setLayers} hexMeta={hexMeta} canLandUse={Boolean(map.focus)}
-          onLandUse={async () => map.focus && setLandUse(await fetchLandUse(map.focus).catch(() => null))} />
+          onLandUse={async () => {
+            if (!map.focus) return;
+            setToast('Loading land use…');
+            const lu = await fetchLandUse(map.focus).catch(() => null);
+            if (lu) { setLandUse(lu); setToast(null); } else setToast(warming ? 'Still loading the data. Try again in a minute.' : 'Land use is not available for this station.');
+          }} />
         {landUse && (
           <LandUsePanel data={landUse} stationName={stations.find((st) => st.id === landUse.station)?.name ?? landUse.station} onClose={() => setLandUse(null)} />
         )}
       </section>
 
-      {showModels && <ModelsPanel health={health} onClose={() => setShowModels(false)} />}
+      {showModels && <ModelsPanel health={health} checking={!checked} onClose={() => setShowModels(false)} />}
       {showSaved && (
         <SavedPanel
           items={saved}
