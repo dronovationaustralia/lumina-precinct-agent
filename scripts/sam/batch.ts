@@ -40,11 +40,14 @@ const RINGS = [{ id: '0-400m', r: 400 }, { id: '0-800m', r: 800 }];
 // Short, literal noun phrases work best for SAM 3 concepts; a class can union several prompts
 // ("house" catches the detached roofs "building" misses; "tree" finds single crowns and "forest"
 // the continuous canopy of bushland and parks; "parking lot" beats "car park").
+// `tile`: the largest area sent in one request, in chip pixels. Dense, small objects (roofs, tree
+// crowns) start at 512 px quarters: on whole 1024 px chips SAM sometimes returned almost nothing
+// for streets of 300 houses. Large objects (car parks, construction sites) use whole chips.
 const CONCEPTS = [
-  { cls: 'building', prompts: ['building', 'house'] },
-  { cls: 'tree_canopy', prompts: ['tree', 'forest'] },
-  { cls: 'car_park', prompts: ['parking lot'] },
-  { cls: 'construction_site', prompts: ['construction site'] },
+  { cls: 'building', prompts: ['building', 'house'], tile: 512 },
+  { cls: 'tree_canopy', prompts: ['tree', 'forest'], tile: 512 },
+  { cls: 'car_park', prompts: ['parking lot'], tile: 1024 },
+  { cls: 'construction_site', prompts: ['construction site'], tile: 1024 },
 ] as const;
 const COLOURS: Record<string, string> = { building: '#e4572e', tree_canopy: '#29bf12', car_park: '#4361ee', construction_site: '#ffc914' };
 const CONCURRENCY = Number(arg('concurrency') ?? 3);
@@ -179,7 +182,9 @@ for (const s of stations) {
   const objects: Record<string, number> = {};
   let done = 0;
   await pool(jobs, CONCURRENCY, async ({ c, k, prompt }) => {
-    const masks = await segmentTile(c.file, prompt, 0, 0, CHIP_PX, stats);
+    const starts: number[] = [];
+    for (let v = 0; v < CHIP_PX; v += k.tile) starts.push(v);
+    const masks = (await Promise.all(starts.flatMap((ty) => starts.map((tx) => segmentTile(c.file, prompt, tx, ty, k.tile, stats))))).flat();
     objects[k.cls] = (objects[k.cls] ?? 0) + masks.length;
     const bmp = grid[k.cls]!;
     for (const m of masks) {
