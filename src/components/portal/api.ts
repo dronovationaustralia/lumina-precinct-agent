@@ -69,3 +69,18 @@ export async function ask(
 }
 
 export type { AskResponse, MapAction };
+
+export type StationSummary = {
+  id: string;
+  unit_median_800m: number | null;
+  unit_sales_800m: number;
+  house_median_800m: number | null;
+  house_sales_800m: number;
+  trips_12m: number | null;
+};
+
+export async function fetchSummary(): Promise<{ stations: StationSummary[]; as_of: { sales: string | null; patronage: string | null } }> {
+  const res = await fetch('/api/v1/summary');
+  if (!res.ok) throw new Error(`Summary failed to load (HTTP ${res.status})`);
+  return res.json();
+}

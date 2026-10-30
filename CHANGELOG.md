@@ -6,9 +6,26 @@ repositories (`LuminaSpatialInsightsXR`, `LuminaSpatial`, `extended-tableau-mcp`
 
 ## 2026-10-30 (Fri)
 
+### Added
+- New portal layout for analysts: the agent on the left (about 40%), the map on the right, and a
+  line strip across the top (T1 Western and T1 North Shore) that doubles as the station switcher,
+  with each station's 800 m unit median. Starter questions grouped by user (development, lending,
+  planning). On phones: strip, map, then the conversation; the layer panel collapses to a button.
+- Rail network layer: Sydney Trains T1 to T9, Metro M1 and light rail L1 to L4 in their official
+  colours, plus 236 stations, from TfNSW GTFS shapes (`npm run ingest:gtfs-lines`, committed as
+  `public/data/network.geojson`, 221 KB). Precinct stations drawn as T1 roundels with name and KPI.
+- Sales hexagon layer (units or houses): median price per ~520 m hexagon over the last 12 months,
+  from a governed view (`v_sales_hex`); medians from fewer than 10 sales are withheld and the
+  hexagon is drawn dashed. Quantile colour ramp with legend; hover shows median and sale count.
+- Layer panel (transport, market, land use). The agent's `show_layer` action now switches on the
+  sales and lines layers.
+- API: `/api/v1/summary` (per-station KPIs) and `/api/v1/layers/sales-hex`.
+
 ### Changed
 - Station locations now come from the TfNSW GTFS parent stops (Greater Sydney GTFS static):
   all 10 stations matched, each within 100 m of the earlier approximate location.
+- Scope for this build: data and layers cover the 10 station areas (5 km); Greater Sydney is the
+  planned scaling path.
 
 ## 2026-10-29 (Thu), early morning
 

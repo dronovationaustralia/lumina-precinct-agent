@@ -170,6 +170,45 @@ select station_id, to_char(month, 'YYYY-MM') as month, entries, exits, entries +
 create or replace view v_land_use as
 select station_id, ring_id, class, cover_pct::float8 as cover_pct, to_char(capture_date, 'YYYY-MM-DD') as capture_date, method, dataset_id from land_use_ring;
 
+-- Sales binned into hexagons (300 m circumradius, about 520 m across) for the map, last 12 months.
+-- Axial hex coordinates (q, r) on a local metric plane; the API turns them back into polygons.
+-- Only hexes with at least one sale within 5 km of a station; medians below 10 sales are suppressed.
+create or replace view v_sales_hex as
+with bounds as (select max(contract_date) as as_of from sales),
+pts as (
+  select s.property_type, s.price, s.dataset_id,
+         st_x(s.geom::geometry) * 111320 * cos(radians(-33.85)) / 300 as px,
+         st_y(s.geom::geometry) * 111320 / 300 as py
+  from sales s cross join bounds b
+  where s.contract_date > b.as_of - interval '12 months'
+    and exists (select 1 from sale_station ss where ss.sale_id = s.id)
+),
+frac as (
+  select property_type, price, dataset_id,
+         sqrt(3) / 3 * px - py / 3 as fq, 2.0 / 3 * py as fr
+  from pts
+),
+cube as (
+  select property_type, price, dataset_id, fq, fr, -fq - fr as fs,
+         round(fq) as rq, round(fr) as rr, round(-fq - fr) as rs
+  from frac
+),
+axial as (
+  select property_type, price, dataset_id,
+         case when abs(rq - fq) > abs(rr - fr) and abs(rq - fq) > abs(rs - fs) then -rr - rs else rq end::int as q,
+         case when abs(rq - fq) > abs(rr - fr) and abs(rq - fq) > abs(rs - fs) then rr
+              when abs(rr - fr) > abs(rs - fs) then -rq - rs else rr end::int as r
+  from cube
+)
+select property_type, q, r,
+       count(*)::int as sales_count,
+       case when count(*) >= 10 then percentile_cont(0.5) within group (order by price) end as median_price,
+       count(*) < 10 as suppressed,
+       min(dataset_id) as dataset_id,
+       (select to_char(as_of, 'YYYY-MM-DD') from bounds) as as_of
+from axial
+group by property_type, q, r;
+
 -- ---------------------------------------------------------------------------
 -- Read-only role for the agent. It can read the views above and nothing else.
 -- On managed Postgres, create a login user that is a member of agent_ro and put
@@ -184,4 +223,4 @@ end $$;
 revoke all on all tables in schema public from agent_ro;
 grant usage on schema public to agent_ro;
 grant select on v_stations, v_datasets, v_sales_period, v_sales_monthly, v_affordable_share,
-  v_patronage_monthly, v_land_use to agent_ro;
+  v_patronage_monthly, v_land_use, v_sales_hex to agent_ro;
