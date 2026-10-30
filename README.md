@@ -63,7 +63,6 @@ Without `MODEL_API_KEY` the app runs with the **offline** provider: a rule-based
 ```bash
 npm test                              # verifier, SQL guard, metric hand checks, agent graph
 npm run eval -- --provider meta       # 22 fixed questions on Muse Spark
-npm run eval -- --provider baseten    # same on Muse Spark Open
 npm run eval -- --provider offline    # rule-based baseline
 ```
 
@@ -90,7 +89,7 @@ Latest results are written to `evals/results-<provider>.md`; every run is archiv
 | Offline rules baseline (no model) | 19 / 22 | 0.3 s | 1.3 s | none |
 
 Low effort is the default. Composing the answer is now the slowest step, so `MUSE_COMPOSE_EFFORT`
-(eval: `--compose-effort minimal`) can give it a lighter setting than planning. Next: Muse Spark Open.
+(eval: `--compose-effort minimal`) can give it a lighter setting than planning.
 
 ## Day-1 spikes
 
