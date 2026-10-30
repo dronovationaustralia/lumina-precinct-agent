@@ -1,7 +1,7 @@
 {
   "name": "github-quest",
   "issuer": "https://token.actions.githubusercontent.com",
-  "subject": "repo:dronovationaustralia/lumina-precinct-agent:environment:quest",
+  "subject": "repo:dronovationaustralia@193547981/lumina-precinct-agent@1436399128:environment:quest",
   "description": "GitHub Actions deploys to the quest environment",
   "audiences": ["api://AzureADTokenExchange"]
 }

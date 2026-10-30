@@ -117,6 +117,11 @@ az ad app federated-credential create --id $appId --parameters infra/oidc/hackat
 az ad app federated-credential create --id $appId --parameters infra/oidc/quest.json
 ```
 
+The subjects in `infra/oidc/*.json` use GitHub's ID-based format
+(`repo:<owner>@<owner id>/<repo>@<repo id>:environment:<env>`), which this organisation sends. If a
+deploy fails with AADSTS700213, copy the subject from the error into the JSON and create the
+credential again.
+
 Tell GitHub about it:
 
 ```powershell
