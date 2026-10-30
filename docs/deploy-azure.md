@@ -25,12 +25,15 @@ $rg = "rg-lumina-precinct"
 az group create -n $rg -l australiaeast
 
 $myIp = (Invoke-RestMethod https://api.ipify.org)
-az deployment group create -g $rg -n main -f infra/main.bicep -p infra/main.parameters.json -p clientIp=$myIp
+$pg = Read-Host "Postgres admin password" -AsSecureString
+$pgPw = [System.Net.NetworkCredential]::new('', $pg).Password
+az deployment group create -g $rg -n main -f infra/main.bicep -p infra/main.parameters.json -p clientIp=$myIp pgAdminPassword=$pgPw
 ```
 
-The CLI prompts for the three secrets:
+`pgAdminPassword` (12+ characters, mixing upper case, lower case, digits and symbols) must be passed
+as above: it is optional in the template (not needed with an existing server), so the CLI does not
+prompt for it. The CLI prompts for the rest:
 
-- `pgAdminPassword`: 12+ characters, mixing upper case, lower case, digits and symbols.
 - `agentDbPassword`: 16+ characters. Avoid `@ : / ? #` to keep connection strings simple.
 - `modelApiKey`: your Meta Model API key.
 - `authSecret`: 32+ random characters that sign session cookies. Generate one with
