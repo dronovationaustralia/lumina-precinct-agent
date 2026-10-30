@@ -40,6 +40,7 @@ const RINGS = [{ id: '0-400m', r: 400 }, { id: '0-800m', r: 800 }];
 // Class concepts (prompts + start tiles) live in ./concepts.ts, shared with check.ts.
 const COLOURS: Record<string, string> = { building: '#e4572e', tree_canopy: '#29bf12', car_park: '#4361ee', construction_site: '#ffc914' };
 const CONCURRENCY = Number(arg('concurrency') ?? 3);
+const RETRIES = 6;
 
 const wanted = arg('stations')?.split(',').map((s) => s.trim());
 const stations = wanted ? STATIONS.filter((s) => wanted.includes(s.id)) : STATIONS.filter((s) => s.featured);
@@ -50,7 +51,7 @@ const DIR = path.join(OUT, 'sam');
 const CACHE = path.join(DIR, 'cache');
 mkdirSync(CACHE, { recursive: true });
 
-const client = new OpenAI({ baseURL: BASE, apiKey: KEY, timeout: 180_000, maxRetries: 2 });
+const client = new OpenAI({ baseURL: BASE, apiKey: KEY, timeout: 180_000, maxRetries: 0 });
 
 /** The API may skip `response.output_text.done`, which the parser needs; synthesise it once per lane. */
 async function* withTextDone(stream: AsyncIterable<unknown>): AsyncIterable<ResponsesEvent> {
@@ -104,7 +105,19 @@ type Tile = { masks: Mask[]; objects: number; ms: number; complete?: boolean };
 async function callSam(dataUrl: string, cacheFile: string, prompt: string): Promise<Tile & { cached: boolean }> {
   if (existsSync(cacheFile)) return { ...(JSON.parse(readFileSync(cacheFile, 'utf8')) as Tile), cached: true };
   const t0 = performance.now();
-  const result = await segment(dataUrl, prompt);
+  // Long runs meet dropped connections, timeouts and rate limits: retry with growing pauses.
+  let result: ImageSegmentationResult | undefined;
+  for (let attempt = 1; !result; attempt++) {
+    try {
+      result = await segment(dataUrl, prompt);
+    } catch (e) {
+      if (attempt >= RETRIES) throw e;
+      const wait = Math.min(120, 10 * 2 ** (attempt - 1));
+      const why = e instanceof Error ? ((e.cause as { code?: string } | undefined)?.code ?? e.message) : String(e);
+      process.stdout.write(`\n  SAM call failed (${why}); retry ${attempt}/${RETRIES - 1} in ${wait} s\n`);
+      await new Promise((r) => setTimeout(r, wait * 1000));
+    }
+  }
   const masks = recordsOfKind(result.records, 'mask').map((rec) => {
     const raster = decodeMaskToRaster(rec.mask);
     return { ...rec.bounds, w: rec.mask.width, h: rec.mask.height, raster: Array.from(raster, (v) => (v ? 1 : 0)), svg: decodeMaskToSVGPath(rec.mask) };
@@ -149,7 +162,7 @@ const rows: string[] = ['station_id,ring_id,class,cover_pct,res_m,chips,method,f
 const summary: Record<string, unknown>[] = [];
 const fetched = new Date().toISOString().slice(0, 10);
 
-for (const s of stations) {
+async function runStation(s: (typeof stations)[number]) {
   // A square grid of chips centred on the station, just covering the 800 m ring.
   const chipM = CHIP_PX * RES;
   const n = Math.max(1, Math.ceil((2 * 800) / chipM));
@@ -216,6 +229,22 @@ for (const s of stations) {
   console.log(`\r${s.name}: ${chips.length} chips, ${stats.calls} SAM calls (${stats.cached} cached, ${stats.split} tiles split), within 800 m: ${CONCEPTS.map((k) => `${k.cls} ${cover['0-800m']![k.cls]}%`).join(', ')}`);
 }
 
+// A station that still fails after retries is skipped (its finished tiles stay cached); the
+// others carry on. Re-run the same command to finish it.
+const failed: string[] = [];
+for (const s of stations) {
+  try {
+    await runStation(s);
+  } catch (e) {
+    failed.push(s.id);
+    console.log(`\n${s.name}: stopped (${e instanceof Error ? e.message : String(e)}). Finished tiles are cached; re-run to resume.`);
+  }
+}
+
 writeFileSync(path.join(OUT, 'sam_cover.csv'), rows.join('\n') + '\n');
 writeFileSync(path.join(DIR, 'summary.json'), JSON.stringify({ model: MODEL, base_url: BASE, imagery: IMAGERY, run_at: new Date().toISOString(), note: 'Classes can overlap (canopy over a car park). One imagery capture; cover per class, not a partition.', stations: summary }, null, 2));
 console.log(`\nWrote data/derived/sam_cover.csv and overlays in data/derived/sam/ (open the .svg files in a browser to review).`);
+if (failed.length) {
+  console.log(`Not finished: ${failed.join(', ')}. Run the same command again; cached tiles are not re-sent. Then load all stations.`);
+  process.exitCode = 1;
+}

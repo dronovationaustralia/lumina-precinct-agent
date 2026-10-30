@@ -29,6 +29,9 @@ repositories (`LuminaSpatialInsightsXR`, `LuminaSpatial`, `extended-tableau-mcp`
   refreshes the aggregates after any load.
 
 ### Fixed
+- SAM batch survives network trouble: each SAM call is retried up to five times with growing
+  pauses, and a station that still fails is skipped (its finished tiles stay cached) while the
+  others carry on; re-running the same command finishes it.
 - SAM 3.1 batch: SAM returns at most about 100 objects per image, so dense suburbs were cut off and
   bushland was missed. A tile that hits that ceiling (or whose response is cut short) is now split
   into four quarters, enlarged and segmented again (down to 256 px quarters). Tree cover adds a
