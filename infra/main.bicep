@@ -38,8 +38,16 @@ param agentDbPassword string
 param modelApiKey string
 
 @secure()
-@description('Optional Baseten key for Muse Spark Open.')
-param basetenApiKey string = ''
+@minLength(32)
+@description('Signs session cookies: 32+ random characters (different from your local one).')
+param authSecret string
+
+@description('Optional: Microsoft Entra app (client) ID for "Sign in with Microsoft".')
+param authMicrosoftClientId string = ''
+
+@secure()
+@description('Optional: client secret of that Entra app.')
+param authMicrosoftClientSecret string = ''
 
 @description('Muse Spark model id.')
 param museSparkModel string = 'muse-spark-1.3'
@@ -167,7 +175,10 @@ var appSettings = [
   { name: 'LUMINA_PROVIDER', value: 'meta' }
   { name: 'MODEL_API_KEY', value: modelApiKey }
   { name: 'MUSE_SPARK_MODEL', value: museSparkModel }
-  { name: 'BASETEN_API_KEY', value: basetenApiKey }
+  { name: 'AUTH_SECRET', value: authSecret }
+  { name: 'AUTH_URL', value: 'https://${webName}.azurewebsites.net' }
+  { name: 'AUTH_MICROSOFT_CLIENT_ID', value: authMicrosoftClientId }
+  { name: 'AUTH_MICROSOFT_CLIENT_SECRET', value: authMicrosoftClientSecret }
   { name: 'DATABASE_URL_RO', value: agentDbUrl }
   { name: 'CORS_ALLOW_ORIGIN', value: corsAllowOrigin }
   { name: 'RATE_LIMIT_PER_MIN', value: '20' }

@@ -33,6 +33,11 @@ The CLI prompts for the three secrets:
 - `pgAdminPassword`: 12+ characters, mixing upper case, lower case, digits and symbols.
 - `agentDbPassword`: 16+ characters. Avoid `@ : / ? #` to keep connection strings simple.
 - `modelApiKey`: your Meta Model API key.
+- `authSecret`: 32+ random characters that sign session cookies. Generate one with
+  `-join ((48..57)+(65..90)+(97..122) | Get-Random -Count 40 | % {[char]$_})`.
+
+Microsoft sign-in is optional: add `-p authMicrosoftClientId=<id> authMicrosoftClientSecret=<secret>`
+(see 3b). Without it, the sign-in page offers only "Continue as judge (demo)".
 
 Keep both passwords in your password manager. Then read the outputs:
 
@@ -75,8 +80,12 @@ Then:
 
 ```powershell
 npm install
-npm run db:setup -- --agent-login --seed-demo
+npm run db:setup -- --agent-login --seed-demo --load-real
 ```
+
+`--load-real` loads the processed NSW data from `data/derived` (sales, patronage, land use and,
+if present, SAM 3.1 cover) over the demo data; it takes several minutes over the network. After a
+new `npm run sam:batch`, load only the cover with `npm run db:setup -- --load-cover`.
 
 This applies `db/schema.sql` (PostGIS, governed views, the `agent_ro` role), creates the
 `lumina_agent` login, and loads the labelled demo data until the real NSW data is ingested. It is
@@ -117,8 +126,8 @@ gh variable set AZURE_DEPLOY_ON_PUSH --body "true"
 
 ## 3b. Sign-in settings
 
-The portal and API require sign-in. In the Azure portal, open the Web App → Settings → Environment
-variables and add:
+The portal and API require sign-in. `AUTH_SECRET`, `AUTH_URL` and the Microsoft settings are set by
+the Bicep deployment. To change them later, open the Web App → Settings → Environment variables:
 
 | Name | Value |
 | --- | --- |

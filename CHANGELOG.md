@@ -6,7 +6,13 @@ repositories (`LuminaSpatialInsightsXR`, `LuminaSpatial`, `extended-tableau-mcp`
 
 ## 2026-10-31 (Sat)
 
+### Changed
+- Azure: the Bicep template now sets the sign-in settings (`AUTH_SECRET`, `AUTH_URL`, optional
+  Microsoft app), and no longer sets the unused Baseten key. `db:setup` gains `--load-cover` and
+  refreshes the aggregates after any load.
+
 ### Fixed
+- Hydration warning caused by form-filling browser extensions that add `fdprocessedid` to buttons.
 - While the local database is rebuilding (first start after a data change, about 3 minutes) the
   workspace now says so, instead of showing an empty map and blank snapshot. "Open the land-use
   breakdown" shows that it is loading, and says why if it can't open.

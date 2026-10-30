@@ -7,7 +7,8 @@
  *   npm run db:setup -- --load-sales        # replace demo sales with real sales from data/derived
  *   npm run db:setup -- --load-patronage    # replace demo patronage with TfNSW entries and exits
  *   npm run db:setup -- --load-landuse      # NSW Landuse 2017 polygons and ring shares
- *   npm run db:setup -- --load-real         # sales, patronage and land use
+ *   npm run db:setup -- --load-real         # sales, patronage, land use and SAM cover
+ *   npm run db:setup -- --load-cover        # only SAM 3.1 aerial cover (after a new sam:batch)
  *
  * Reads DATABASE_URL (the admin connection string) from .env.local or the environment.
  * For --agent-login, set AGENT_DB_PASSWORD; the login is `lumina_agent`, a member of agent_ro.
@@ -78,8 +79,16 @@ try {
     if (!realLandUseAvailable()) throw new Error('No data/derived/landuse.ndjson. Run fetch:landuse and ingest:landuse first.');
     const r = await loadRealLandUse(db, undefined, (m) => console.log(m));
     console.log(`Loaded ${r.polygons.toLocaleString()} land-use polygons and ring shares.`);
+  }
+  if (flags.has('--load-cover') || flags.has('--load-real')) {
     const { loadRealCover, realCoverAvailable } = await import('@/server/db/real-cover');
     if (realCoverAvailable()) console.log(`Loaded SAM 3.1 aerial cover for ${(await loadRealCover(db)).stations} stations.`);
+    else console.log('No data/derived/sam_cover.csv: aerial cover stays demo data (run npm run sam:batch).');
+  }
+  if ([...flags].some((f) => f.startsWith('--load-') || f === '--seed-demo')) {
+    const { refreshAggregates } = await import('@/server/db/aggregates');
+    await refreshAggregates(db);
+    console.log('Aggregates refreshed.');
   }
 } finally {
   await db.close();
