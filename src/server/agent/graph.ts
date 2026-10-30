@@ -96,7 +96,7 @@ export async function runAgent(db: Db, req: AskRequest, opts: RunOptions = {}): 
 
   /** One compose call: the model drafts JSON from the facts and tool notes. */
   const composeOnce = async (errors: string[]) => {
-    const msgs = [new SystemMessage(COMPOSE_SYSTEM), new HumanMessage(composeUser(req.question, factsForModel(facts.all()), errors, notes))];
+    const msgs = [new SystemMessage(COMPOSE_SYSTEM), new HumanMessage(composeUser(req.question, factsForModel(facts.all()), errors, notes, req.persona))];
     const { text, usage: u } = await time('compose', () => model.compose(msgs, { question: req.question, facts: facts.all() }));
     return { ...parseDraft(text), usage: u };
   };

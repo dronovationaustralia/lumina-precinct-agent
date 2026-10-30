@@ -2,7 +2,7 @@
 
 import type { AskResponse, MapAction } from '@/lib/contracts';
 
-export type StationDto = { id: string; name: string; corridor: string; lat: number; lon: number; coord_source: string };
+export type StationDto = { id: string; name: string; corridor: string; lines: string[]; featured: boolean; lat: number; lon: number; coord_source: string };
 
 export type ProgressEvent =
   | { type: 'plan'; tool_calls: { name: string; args: unknown }[] }
@@ -33,12 +33,12 @@ export async function fetchLandUse(station: string): Promise<LandUseDto> {
 /** POST /api/v1/ask with streamed progress events. */
 export async function ask(
   question: string,
-  opts: { stationContext?: string; onProgress: (e: ProgressEvent) => void; signal?: AbortSignal },
+  opts: { stationContext?: string; persona?: string; onProgress: (e: ProgressEvent) => void; signal?: AbortSignal },
 ): Promise<AskResponse> {
   const res = await fetch('/api/v1/ask', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
-    body: JSON.stringify({ question, ...(opts.stationContext ? { station_context: opts.stationContext } : {}) }),
+    body: JSON.stringify({ question, ...(opts.stationContext ? { station_context: opts.stationContext } : {}), ...(opts.persona ? { persona: opts.persona } : {}) }),
     signal: opts.signal,
   });
   if (!res.ok || !res.body) {
@@ -83,4 +83,21 @@ export async function fetchSummary(): Promise<{ stations: StationSummary[]; as_o
   const res = await fetch('/api/v1/summary');
   if (!res.ok) throw new Error(`Summary failed to load (HTTP ${res.status})`);
   return res.json();
+}
+
+export type MetricDto = {
+  metric: string; name: string; unit: string; ring: string; property_type: string; value: number | null; display: string;
+  suppressed: boolean; sales_count: number | null; source: string; as_of: string; demo: boolean;
+};
+
+export async function fetchMetrics(station: string, propertyType: 'unit' | 'house'): Promise<MetricDto[]> {
+  const res = await fetch(`/api/v1/metrics?station=${station}&property_type=${propertyType}`);
+  if (!res.ok) throw new Error(`Metrics failed to load (HTTP ${res.status})`);
+  return (await res.json()).metrics;
+}
+
+export type User = { sub: string; name: string; email?: string; provider: 'microsoft' | 'demo'; persona: 'developer' | 'lender' | 'planner' };
+export async function fetchUser(): Promise<User | null> {
+  const res = await fetch('/api/auth/session');
+  return res.ok ? (await res.json()).user : null;
 }

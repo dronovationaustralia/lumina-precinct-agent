@@ -8,6 +8,6 @@ export function OPTIONS() {
 
 export function GET() {
   return json({
-    stations: STATIONS.map(({ id, name, corridor, lat, lon, coord_source }) => ({ id, name, corridor, lat, lon, coord_source })),
+    stations: STATIONS.map(({ id, name, corridor, lines, featured, lat, lon, coord_source }) => ({ id, name, corridor, lines, featured, lat, lon, coord_source })),
   });
 }

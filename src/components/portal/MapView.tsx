@@ -6,10 +6,13 @@
  * props so the same actions can run in the Quest app.
  *
  * Layers, bottom to top: basemap, sales hexagons, rail lines (official line colours), rings,
- * other rail stations, then the ten precinct stations as HTML roundels with a KPI.
+ * every train and metro station as a dot in its line colour, then the selected station(s) as an
+ * HTML roundel with a KPI.
  */
 import { useEffect, useRef } from 'react';
 import type { ExpressionSpecification, FilterSpecification, GeoJSONSource, Map as MlMap, Marker, Popup } from 'maplibre-gl';
+
+import { LINE_COLOURS } from '@/lib/lines';
 
 import type { StationDto } from './api';
 
@@ -33,8 +36,6 @@ const STYLE_URL = process.env.NEXT_PUBLIC_MAP_STYLE ?? 'https://tiles.openfreema
 const SYDNEY: [number, number] = [151.1, -33.83];
 /** Used when the basemap cannot be reached: stations, lines and rings still render on a plain ground. */
 const FALLBACK_STYLE = { version: 8 as const, sources: {}, layers: [{ id: 'ground', type: 'background' as const, paint: { 'background-color': '#e6ebe6' } }] };
-/** Stations whose label sits to the left of the dot, so neighbours a kilometre apart do not collide. */
-const LABEL_LEFT = new Set(['westmead', 'harris_park', 'milsons_point']);
 export const HEX_COLOURS = ['#efe9da', '#cddbe6', '#93b6d8', '#5487c2', '#1f5fad'];
 
 function circle(lon: number, lat: number, radiusM: number, steps = 96): [number, number][] {
@@ -175,8 +176,8 @@ export function MapView({
         });
 
         // Other rail stations: small white dots, named from zoom 13 (when the basemap has fonts).
-        const ours = latest.current.stations.map((s) => s.name);
-        const others: FilterSpecification = ['all', ['==', ['get', 'kind'], 'station'], ['!', ['in', ['get', 'name'], ['literal', ours]]]];
+        // Light rail stops from the network file; train and metro stations come from the registry below.
+        const others: FilterSpecification = ['all', ['==', ['get', 'kind'], 'station'], ['==', ['get', 'mode'], 'light_rail']];
         m.addLayer({
           id: 'net-stations', type: 'circle', source: 'network', filter: others, minzoom: 10.5,
           paint: {
@@ -193,6 +194,35 @@ export function MapView({
             paint: { 'text-color': '#4a5754', 'text-halo-color': '#ffffff', 'text-halo-width': 1.4 },
           });
         }
+
+        // All train and metro stations: dots in their main line colour; featured ones larger.
+        m.addSource('stations', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+        m.addLayer({
+          id: 'stations-dot', type: 'circle', source: 'stations',
+          paint: {
+            'circle-radius': ['interpolate', ['linear'], ['zoom'], 9, ['case', ['get', 'featured'], 4, 2.5], 13, ['case', ['get', 'featured'], 8, 6]],
+            'circle-color': '#ffffff',
+            'circle-stroke-color': ['get', 'color'],
+            'circle-stroke-width': ['interpolate', ['linear'], ['zoom'], 9, 1.5, 13, 3],
+          },
+        });
+        if (m.getStyle().glyphs) {
+          m.addLayer({
+            id: 'stations-name', type: 'symbol', source: 'stations',
+            filter: ['any', ['get', 'featured'], ['>=', ['zoom'], 12]],
+            layout: {
+              'text-field': ['get', 'name'], 'text-size': ['case', ['get', 'featured'], 12, 11], 'text-font': ['Noto Sans Bold'],
+              'text-offset': [0.9, 0], 'text-anchor': 'left', 'text-optional': true,
+            },
+            paint: { 'text-color': '#24312e', 'text-halo-color': '#ffffff', 'text-halo-width': 1.6 },
+          });
+        }
+        m.on('click', 'stations-dot', (e) => {
+          const id = e.features?.[0]?.properties?.id;
+          if (typeof id === 'string') latest.current.onSelect(id);
+        });
+        m.on('mouseenter', 'stations-dot', () => (m.getCanvas().style.cursor = 'pointer'));
+        m.on('mouseleave', 'stations-dot', () => (m.getCanvas().style.cursor = ''));
 
         popup.current = new maplibre.Popup({ closeButton: false, closeOnClick: false, className: 'hex-popup', offset: 8 });
         m.on('mousemove', 'hex-line', (e) => {
@@ -262,32 +292,44 @@ export function MapView({
     const kindFilter: FilterSpecification = ['==', ['get', 'kind'], ly.bounds === 'off' ? 'none' : ly.bounds];
     for (const id of ['bounds-line', 'bounds-name', 'bounds-hit']) if (m.getLayer(id)) m.setFilter(id, kindFilter);
 
-    // Precinct stations: HTML roundels (independent of basemap fonts) with name and a KPI.
+    (m.getSource('stations') as GeoJSONSource | undefined)?.setData({
+      type: 'FeatureCollection',
+      features: st.map((x) => ({
+        type: 'Feature',
+        properties: { id: x.id, name: x.name, featured: x.featured, color: LINE_COLOURS[x.corridor] ?? '#4a5754' },
+        geometry: { type: 'Point', coordinates: [x.lon, x.lat] },
+      })),
+    });
+
+    // Selected stations: HTML roundels (independent of basemap fonts) with name and a KPI.
     const ml = lib.current;
     if (ml) {
-      for (const x of st) {
+      for (const [id, mk] of roundels.current) if (!hot.has(id)) { mk.remove(); roundels.current.delete(id); }
+      for (const id of hot) {
+        const x = st.find((y) => y.id === id);
+        if (!x) continue;
         let mk = roundels.current.get(x.id);
         if (!mk) {
           const b = document.createElement('button');
           b.type = 'button';
-          b.className = LABEL_LEFT.has(x.id) ? 'roundel is-left' : 'roundel';
+          b.className = 'roundel is-hot';
           b.innerHTML = '<span class="roundel-dot" aria-hidden="true"></span><span class="roundel-text"><span class="roundel-name"></span><span class="roundel-kpi"></span></span>';
           b.querySelector('.roundel-name')!.textContent = x.name;
           b.addEventListener('click', () => latest.current.onSelect(x.id));
-          const left = LABEL_LEFT.has(x.id);
-          mk = new ml.Marker({ element: b, anchor: left ? 'right' : 'left', offset: [left ? 9 : -9, 0] }).setLngLat([x.lon, x.lat]).addTo(m);
+          mk = new ml.Marker({ element: b, anchor: 'left', offset: [-11, 0] }).setLngLat([x.lon, x.lat]).addTo(m);
           roundels.current.set(x.id, mk);
         }
         const node = mk.getElement();
-        node.classList.toggle('is-hot', hot.has(x.id));
         node.querySelector('.roundel-kpi')!.textContent = k[x.id] ?? '';
         node.setAttribute('aria-label', `${x.name}${k[x.id] ? `, ${k[x.id]}` : ''}`);
       }
     }
     if (!fitted.current && st.length) {
       fitted.current = true;
-      const lons = st.map((x) => x.lon), lats = st.map((x) => x.lat);
-      m.fitBounds([[Math.min(...lons), Math.min(...lats)], [Math.max(...lons), Math.max(...lats)]], { padding: narrow() ? { top: 60, bottom: 20, left: 70, right: 90 } : { top: 80, bottom: 50, left: 130, right: 300 }, duration: 0 });
+      // Open on the inner city and both featured corridors rather than the whole network.
+      const f = st.filter((x) => x.featured);
+      const lons = f.map((x) => x.lon), lats = f.map((x) => x.lat);
+      if (f.length) m.fitBounds([[Math.min(...lons), Math.min(...lats)], [Math.max(...lons), Math.max(...lats)]], { padding: narrow() ? 30 : { top: 70, bottom: 40, left: 40, right: 60 }, duration: 0 });
     }
   }
 

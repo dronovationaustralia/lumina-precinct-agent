@@ -3,7 +3,7 @@
 import { useState } from 'react';
 
 import { HEX_COLOURS, type HexMeta, type LayerState } from './MapView';
-import { money } from './StationStrip';
+import { money } from '@/lib/format';
 
 const LINES = [
   { key: 'T1', color: '#F99D1C' },

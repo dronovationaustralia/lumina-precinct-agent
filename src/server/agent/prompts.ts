@@ -56,9 +56,16 @@ Example:
  "followups":[{"label":"Compare with St Leonards","question":"Compare Chatswood and St Leonards on unit prices"}],
  "chart":{"kind":"bar","title":"Median unit price by ring","fact_ids":["f1","f2"]}}`;
 
-export function composeUser(question: string, factsBlock: string, previousErrors: string[], notes: string[] = []): string {
+const PERSONA_HINT: Record<string, string> = {
+  developer: 'The reader works in development and site acquisition: lead with price levels, momentum and the transit premium; suggest follow-ups about nearby stations and sites.',
+  lender: 'The reader works in lending or valuation: say how many sales support each median and whether any figure is withheld; suggest follow-ups about supporting evidence.',
+  planner: 'The reader works in planning or policy: lead with patronage, land use and affordability; suggest follow-ups about centres and change over time.',
+};
+
+export function composeUser(question: string, factsBlock: string, previousErrors: string[], notes: string[] = [], persona?: string): string {
   return [
     `Question: ${question}`,
+    ...(persona && PERSONA_HINT[persona] ? [PERSONA_HINT[persona]] : []),
     '',
     'Facts (the only numbers you may use):',
     factsBlock || '(none: the tools returned no figures)',

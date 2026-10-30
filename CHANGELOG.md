@@ -4,6 +4,30 @@ All work in this repository was built during the Meta Global AI Developer Hackat
 (27 Oct – 4 Nov 2026). Dates are Sydney time. No code is copied from earlier Lumina
 repositories (`LuminaSpatialInsightsXR`, `LuminaSpatial`, `extended-tableau-mcp`).
 
+## 2026-10-30 (Fri), evening
+
+### Added
+- Sign-in required for the portal and API (`src/proxy.ts`). Microsoft sign-in (Entra ID, any work
+  or personal account; authorization code flow with PKCE, ID token checked against Microsoft's keys)
+  and a one-click "Continue as judge (demo)" session. Sessions are signed HTTP-only cookies. Machine
+  clients can use `LUMINA_API_KEYS`. Sign-in page asks the user's work type.
+- Work types (development, lending, planning) shape the starter questions, the precinct snapshot
+  order and the agent's emphasis (`persona` in `AskRequest`; never the figures). Changeable in the
+  header.
+- Answer-first workspace: conversation in the centre with answer cards (answer lines with fact
+  chips, figure tiles with source and date, chart, sources, follow-ups), a station search over all
+  185 stations, a precinct snapshot (six KPIs, click to ask), and the map on the right.
+- "How this answer was made" on every answer: Muse Spark planning, the NSW data calls, Muse Spark
+  writing, and the checker, with timings. A "Meta AI" panel lists where each Meta model is used
+  and its status in this deployment.
+- Map shows every train and metro station in its line colour; selected stations get a roundel.
+- `npm run fetch:landuse`: NSW Landuse 2017 v1.5 polygons around each station from the NSW map
+  service (run on a machine that can reach it).
+
+### Changed
+- The local database is saved as a compressed snapshot outside the project folder and loaded into
+  memory per process (the dev server can run handlers in more than one worker).
+
 ## 2026-10-30 (Fri), late afternoon
 
 ### Changed

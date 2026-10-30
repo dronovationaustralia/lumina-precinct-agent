@@ -1,56 +1,60 @@
 'use client';
 
+/**
+ * The workspace: answer-first. Questions and answers in the centre, the map on the right driven by
+ * each answer, a station search for all 185 stations, and the user's work type shaping starters,
+ * the precinct snapshot and the agent's emphasis.
+ */
+import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import type { MapAction } from '@/lib/contracts';
+import type { Fact, MapAction } from '@/lib/contracts';
+import { PERSONA_INFO } from '@/lib/personas';
 
-import { AnswerView, type Turn } from './AnswerView';
-import { ask, fetchLandUse, fetchStations, fetchSummary, type LandUseDto, type StationDto, type StationSummary } from './api';
+import { AnswerCard, type Turn } from './AnswerCard';
+import { ask, fetchLandUse, fetchStations, fetchSummary, fetchUser, type LandUseDto, type StationDto, type StationSummary, type User } from './api';
 import { LayerPanel } from './LayerPanel';
+import { LineBadges } from './LineBadges';
 import { MapView, type HexMeta, type LayerState, type MapState } from './MapView';
-import { money, StationStrip } from './StationStrip';
+import { ModelsPanel, type Health } from './ModelsPanel';
+import { PrecinctSnapshot } from './PrecinctSnapshot';
+import { StationSearch } from './StationSearch';
 import 'maplibre-gl/dist/maplibre-gl.css';
 
-const SUGGESTIONS: { who: string; questions: string[] }[] = [
-  {
-    who: 'Development and site acquisition',
-    questions: [
-      'Compare Chatswood and St Leonards on unit price momentum and car-park cover',
-      'How do unit prices within 800 m of Parramatta compare with 2 to 5 km away?',
-    ],
-  },
-  { who: 'Lending and valuation', questions: ['How many unit sales support the median near Granville, and how has it moved?'] },
-  { who: 'Planning', questions: ['Which of the 10 stations has the most tree canopy within 800 m?', 'How busy is North Sydney station compared with a year earlier?'] },
-];
-
+type Persona = keyof typeof PERSONA_INFO;
 const CLASS_NAMES: Record<string, string> = { building: 'Building', tree_canopy: 'Tree canopy', car_park: 'Car park', construction_site: 'Construction site' };
 const RING_NAMES: Record<string, string> = { '0-400m': 'Within 400 m', '0-800m': 'Within 800 m', '800m-2km': '800 m to 2 km' };
+const money = (v: number) => (v >= 1_000_000 ? `$${(v / 1_000_000).toFixed(2)}m` : `$${Math.round(v / 1000)}k`);
 
 export function Portal() {
   const [stations, setStations] = useState<StationDto[]>([]);
+  const [summary, setSummary] = useState<StationSummary[]>([]);
+  const [user, setUser] = useState<User | null>(null);
   const [turns, setTurns] = useState<Turn[]>([]);
   const [draft, setDraft] = useState('');
   const [busy, setBusy] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [landUse, setLandUse] = useState<LandUseDto | null>(null);
   const [note, setNote] = useState<string | null>(null);
-  const [health, setHealth] = useState<{ demo_data: boolean; provider: string; datasets?: { id: string; demo: boolean }[] } | null>(null);
-  const [summary, setSummary] = useState<StationSummary[]>([]);
+  const [health, setHealth] = useState<Health | null>(null);
+  const [showModels, setShowModels] = useState(false);
   const [layers, setLayers] = useState<LayerState>({ lines: true, rings: true, hex: 'off', bounds: 'off' });
   const [hexMeta, setHexMeta] = useState<HexMeta | null>(null);
   const [map, setMap] = useState<MapState>({ focus: null, radius_m: 800, compare: null, highlight: [], view: 'overview', flyNonce: 0 });
   const listRef = useRef<HTMLDivElement>(null);
   const stationsRef = useRef<StationDto[]>([]);
   stationsRef.current = stations;
+  const persona: Persona = user?.persona ?? 'developer';
 
   useEffect(() => {
     fetchStations().then(setStations).catch((e: Error) => setLoadError(e.message));
     fetch('/api/v1/health').then((r) => r.json()).then(setHealth).catch(() => setHealth(null));
     fetchSummary().then((r) => setSummary(r.stations)).catch(() => setSummary([]));
+    fetchUser().then(setUser).catch(() => setUser(null));
   }, []);
 
   useEffect(() => {
-    listRef.current?.lastElementChild?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    listRef.current?.querySelector('.answer-card:last-of-type')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, [turns.length]);
 
   const resolve = (target: string) => stationsRef.current.find((s) => s.id === target || s.name.toLowerCase() === target.toLowerCase())?.id;
@@ -58,7 +62,6 @@ export function Portal() {
   const runActions = useCallback(async (actions: MapAction[]) => {
     setNote(null);
     let focus: string | null | undefined;
-    // A compare action frames both stations itself, so a fly_to in the same answer must not cancel it.
     const comparing = actions.some((a) => a.type === 'compare');
     for (const a of actions) {
       if (a.type === 'fly_to' && comparing) continue;
@@ -80,8 +83,7 @@ export function Portal() {
         }
       } else if (a.type === 'show_layer') {
         if (a.layer === 'land_use' && a.visible !== false) {
-          const id = focus ?? null;
-          if (id) setLandUse(await fetchLandUse(id).catch(() => null));
+          if (focus) setLandUse(await fetchLandUse(focus).catch(() => null));
         } else if (a.layer === 'sales') {
           setLayers((l) => ({ ...l, hex: a.visible === false ? 'off' : l.hex === 'off' ? 'unit' : l.hex }));
         } else if (a.layer === 'lines') {
@@ -100,120 +102,170 @@ export function Portal() {
     setDraft('');
     setBusy(true);
     setLandUse(null);
-    setTurns((t) => [...t, { id, question: q, progress: [] }]);
+    setTurns((t) => [...t, { id, question: q, station: map.focus ?? undefined, progress: [] }]);
     try {
       const answer = await ask(q, {
         stationContext: map.focus ?? undefined,
+        persona,
         onProgress: (e) => setTurns((t) => t.map((x) => (x.id === id ? { ...x, progress: [...x.progress, e] } : x))),
       });
       setTurns((t) => t.map((x) => (x.id === id ? { ...x, answer } : x)));
       await runActions(answer.actions);
     } catch (e) {
-      setTurns((t) => t.map((x) => (x.id === id ? { ...x, error: `${e instanceof Error ? e.message : String(e)}. Try again, or ask about one of the ten stations.` } : x)));
+      setTurns((t) => t.map((x) => (x.id === id ? { ...x, error: `${e instanceof Error ? e.message : String(e)}. Try again, or name a station.` } : x)));
     } finally {
       setBusy(false);
     }
-  }, [busy, map.focus, runActions]);
+  }, [busy, map.focus, persona, runActions]);
 
-  const focusName = stations.find((s) => s.id === map.focus)?.name;
   const select = (id: string) => {
     setLandUse(null);
     setMap((m) => ({ ...m, focus: id, compare: null, highlight: [], view: 'overview', flyNonce: m.flyNonce + 1 }));
   };
+
+  const changePersona = async (p: Persona) => {
+    setUser((u) => (u ? { ...u, persona: p } : u));
+    await fetch('/api/auth/session', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ persona: p }) }).catch(() => null);
+  };
+
+  const focusFact = (f: Fact | null) => {
+    setMap((m) => ({ ...m, highlight: f?.station_id ? [f.station_id] : [] }));
+  };
+
+  const signOut = async () => {
+    await fetch('/api/auth/logout', { method: 'POST' });
+    window.location.assign('/signin');
+  };
+
+  const focus = stations.find((s) => s.id === map.focus) ?? null;
   const kpis = Object.fromEntries(summary.map((k) => [k.id, k.unit_median_800m ? `${money(k.unit_median_800m)} unit median` : '']));
-  // Name what is still synthetic, so real datasets are not tarred with the same brush.
   const TOPIC: Record<string, string> = { demo_sales: 'Property sales', demo_patronage: 'Station patronage', demo_land_use: 'Land use' };
   const demoTopics = (health?.datasets ?? []).filter((d) => d.demo).map((d) => TOPIC[d.id] ?? d.id);
-  const demo = demoTopics.length > 0 || Boolean(health?.demo_data) || turns.some((t) => t.answer?.meta.demo_data);
-  const demoText = !demoTopics.length
-    ? 'Demo data: some figures are synthetic.'
-    : demoTopics.length === 3
-      ? 'Demo data: figures are synthetic until the NSW datasets are loaded.'
-      : `Demo data: ${demoTopics.join(' and ').toLowerCase().replace(/^./, (c) => c.toUpperCase())} ${demoTopics.length > 1 ? 'are' : 'is'} synthetic for now. Other figures are real NSW data.`;
+  const offline = health?.provider === 'offline';
+  const info = PERSONA_INFO[persona];
+  const featured = stations.filter((s) => s.featured);
 
   return (
-    <div className="portal">
-      <header className="topbar">
-        <div className="brand">
+    <div className="ws">
+      <header className="ws-head">
+        <Link className="brand" href="/">
           <span className="brand-mark" aria-hidden="true" />
-          <div>
-            <h1>Lumina Precinct Agent</h1>
-            <p>Station precinct screening for Sydney</p>
-          </div>
-        </div>
-        <StationStrip stations={stations} summary={summary} active={map.compare ?? (map.focus ? [map.focus] : [])} onSelect={select} />
-      </header>
-
-      <section className="talk-pane" aria-label="Ask about a precinct">
-        <header className="talk-head">
-          <p>Ask about prices, transport and land use around ten stations. Every figure is checked against the data before you see it.</p>
-          {demo && <p className="demo-flag">{demoText}</p>}
-          {health?.provider === 'offline' && <p className="demo-flag">No model key set: answers come from the offline rule-based planner.</p>}
-        </header>
-
-        <div className="turns" ref={listRef}>
-          {loadError && <p className="turn-error" role="alert">{loadError}. Reload the page to try again.</p>}
-          {turns.length === 0 && (
-            <div className="starter">
-              <p>Start with one of these, or ask your own.</p>
-              {SUGGESTIONS.map((g) => (
-                <div key={g.who} className="starter-group">
-                  <h2>{g.who}</h2>
-                  {g.questions.map((q) => (
-                    <button key={q} type="button" className="starter-q" onClick={() => submit(q)}>{q}</button>
-                  ))}
-                </div>
-              ))}
+          <span className="brand-text"><strong>Lumina</strong> Precinct Agent</span>
+        </Link>
+        <StationSearch stations={stations} value={map.focus} onChange={select} />
+        <div className="head-right">
+          <label className="persona-select">
+            <span className="sr-only">Work type</span>
+            <select value={persona} onChange={(e) => changePersona(e.target.value as Persona)}>
+              {(Object.keys(PERSONA_INFO) as Persona[]).map((p) => <option key={p} value={p}>{PERSONA_INFO[p].short}</option>)}
+            </select>
+          </label>
+          <button type="button" className="meta-button" onClick={() => setShowModels(true)}>
+            <span className="meta-dot" aria-hidden="true" />
+            {offline ? 'Meta AI (offline)' : 'Meta AI'}
+          </button>
+          {user && (
+            <div className="user">
+              <span className="avatar" aria-hidden="true">{user.name.slice(0, 1)}</span>
+              <span className="user-name">{user.name}</span>
+              <button type="button" className="link-button" onClick={signOut}>Sign out</button>
             </div>
           )}
-          {turns.map((t) => <AnswerView key={t.id} turn={t} onFollowUp={submit} />)}
+        </div>
+      </header>
+
+      <main className="talk" aria-label="Questions and answers">
+        <div className="talk-scroll" ref={listRef}>
+          <div className="talk-inner">
+            {(demoTopics.length > 0 || offline) && (
+              <div className="notices">
+                {demoTopics.length > 0 && <p className="notice">Demo data: {demoTopics.join(' and ').toLowerCase()} {demoTopics.length > 1 ? 'are' : 'is'} synthetic for now. Other figures are real NSW data.</p>}
+                {offline && <p className="notice">No Meta model key is set here, so a rule-based planner is answering. With the key, Muse Spark plans and writes every answer.</p>}
+              </div>
+            )}
+            {loadError && <p className="turn-error" role="alert">{loadError}. Reload the page to try again.</p>}
+
+            {turns.length === 0 && (
+              <section className="hello">
+                <p className="kicker">{info.label}</p>
+                <h1>{user ? `Hello ${user.provider === 'demo' ? 'there' : user.name.split(' ')[0]}.` : 'Hello.'} Which precinct are you looking at?</h1>
+                <p className="hello-lead">{info.blurb} Ask about any of Sydney&apos;s {stations.length || 185} train and metro stations.</p>
+                <div className="starters">
+                  {info.questions.map((q) => (
+                    <button key={q} type="button" className="starter" onClick={() => submit(q)}>
+                      <span>{q}</span>
+                      <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M3 8h9M8.5 4.5 12 8l-3.5 3.5" fill="none" stroke="currentColor" strokeWidth="1.6" /></svg>
+                    </button>
+                  ))}
+                </div>
+                {!focus && featured.length > 0 && (
+                  <div className="featured">
+                    <h2>Featured precincts</h2>
+                    <ul>
+                      {featured.map((s) => {
+                        const k = summary.find((x) => x.id === s.id);
+                        return (
+                          <li key={s.id}>
+                            <button type="button" className="featured-item" onClick={() => select(s.id)}>
+                              <span className="featured-name">{s.name}</span>
+                              <LineBadges lines={s.lines} max={3} />
+                              <span className="featured-kpi">{k?.unit_median_800m ? `${money(k.unit_median_800m)} unit median` : ' '}</span>
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                )}
+              </section>
+            )}
+
+            {focus && <PrecinctSnapshot station={focus} persona={persona} onAsk={submit} />}
+
+            {turns.map((t) => (
+              <AnswerCard key={t.id} turn={t} stationName={stations.find((s) => s.id === t.station)?.name} onFollowUp={submit} onFocusFact={focusFact} />
+            ))}
+          </div>
         </div>
 
-        <form
-          className="composer"
-          onSubmit={(e) => {
-            e.preventDefault();
-            submit(draft);
-          }}
-        >
-          <label htmlFor="q" className="sr-only">Your question</label>
-          <textarea
-            id="q"
-            value={draft}
-            rows={3}
-            placeholder={focusName ? `Ask about ${focusName}` : 'Ask about a station precinct'}
-            onChange={(e) => setDraft(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                submit(draft);
-              }
-            }}
-          />
-          <button type="submit" className="ask-button" disabled={busy || !draft.trim()}>{busy ? 'Checking' : 'Ask'}</button>
+        <form className="composer" onSubmit={(e) => { e.preventDefault(); submit(draft); }}>
+          <div className="composer-box">
+            {focus && (
+              <span className="context-chip">
+                About {focus.name}
+                <button type="button" aria-label="Clear station" onClick={() => setMap((m) => ({ ...m, focus: null, compare: null }))}>×</button>
+              </span>
+            )}
+            <label htmlFor="q" className="sr-only">Your question</label>
+            <textarea
+              id="q"
+              value={draft}
+              rows={2}
+              placeholder={focus ? `Ask about ${focus.name}, or compare it with another station` : 'Ask about any Sydney station precinct'}
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submit(draft); } }}
+            />
+            <div className="composer-foot">
+              <span className="composer-hint"><span className="meta-dot" aria-hidden="true" />{offline ? 'Offline planner' : 'Muse Spark'} · figures checked before display</span>
+              <button type="submit" className="ask-button" disabled={busy || !draft.trim()}>{busy ? 'Working…' : 'Ask'}</button>
+            </div>
+          </div>
         </form>
-      </section>
+      </main>
 
-      <section className="map-pane">
+      <section className="map-pane" aria-label="Map">
         <MapView stations={stations} state={map} layers={layers} kpis={kpis} onSelect={select} onHexMeta={setHexMeta} />
         <div className="map-status" aria-live="polite">
           {map.compare
-            ? `Comparing ${stations.find((s) => s.id === map.compare![0])?.name} and ${stations.find((s) => s.id === map.compare![1])?.name}, ${map.radius_m} m rings`
-            : focusName
-              ? `${focusName} · 400 m and ${map.radius_m} m rings`
-              : 'Ten station precincts on two T1 corridors'}
+            ? `Comparing ${stations.find((s) => s.id === map.compare![0])?.name} and ${stations.find((s) => s.id === map.compare![1])?.name}`
+            : focus ? `${focus.name} · 400 m and ${map.radius_m} m rings` : `${stations.length || 185} train and metro stations`}
           {layers.hex !== 'off' && <span className="map-status-sub">Hexagons: median {layers.hex} price, last 12 months</span>}
         </div>
         {note && <div className="map-note">{note}</div>}
-        <LayerPanel
-          layers={layers}
-          onChange={setLayers}
-          hexMeta={hexMeta}
-          canLandUse={Boolean(map.focus)}
-          onLandUse={async () => map.focus && setLandUse(await fetchLandUse(map.focus).catch(() => null))}
-        />
+        <LayerPanel layers={layers} onChange={setLayers} hexMeta={hexMeta} canLandUse={Boolean(map.focus)}
+          onLandUse={async () => map.focus && setLandUse(await fetchLandUse(map.focus).catch(() => null))} />
         {landUse && (
-          <aside className="landuse" aria-label="Land-use cover">
+          <aside className="landuse" aria-label="Land use">
             <div className="landuse-head">
               <h2>Land use near {stations.find((s) => s.id === landUse.station)?.name}</h2>
               <button type="button" className="icon-button" onClick={() => setLandUse(null)} aria-label="Close land use">×</button>
@@ -234,6 +286,8 @@ export function Portal() {
           </aside>
         )}
       </section>
+
+      {showModels && <ModelsPanel health={health} onClose={() => setShowModels(false)} />}
     </div>
   );
 }

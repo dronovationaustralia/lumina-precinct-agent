@@ -115,6 +115,22 @@ gh variable set AZURE_WEBAPP_NAME --body "<webAppName>"
 gh variable set AZURE_DEPLOY_ON_PUSH --body "true"
 ```
 
+## 3b. Sign-in settings
+
+The portal and API require sign-in. In the Azure portal, open the Web App → Settings → Environment
+variables and add:
+
+| Name | Value |
+| --- | --- |
+| `AUTH_SECRET` | 32+ random characters (different from your local one) |
+| `AUTH_MICROSOFT_CLIENT_ID` | Application (client) ID of the Entra app registration |
+| `AUTH_MICROSOFT_CLIENT_SECRET` | Client secret value |
+| `LUMINA_API_KEYS` | Optional, comma-separated 24+ character keys for the Quest app |
+
+In the Entra app registration, add the redirect URI
+`https://<web-app-name>.azurewebsites.net/api/auth/callback/microsoft` (platform: Web).
+Judges use "Continue as judge (demo)", which needs no account; set `AUTH_DEMO_DISABLED=1` after judging.
+
 ## 4. Deploy
 
 Every push to `main` now deploys to the hackathon app while `AZURE_DEPLOY_ON_PUSH` is `true`. To

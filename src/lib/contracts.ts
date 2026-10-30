@@ -118,6 +118,8 @@ export const AskRequest = z.object({
   station_context: StationId.optional(),
   radius_m: z.number().int().min(100).max(2000).optional(),
   history: z.array(z.object({ role: z.enum(['user', 'assistant']), content: z.string().max(2000) })).max(6).optional(),
+  /** Who is asking: shapes emphasis and follow-ups, never the figures. */
+  persona: z.enum(['developer', 'lender', 'planner']).optional(),
 }).strict();
 export type AskRequest = z.infer<typeof AskRequest>;
 

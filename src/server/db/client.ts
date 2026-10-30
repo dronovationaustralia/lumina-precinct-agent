@@ -9,7 +9,8 @@
  * agent_ro role (or the DATABASE_URL_RO login), with a statement timeout.
  */
 import { createHash } from 'node:crypto';
-import { existsSync, readdirSync, readFileSync, rmSync, statSync } from 'node:fs';
+import { homedir } from 'node:os';
+import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 
@@ -39,13 +40,13 @@ function buildSignature(): string {
   const h = createHash('sha256');
   const root = process.cwd();
   for (const f of ['db/schema.sql', 'src/server/db/seed-demo.ts', 'src/server/db/real-sales.ts', 'src/server/db/real-patronage.ts', 'src/lib/station-registry.json']) {
-    const p = path.join(root, f);
-    if (existsSync(p)) h.update(readFileSync(p));
+    const p = path.join(/*turbopackIgnore: true*/ root, f);
+    if (existsSync(/*turbopackIgnore: true*/ p)) h.update(readFileSync(/*turbopackIgnore: true*/ p));
   }
   const derived = path.join(root, 'data', 'derived');
   if (existsSync(derived)) {
-    for (const f of readdirSync(derived).sort()) {
-      const st = statSync(path.join(derived, f));
+    for (const f of readdirSync(/*turbopackIgnore: true*/ derived).sort()) {
+      const st = statSync(/*turbopackIgnore: true*/ path.join(derived, f));
       h.update(`${f}:${st.size}:${st.mtimeMs}`);
     }
   }
@@ -59,23 +60,25 @@ function wantsRealData(opts: { realSales?: boolean }) {
 async function createPglite(opts: { realSales?: boolean } = {}): Promise<Db> {
   const { PGlite } = await import('@electric-sql/pglite');
   const { postgis } = await import('@electric-sql/pglite-postgis');
-  // With real data the build takes a minute or two (every sale against every station within 5 km),
-  // so it is kept on disk in data/pglite (gitignored) and reused until its inputs change.
-  const persist = wantsRealData(opts) && existsSync(path.join(process.cwd(), 'data', 'derived', 'sales_geocoded.csv'));
-  const dataDir = path.join(process.cwd(), 'data', 'pglite');
-  const signature = persist ? buildSignature() : '';
-  if (persist && existsSync(dataDir)) {
-    const pg = await PGlite.create({ dataDir, extensions: { postgis } });
-    const ok = await pg
-      .query<{ v: string }>("select value as v from app_meta where key = 'signature'")
-      .then((r) => r.rows[0]?.v === signature)
-      .catch(() => false);
-    if (ok) return wrap(pg);
-    await pg.close();
-    rmSync(dataDir, { recursive: true, force: true });
+  // With real data the build takes a minute or two (every sale against every station within 5 km).
+  // The built database is saved as a compressed snapshot outside the project folder and loaded into
+  // memory on later starts. Each process gets its own in-memory copy: the dev server may evaluate
+  // route handlers in more than one worker, and PGlite must not share live files between them.
+  const snapshotting = wantsRealData(opts) && existsSync(path.join(process.cwd(), 'data', 'derived', 'sales_geocoded.csv'));
+  const dir = process.env.LUMINA_DB_CACHE_DIR ?? path.join(homedir(), '.lumina-precinct-agent');
+  const signature = snapshotting ? buildSignature() : '';
+  const snapshot = path.join(dir, `db-${signature}.tar.gz`);
+  if (snapshotting && existsSync(snapshot)) {
+    try {
+      const pg = await PGlite.create({ loadDataDir: new Blob([readFileSync(snapshot)]), extensions: { postgis } });
+      await pg.query('select count(*) from v_sales_period');
+      return wrap(pg);
+    } catch {
+      rmSync(snapshot, { force: true });
+    }
   }
-  if (persist) console.log('[db] Building the local database from data/derived (one to two minutes, kept in data/pglite)...');
-  const pg = await PGlite.create({ ...(persist ? { dataDir } : {}), extensions: { postgis } });
+  if (snapshotting) console.log(`[db] Building the local database from data/derived (one to two minutes; saved to ${dir})...`);
+  const pg = await PGlite.create({ extensions: { postgis } });
   const db = wrap(pg);
   await db.exec(await schemaSql());
   const { seedDemo } = await import('./seed-demo');
@@ -84,14 +87,22 @@ async function createPglite(opts: { realSales?: boolean } = {}): Promise<Db> {
   // (LUMINA_REAL_DATA=off, or the older LUMINA_REAL_SALES=off, to skip).
   if (wantsRealData(opts)) {
     const { loadRealSales, realSalesAvailable } = await import('./real-sales');
-    if (realSalesAvailable()) await loadRealSales(db, undefined, (m) => persist && console.log(`[db]${m}`));
+    if (realSalesAvailable()) await loadRealSales(db, undefined, (m) => snapshotting && console.log(`[db]${m}`));
     const { loadRealPatronage, realPatronageAvailable } = await import('./real-patronage');
     if (realPatronageAvailable()) await loadRealPatronage(db);
   }
-  if (persist) {
-    await db.exec(`create table if not exists app_meta (key text primary key, value text not null);`);
-    await db.admin(`insert into app_meta (key, value) values ('signature', $1) on conflict (key) do update set value = excluded.value`, [signature]);
-    console.log('[db] Local database ready.');
+  if (snapshotting) {
+    try {
+      mkdirSync(dir, { recursive: true });
+      const dump = await pg.dumpDataDir('gzip');
+      const tmp = `${snapshot}.${process.pid}.tmp`;
+      writeFileSync(tmp, Buffer.from(await dump.arrayBuffer()));
+      renameSync(tmp, snapshot);
+      for (const f of readdirSync(/*turbopackIgnore: true*/ dir)) if (/^db-[0-9a-f]+\.tar\.gz$/.test(f) && path.join(dir, f) !== snapshot) rmSync(path.join(dir, f), { force: true });
+      console.log('[db] Local database ready and saved.');
+    } catch (e) {
+      console.warn(`[db] Could not save the database snapshot: ${e instanceof Error ? e.message : String(e)}`);
+    }
   }
   return db;
 }

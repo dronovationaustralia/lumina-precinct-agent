@@ -28,7 +28,8 @@
     "ingest:patronage": "tsx --tsconfig tsconfig.json scripts/ingest/patronage.ts",
     "ingest:gtfs": "npm run ingest:gtfs-lines",
     "ingest:gtfs-lines": "tsx --tsconfig tsconfig.json scripts/ingest/gtfs-lines.ts",
-    "ingest:boundaries": "tsx --tsconfig tsconfig.json scripts/ingest/abs-boundaries.ts"
+    "ingest:boundaries": "tsx --tsconfig tsconfig.json scripts/ingest/abs-boundaries.ts",
+    "fetch:landuse": "tsx --tsconfig tsconfig.json scripts/fetch/landuse.ts"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.12",
@@ -38,6 +39,7 @@
     "@langchain/openai": "^1.7.1",
     "@meta-sam/parser": "^0.1.0",
     "fflate": "^0.8.2",
+    "jose": "^6.2.14",
     "libpg-query": "^18.2.1",
     "maplibre-gl": "6.15",
     "next": "16.4.3",
