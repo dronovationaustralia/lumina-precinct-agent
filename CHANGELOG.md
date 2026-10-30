@@ -20,6 +20,9 @@ repositories (`LuminaSpatialInsightsXR`, `LuminaSpatial`, `extended-tableau-mcp`
 - Layer panel (transport, market, land use). The agent's `show_layer` action now switches on the
   sales and lines layers.
 - API: `/api/v1/summary` (per-station KPIs) and `/api/v1/layers/sales-hex`.
+- Boundaries layer: suburbs (SAL 2021, 208), LGAs (2025, 25) and postcodes (POA 2021, 100) around
+  the stations, from ABS ASGS Edition 3 shapefiles (`npm run ingest:boundaries`, committed as
+  `public/data/boundaries.geojson`, 850 KB, loaded on first use). Hover highlights an area.
 
 ### Changed
 - Station locations now come from the TfNSW GTFS parent stops (Greater Sydney GTFS static):

@@ -36,7 +36,7 @@ export function Portal() {
   const [note, setNote] = useState<string | null>(null);
   const [health, setHealth] = useState<{ demo_data: boolean; provider: string; datasets?: { id: string; demo: boolean }[] } | null>(null);
   const [summary, setSummary] = useState<StationSummary[]>([]);
-  const [layers, setLayers] = useState<LayerState>({ lines: true, rings: true, hex: 'off' });
+  const [layers, setLayers] = useState<LayerState>({ lines: true, rings: true, hex: 'off', bounds: 'off' });
   const [hexMeta, setHexMeta] = useState<HexMeta | null>(null);
   const [map, setMap] = useState<MapState>({ focus: null, radius_m: 800, compare: null, highlight: [], view: 'overview', flyNonce: 0 });
   const listRef = useRef<HTMLDivElement>(null);

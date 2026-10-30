@@ -27,7 +27,8 @@
     "ingest:sales": "npm run ingest:vg && npm run ingest:gnaf && npm run ingest:geocode",
     "ingest:patronage": "tsx --tsconfig tsconfig.json scripts/ingest/patronage.ts",
     "ingest:gtfs": "tsx --tsconfig tsconfig.json scripts/ingest/gtfs.ts && npm run ingest:gtfs-lines",
-    "ingest:gtfs-lines": "tsx --tsconfig tsconfig.json scripts/ingest/gtfs-lines.ts"
+    "ingest:gtfs-lines": "tsx --tsconfig tsconfig.json scripts/ingest/gtfs-lines.ts",
+    "ingest:boundaries": "tsx --tsconfig tsconfig.json scripts/ingest/abs-boundaries.ts"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.12",
@@ -56,9 +57,11 @@
     "@types/pg": "^8.23.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/shapefile": "^0.6.4",
     "@types/yauzl": "^3.4.0",
     "eslint": "^9",
     "eslint-config-next": "16.4.3",
+    "shapefile": "^0.6.6",
     "tailwindcss": "^4",
     "tsx": "^4.23.15",
     "typescript": "^5",

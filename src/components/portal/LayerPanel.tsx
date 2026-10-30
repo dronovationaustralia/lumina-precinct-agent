@@ -82,6 +82,16 @@ export function LayerPanel({
         )}
       </fieldset>
       <fieldset>
+        <legend>Boundaries</legend>
+        <div className="seg seg-4" role="radiogroup" aria-label="Boundaries">
+          {(['off', 'suburb', 'lga', 'postcode'] as const).map((m) => (
+            <button key={m} type="button" role="radio" aria-checked={layers.bounds === m} className={layers.bounds === m ? 'is-on' : ''} onClick={() => onChange({ ...layers, bounds: m })}>
+              {m === 'off' ? 'Off' : m === 'suburb' ? 'Suburbs' : m === 'lga' ? 'LGAs' : 'Postcodes'}
+            </button>
+          ))}
+        </div>
+      </fieldset>
+      <fieldset>
         <legend>Land use</legend>
         <button type="button" className="layer-button" disabled={!canLandUse} onClick={onLandUse}>
           {canLandUse ? 'Show cover by ring' : 'Pick a station first'}

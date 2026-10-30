@@ -14,7 +14,8 @@ import type { ExpressionSpecification, FilterSpecification, GeoJSONSource, Map a
 import type { StationDto } from './api';
 
 export type HexMode = 'off' | 'unit' | 'house';
-export type LayerState = { lines: boolean; rings: boolean; hex: HexMode };
+export type BoundaryMode = 'off' | 'suburb' | 'lga' | 'postcode';
+export type LayerState = { lines: boolean; rings: boolean; hex: HexMode; bounds: BoundaryMode };
 
 export type MapState = {
   focus: string | null;
@@ -86,6 +87,7 @@ export function MapView({
   const popup = useRef<Popup | null>(null);
   const fitted = useRef(false);
   const hexLoaded = useRef<HexMode>('off');
+  const boundsLoaded = useRef(false);
   const latest = useRef({ stations, state, layers, kpis, onSelect, onHexMeta });
   latest.current = { stations, state, layers, kpis, onSelect, onHexMeta };
 
@@ -118,7 +120,7 @@ export function MapView({
         m.addSource('hex', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
         m.addLayer({
           id: 'hex-fill', type: 'fill', source: 'hex', filter: ['!=', ['get', 'median'], null],
-          paint: { 'fill-color': '#cddbe6', 'fill-opacity': 0.62 },
+          paint: { 'fill-color': '#cddbe6', 'fill-opacity': 0.55 },
         }, firstSymbol);
         m.addLayer({
           id: 'hex-line', type: 'line', source: 'hex',
@@ -128,6 +130,27 @@ export function MapView({
           id: 'hex-suppressed', type: 'line', source: 'hex', filter: ['==', ['get', 'median'], null],
           paint: { 'line-color': '#8a948f', 'line-width': 0.8, 'line-dasharray': [2, 2], 'line-opacity': 0.6 },
         }, firstSymbol);
+
+        // Boundaries: loaded on first use (about 850 KB), drawn as quiet outlines with names.
+        m.addSource('bounds', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+        m.addLayer({ id: 'bounds-hover', type: 'fill', source: 'bounds', filter: ['==', ['get', 'code'], ''], paint: { 'fill-color': '#1f5fad', 'fill-opacity': 0.08 } }, firstSymbol);
+        m.addLayer({ id: 'bounds-hit', type: 'fill', source: 'bounds', filter: ['==', ['get', 'kind'], 'none'], paint: { 'fill-color': '#000', 'fill-opacity': 0 } }, firstSymbol);
+        m.addLayer({
+          id: 'bounds-line', type: 'line', source: 'bounds', filter: ['==', ['get', 'kind'], 'none'],
+          paint: { 'line-color': '#3d4b47', 'line-width': ['interpolate', ['linear'], ['zoom'], 10, 0.8, 15, 1.8], 'line-opacity': 0.7, 'line-dasharray': [4, 2] },
+        }, firstSymbol);
+        if (m.getStyle().glyphs) {
+          m.addLayer({
+            id: 'bounds-name', type: 'symbol', source: 'bounds', filter: ['==', ['get', 'kind'], 'none'], minzoom: 11,
+            layout: { 'text-field': ['get', 'name'], 'text-size': 12, 'text-font': ['Noto Sans Bold'], 'text-transform': 'uppercase', 'text-letter-spacing': 0.06, 'symbol-placement': 'point' },
+            paint: { 'text-color': '#3d4b47', 'text-halo-color': '#ffffff', 'text-halo-width': 1.6, 'text-opacity': 0.85 },
+          });
+        }
+        m.on('mousemove', 'bounds-hit', (e) => {
+          const p = e.features?.[0]?.properties as { code?: string } | undefined;
+          m.setFilter('bounds-hover', ['==', ['get', 'code'], p?.code ?? '']);
+        });
+        m.on('mouseleave', 'bounds-hit', () => m.setFilter('bounds-hover', ['==', ['get', 'code'], '']));
 
         m.addSource('network', { type: 'geojson', data: '/data/network.geojson' });
         const lineWidth: ExpressionSpecification = ['interpolate', ['linear'], ['zoom'], 9, ['case', ['==', ['get', 'mode'], 'light_rail'], 1, 1.8], 14, ['case', ['==', ['get', 'mode'], 'light_rail'], 3, 5]];
@@ -198,6 +221,7 @@ export function MapView({
       markers.clear();
       fitted.current = false;
       hexLoaded.current = 'off';
+      boundsLoaded.current = false;
     };
   }, []);
 
@@ -231,6 +255,12 @@ export function MapView({
     (m.getSource('rings') as GeoJSONSource | undefined)?.setData(ringFeatures(st, ringIds, s.radius_m));
     for (const id of ['lines', 'lines-casing']) if (m.getLayer(id)) m.setLayoutProperty(id, 'visibility', ly.lines ? 'visible' : 'none');
     if (ly.hex !== hexLoaded.current) void loadHex(ly.hex);
+    if (ly.bounds !== 'off' && !boundsLoaded.current) {
+      boundsLoaded.current = true;
+      (m.getSource('bounds') as GeoJSONSource | undefined)?.setData('/data/boundaries.geojson');
+    }
+    const kindFilter: FilterSpecification = ['==', ['get', 'kind'], ly.bounds === 'off' ? 'none' : ly.bounds];
+    for (const id of ['bounds-line', 'bounds-name', 'bounds-hit']) if (m.getLayer(id)) m.setFilter(id, kindFilter);
 
     // Precinct stations: HTML roundels (independent of basemap fonts) with name and a KPI.
     const ml = lib.current;
@@ -263,7 +293,7 @@ export function MapView({
 
   useEffect(() => {
     apply();
-  }, [stations, state.focus, state.radius_m, state.compare, state.highlight, layers.lines, layers.rings, layers.hex, kpis]);
+  }, [stations, state.focus, state.radius_m, state.compare, state.highlight, layers.lines, layers.rings, layers.hex, layers.bounds, kpis]);
 
   useEffect(() => {
     const m = map.current;
