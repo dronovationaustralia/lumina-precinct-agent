@@ -17,6 +17,8 @@ npm run ingest:sales                       # = ingest:vg, ingest:gnaf, ingest:ge
 npm run ingest:patronage                   # TfNSW entries and exits -> data/derived/patronage.csv
 npm run ingest:gtfs                        # station locations + rail network -> committed files
 npm run ingest:boundaries                  # ABS suburbs, LGAs, postcodes -> public/data/boundaries.geojson
+npm run fetch:landuse                      # NSW Landuse 2017 around every station (NSW map service)
+npm run ingest:landuse                     # -> data/derived/landuse.ndjson with ten categories
 npm run dev                                # local database loads the real data automatically
 npm run db:setup -- --load-real            # or load sales and patronage into Postgres (DATABASE_URL)
 ```
@@ -41,6 +43,7 @@ npm run db:setup -- --load-real            # or load sales and patronage into Po
 ## Credits
 
 - Property sales: Valuation NSW, NSW Valuer General bulk sales data (Creative Commons Attribution).
+- Land use: NSW Landuse 2017 v1.5, NSW Department of Climate Change, Energy, the Environment and Water (CC BY 4.0).
 - Suburb, LGA and postcode boundaries: Australian Bureau of Statistics, ASGS Edition 3 (CC BY 4.0).
 - Station patronage and locations: Transport for NSW, Train Station Entries and Exits and GTFS
   Timetables Complete (CC BY 4.0).

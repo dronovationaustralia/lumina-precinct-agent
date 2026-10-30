@@ -8,7 +8,8 @@
 import { tool, type StructuredToolInterface } from '@langchain/core/tools';
 import { z } from 'zod';
 
-import { PropertyType, RingId, StationId, type ToolTrace } from '@/lib/contracts';
+import { PropertyType, RINGS, RingId, StationId, type ToolTrace } from '@/lib/contracts';
+import { LAND_USE_CATEGORIES, LAND_USE_SOURCE, type LandUseCategory } from '@/lib/landuse';
 import { findStation, stationName, STATIONS } from '@/lib/stations';
 
 import type { Db } from '../db/client';
@@ -112,19 +113,34 @@ export function buildTools(ctx: ToolContext): StructuredToolInterface[] {
         const out = [];
         let sql = '';
         for (const station of args.stations) {
+          // Official land use (NSW Landuse 2017): share of the ring's area by category, largest first.
+          const mixSql = 'select category, share_pct, dataset_id, as_of from v_land_use_mix where station_id = $1 and ring_id = $2 order by share_pct desc limit 6';
+          const mix = await ctx.db.readOnly<{ category: string; share_pct: number; dataset_id: string; as_of: string }>(mixSql, [station, ring]);
+          for (const m of mix.filter((x) => x.share_pct >= 1)) {
+            const cat = LAND_USE_CATEGORIES[m.category as LandUseCategory]?.label ?? m.category;
+            const f = ctx.facts.add({
+              label: `${cat} land use, ${stationName(station)}, ${RINGS[ring as RingId]?.label ?? ring} (NSW Landuse 2017)`,
+              value: Number(m.share_pct), unit: 'pct', source: LAND_USE_SOURCE.name, dataset_id: m.dataset_id, as_of: m.as_of,
+              metric: `land_use_${m.category}`, station_id: station, ring, property_type: 'all',
+            });
+            out.push({ fact_id: f.id, label: f.label, display: f.display });
+          }
+          if (mix.length) sql = mixSql;
+          // Aerial land cover (SAM 3.1 on imagery; demo until the batch has run).
           for (const id of ['building_pct', 'canopy_pct', 'carpark_pct', 'construction_pct']) {
             const def = METRICS.find((m) => m.id === id)!;
             const res = await computeMetric(ctx.db, def, station, ring, 'all');
-            sql = res.sql;
+            if (!sql) sql = res.sql;
             const f = metricFact(ctx.facts, res, datasets);
             out.push({ fact_id: f.id, label: f.label, display: f.display });
           }
         }
-        return { result: { ring, note: 'Land use is from a single capture date; classes can overlap.', facts: out }, fact_ids: out.map((o) => o.fact_id), sql };
+        ctx.notes.push('Land use comes from NSW Landuse 2017 (mapped 2013 to 2017): describe it as land use at that time. Roads and rail are a land-use category.');
+        return { result: { ring, note: 'Land-use shares sum to about 100% per ring. Aerial cover classes can overlap and come from one capture date.', facts: out }, fact_ids: out.map((o) => o.fact_id), sql };
       }),
     {
       name: 'land_use',
-      description: 'Percent cover of building, tree canopy, car park and construction site in a ring (SAM 3.1 on aerial imagery, one capture date). Rings 0-400m, 0-800m, 800m-2km.',
+      description: 'Land use around stations: the official NSW land-use mix (residential, commercial services, public services, recreation, industrial, roads and rail, land in transition, bushland, water; NSW Landuse 2017) as % of ring area, and aerial cover (building, tree canopy, car park, construction site). Rings 0-400m, 0-800m, 800m-2km.',
       schema: landUseArgs,
     },
   );

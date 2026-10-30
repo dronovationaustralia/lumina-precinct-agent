@@ -39,7 +39,7 @@ export async function schemaSql(): Promise<string> {
 function buildSignature(): string {
   const h = createHash('sha256');
   const root = process.cwd();
-  for (const f of ['db/schema.sql', 'src/server/db/seed-demo.ts', 'src/server/db/real-sales.ts', 'src/server/db/real-patronage.ts', 'src/lib/station-registry.json']) {
+  for (const f of ['db/schema.sql', 'src/server/db/seed-demo.ts', 'src/server/db/real-sales.ts', 'src/server/db/real-patronage.ts', 'src/server/db/real-landuse.ts', 'src/lib/landuse.ts', 'src/lib/station-registry.json']) {
     const p = path.join(/*turbopackIgnore: true*/ root, f);
     if (existsSync(/*turbopackIgnore: true*/ p)) h.update(readFileSync(/*turbopackIgnore: true*/ p));
   }
@@ -90,6 +90,8 @@ async function createPglite(opts: { realSales?: boolean } = {}): Promise<Db> {
     if (realSalesAvailable()) await loadRealSales(db, undefined, (m) => snapshotting && console.log(`[db]${m}`));
     const { loadRealPatronage, realPatronageAvailable } = await import('./real-patronage');
     if (realPatronageAvailable()) await loadRealPatronage(db);
+    const { loadRealLandUse, realLandUseAvailable } = await import('./real-landuse');
+    if (realLandUseAvailable()) await loadRealLandUse(db, undefined, (m) => snapshotting && console.log(`[db]${m}`));
   }
   if (snapshotting) {
     try {

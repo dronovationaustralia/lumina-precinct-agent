@@ -16,6 +16,8 @@ export type LandUseDto = {
   capture_date: string | null;
   demo_data: boolean;
   rings: Record<string, Record<string, number>>;
+  mix?: Record<string, Record<string, number>>;
+  mix_source?: { dataset_id: string; as_of: string; name: string } | null;
 };
 
 export async function fetchStations(): Promise<StationDto[]> {
@@ -90,8 +92,8 @@ export type MetricDto = {
   suppressed: boolean; sales_count: number | null; source: string; as_of: string; demo: boolean;
 };
 
-export async function fetchMetrics(station: string, propertyType: 'unit' | 'house'): Promise<MetricDto[]> {
-  const res = await fetch(`/api/v1/metrics?station=${station}&property_type=${propertyType}`);
+export async function fetchMetrics(station: string, propertyType?: 'unit' | 'house'): Promise<MetricDto[]> {
+  const res = await fetch(`/api/v1/metrics?station=${station}${propertyType ? `&property_type=${propertyType}` : ''}`);
   if (!res.ok) throw new Error(`Metrics failed to load (HTTP ${res.status})`);
   return (await res.json()).metrics;
 }

@@ -104,13 +104,24 @@ export function offlineComposeFromFacts(question: string, facts: Fact[]): string
       actions: [], followups: [{ label: 'Try Chatswood', question: 'Compare Chatswood and St Leonards on canopy and car parks' }], chart: null,
     });
   }
-  // Group facts by metric + ring + property type.
+  const lines: string[] = [];
+  // Official land use: one line per station and ring, largest categories first.
+  const land = new Map<string, Fact[]>();
+  for (const f of usable.filter((x) => x.metric?.startsWith('land_use_'))) {
+    const key = `${f.station_id}|${f.ring}`;
+    land.set(key, [...(land.get(key) ?? []), f]);
+  }
+  for (const fs of land.values()) {
+    if (lines.length >= 2) break;
+    const parts = fs.slice(0, 4).map((f) => `${f.label.split(' land use,')[0]} {${f.id}}`);
+    lines.push(`Land use ${ringPhrase(fs[0]!.ring)} of ${stationName(fs[0]!.station_id!)}, as mapped in NSW Landuse 2017: ${parts.join(', ')}.`);
+  }
+  // Group the other facts by metric + ring + property type.
   const groups = new Map<string, Fact[]>();
-  for (const f of facts.filter((x) => x.metric)) {
+  for (const f of facts.filter((x) => x.metric && !x.metric.startsWith('land_use_'))) {
     const key = `${f.metric}|${f.ring}|${f.property_type}`;
     groups.set(key, [...(groups.get(key) ?? []), f]);
   }
-  const lines: string[] = [];
   for (const fs of groups.values()) {
     if (lines.length >= 3) break;
     const def = METRIC_BY_ID.get(fs[0]!.metric!)!;
@@ -141,7 +152,7 @@ export function offlineComposeFromFacts(question: string, facts: Fact[]): string
     actions.push({ type: 'fly_to', target: top, view: 'overview' });
     actions.push({ type: 'highlight', kind: 'station', ids: [top], style: 'pulse' });
   } else if (stations.length >= 1) actions.push({ type: 'fly_to', target: stations[0], view: 'close' });
-  if (metrics.some((m) => ['canopy_pct', 'carpark_pct', 'building_pct', 'construction_pct'].includes(m))) actions.push({ type: 'show_layer', layer: 'land_use', visible: true });
+  if (metrics.some((m) => m.startsWith('land_use_') || ['canopy_pct', 'carpark_pct', 'building_pct', 'construction_pct'].includes(m))) actions.push({ type: 'show_layer', layer: 'land_use', visible: true });
   else if (stations.length === 1) actions.push({ type: 'set_radius', radius_m: 800 });
 
   const first = stations[0] ? stationName(stations[0]) : 'Chatswood';

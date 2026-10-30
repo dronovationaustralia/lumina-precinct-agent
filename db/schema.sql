@@ -71,6 +71,30 @@ create table if not exists patronage (
   primary key (station_id, month)
 );
 
+
+-- Official land use (NSW Landuse 2017, ALUM classes grouped into ten categories). Polygons are
+-- stored with a projected copy (GDA2020 / MGA zone 56, metres) for area calculations.
+create table if not exists land_use_polygons (
+  id bigint primary key,
+  dataset_id text not null references datasets(id),
+  category text not null,
+  tertiary text not null,
+  geom geometry(Geometry, 4326) not null,
+  geom_m geometry(Geometry, 7856) not null
+);
+create index if not exists land_use_polygons_geom_m_idx on land_use_polygons using gist (geom_m);
+create index if not exists land_use_polygons_geom_idx on land_use_polygons using gist (geom);
+
+-- Share of each ring's area by land-use category (rings to 2 km). Computed once after loading.
+create table if not exists land_use_mix (
+  dataset_id text not null references datasets(id),
+  station_id text not null references stations(id),
+  ring_id text not null references rings(id),
+  category text not null,
+  share_pct numeric not null check (share_pct between 0 and 100),
+  primary key (station_id, ring_id, category)
+);
+
 create table if not exists land_use_ring (
   dataset_id text not null references datasets(id),
   station_id text not null references stations(id),
@@ -186,6 +210,14 @@ create index if not exists v_affordable_share_idx on v_affordable_share (station
 create or replace view v_patronage_monthly as
 select station_id, to_char(month, 'YYYY-MM') as month, entries, exits, entries + exits as total, dataset_id from patronage;
 
+create or replace view v_land_use_mix as
+select m.station_id, m.ring_id, m.category, m.share_pct::float8 as share_pct, m.dataset_id, to_char(d.as_of, 'YYYY-MM-DD') as as_of
+from land_use_mix m join datasets d on d.id = m.dataset_id;
+
+-- Land-use polygons for the map (public data; no personal information).
+create or replace view v_land_use_polygons as
+select id, category, tertiary, dataset_id, geom from land_use_polygons;
+
 create or replace view v_land_use as
 select station_id, ring_id, class, cover_pct::float8 as cover_pct, to_char(capture_date, 'YYYY-MM-DD') as capture_date, method, dataset_id from land_use_ring;
 
@@ -243,4 +275,4 @@ end $$;
 revoke all on all tables in schema public from agent_ro;
 grant usage on schema public to agent_ro;
 grant select on v_stations, v_datasets, v_sales_period, v_sales_monthly, v_affordable_share,
-  v_patronage_monthly, v_land_use, v_sales_hex to agent_ro;
+  v_patronage_monthly, v_land_use, v_sales_hex, v_land_use_mix, v_land_use_polygons to agent_ro;

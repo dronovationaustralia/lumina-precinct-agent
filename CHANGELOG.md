@@ -4,6 +4,24 @@ All work in this repository was built during the Meta Global AI Developer Hackat
 (27 Oct – 4 Nov 2026). Dates are Sydney time. No code is copied from earlier Lumina
 repositories (`LuminaSpatialInsightsXR`, `LuminaSpatial`, `extended-tableau-mcp`).
 
+## 2026-10-30 (Fri), night
+
+### Fixed
+- Map showed no streets, lines or hexagons on machines that can reach the basemap: the train-line
+  casing used an invalid width expression, and the map treated that error as "basemap unavailable"
+  and switched to a plain ground, dropping every layer. The casing is fixed, the basemap is now
+  chosen once before the map starts, and map errors are logged instead of switching styles.
+- Precinct snapshot showed n/a for station trips (station-level metrics need their own request).
+
+### Added
+- Official land use: NSW Landuse 2017 v1.5 (55,372 polygons within 2.1 km of the 185 stations)
+  grouped into ten categories (`src/lib/landuse.ts`); `npm run ingest:landuse`; loaded with
+  ring shares per station (`land_use_mix`, sums to 100% per ring) computed in GDA2020 MGA 56.
+- Land-use map layer for the selected station (`/api/v1/layers/landuse`), coloured by category
+  with a legend, hover details, and a land-use panel with stacked bars per ring.
+- The agent's `land_use` tool returns the land-use mix as facts (source and 2017 date); prompts say
+  "as mapped in 2017". Aerial cover (SAM 3.1 classes) stays, labelled demo until the batch run.
+
 ## 2026-10-30 (Fri), evening
 
 ### Added

@@ -387,3 +387,22 @@ body {
 .ms-logo i:nth-child(1) { background: #f25022; } .ms-logo i:nth-child(2) { background: #7fba00; }
 .ms-logo i:nth-child(3) { background: #00a4ef; } .ms-logo i:nth-child(4) { background: #ffb900; }
 .signin-note { margin: 0; font-size: 12.5px; color: var(--ink-muted); }
+
+/* Land use */
+.landuse { width: min(340px, calc(100% - 24px)); }
+.mix-ring h3 { margin: 10px 0 4px; }
+.mix-bar { display: flex; height: 14px; border-radius: 4px; overflow: hidden; background: var(--rule-soft); }
+.mix-bar span { display: block; height: 100%; }
+.mix-legend { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 3px; font-size: 12px; }
+.mix-legend li, .mix-cols { display: grid; grid-template-columns: 14px 1fr 38px 38px 46px; align-items: center; gap: 6px; }
+.mix-cols { margin: 2px 0 0; font-size: 10.5px; color: var(--ink-faint); }
+.mix-cols span:first-child { grid-column: span 2; }
+.mix-val { text-align: right; font-weight: 600; }
+.swatch { display: inline-block; width: 12px; height: 12px; border-radius: 3px; }
+.cover-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 16px 0 6px !important; padding-top: 10px; border-top: 1px solid var(--rule-soft); color: var(--ink) !important; font-size: 13px !important; }
+.lu-keys { list-style: none; margin: 2px 0 8px 23px; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 2px 8px; font-size: 11px; color: var(--ink-muted); }
+.lu-keys li { display: flex; align-items: center; gap: 5px; }
+.lu-keys .swatch { width: 10px; height: 10px; }
+
+/* Map panels sit above map markers. */
+.map-status, .layers, .layers-toggle, .landuse, .map-note { z-index: 3; }

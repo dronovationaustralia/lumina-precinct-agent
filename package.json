@@ -29,7 +29,8 @@
     "ingest:gtfs": "npm run ingest:gtfs-lines",
     "ingest:gtfs-lines": "tsx --tsconfig tsconfig.json scripts/ingest/gtfs-lines.ts",
     "ingest:boundaries": "tsx --tsconfig tsconfig.json scripts/ingest/abs-boundaries.ts",
-    "fetch:landuse": "tsx --tsconfig tsconfig.json scripts/fetch/landuse.ts"
+    "fetch:landuse": "tsx --tsconfig tsconfig.json scripts/fetch/landuse.ts",
+    "ingest:landuse": "tsx --tsconfig tsconfig.json scripts/ingest/landuse.ts"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.12",

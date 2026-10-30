@@ -6,7 +6,8 @@
  *   npm run db:setup -- --seed-demo         # also load labelled demo data (skipped if data exists)
  *   npm run db:setup -- --load-sales        # replace demo sales with real sales from data/derived
  *   npm run db:setup -- --load-patronage    # replace demo patronage with TfNSW entries and exits
- *   npm run db:setup -- --load-real         # both
+ *   npm run db:setup -- --load-landuse      # NSW Landuse 2017 polygons and ring shares
+ *   npm run db:setup -- --load-real         # sales, patronage and land use
  *
  * Reads DATABASE_URL (the admin connection string) from .env.local or the environment.
  * For --agent-login, set AGENT_DB_PASSWORD; the login is `lumina_agent`, a member of agent_ro.
@@ -71,6 +72,12 @@ try {
     if (!realPatronageAvailable()) throw new Error('No data/derived/patronage.csv. Run ingest:patronage first.');
     const r = await loadRealPatronage(db);
     console.log(`Loaded ${r.rows} station-months of patronage (as of ${r.asOf}); demo patronage removed.`);
+  }
+  if (flags.has('--load-landuse') || flags.has('--load-real')) {
+    const { loadRealLandUse, realLandUseAvailable } = await import('@/server/db/real-landuse');
+    if (!realLandUseAvailable()) throw new Error('No data/derived/landuse.ndjson. Run fetch:landuse and ingest:landuse first.');
+    const r = await loadRealLandUse(db, undefined, (m) => console.log(m));
+    console.log(`Loaded ${r.polygons.toLocaleString()} land-use polygons and ring shares.`);
   }
 } finally {
   await db.close();

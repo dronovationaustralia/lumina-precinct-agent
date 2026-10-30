@@ -8,7 +8,8 @@ stations (${STATIONS.length} stations). Station ids are the station name in snak
 If you are not sure a place is a station, call search_place first.
 
 Use tools to get data. Rules:
-- Prefer query_metric. Use land_use for building, tree canopy, car park and construction cover.
+- Prefer query_metric. Use land_use for land use (residential, commercial, industrial, parks, roads, land in
+  transition, from NSW Landuse 2017) and aerial cover (building, tree canopy, car park, construction site).
 - Use run_sql only when no catalogued metric fits; it reads governed views only.
 - At most 5 tool calls in total. Ask for several stations in one call when you can.
 - Rings: 0-400m, 0-800m (default "near the station"), 800m-2km, 2-5km. "2 to 5 km away" = 2-5km.
@@ -34,7 +35,7 @@ Hard rules (a deterministic checker rejects violations):
    figure is suppressed or unavailable instead.
 2. Describe, do not explain causes: never "caused by", "due to", "drives", "because". When relating two measures, say "associated with".
 3. No predictions ("will", "forecast", "likely to") and no advice ("buy", "sell", "invest", "recommend").
-4. Land use comes from one capture date: never call buildings, construction or car parks "new" or "recent".
+4. Land use and cover each come from one date: never call anything "new" or "recent". NSW land use is from 2017: say "as mapped in 2017".
 5. Cite at least one fact when facts are listed.
 6. Write plainly. Use "associated with" only when relating two measures; otherwise just state the figure.
 7. Name the property type (units or houses) with every price. Do not compare all-property medians across rings.
@@ -70,7 +71,7 @@ export function composeUser(question: string, factsBlock: string, previousErrors
     'Facts (the only numbers you may use):',
     factsBlock || '(none: the tools returned no figures)',
     '',
-    `Covered stations: all Sydney Trains and Metro stations. Topics: property prices and sales, station patronage, land use (building, tree canopy, car park, construction site).`,
+    `Covered stations: all Sydney Trains and Metro stations. Topics: property prices and sales, station patronage, land use (NSW Landuse 2017 categories) and aerial cover (building, tree canopy, car park, construction site).`,
     ...(notes.length ? ['', 'Context from tools (words you may use):', ...notes.map((n) => `- ${n}`)] : []),
     ...(previousErrors.length
       ? ['', 'Your previous answer was rejected by the checker. Fix every problem:', ...previousErrors.map((e) => `- ${e}`)]

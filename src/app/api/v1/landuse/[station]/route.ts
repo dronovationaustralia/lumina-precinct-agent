@@ -1,7 +1,8 @@
 /**
  * GET /api/v1/landuse/{station}
- * Ring percentages per land-use class, plus GeoJSON ring outlines. Land-use polygons are
- * added to `features` once the SAM 3.1 batch has run (day 4).
+ * - `mix`: official land use (NSW Landuse 2017): share of each ring's area by category.
+ * - `rings`: aerial land cover per ring (building, canopy, car park, construction; SAM 3.1, or demo).
+ * - `geojson`: ring outlines.
  */
 import type { NextRequest } from 'next/server';
 
@@ -29,6 +30,12 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ station: s
      where s.station_id = $1`,
     [parsed.data],
   );
+  const mixRows = await db.readOnly<{ ring_id: string; category: string; share_pct: number; as_of: string; dataset_id: string }>(
+    'select ring_id, category, share_pct, as_of, dataset_id from v_land_use_mix where station_id = $1 order by ring_id, share_pct desc',
+    [parsed.data],
+  );
+  const mix: Record<string, Record<string, number>> = {};
+  for (const r of mixRows) (mix[r.ring_id] ??= {})[r.category] = Number(r.share_pct);
   const rings: Record<string, Record<string, number>> = {};
   for (const r of rows) (rings[r.ring_id] ??= {})[r.class] = Number(r.cover_pct);
   return json({
@@ -38,6 +45,8 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ station: s
     demo_data: rows.some((r) => r.dataset_id.startsWith('demo')),
     note: 'Classes can overlap (for example canopy over a car park); cover is per class, not a partition. One capture date.',
     rings,
+    mix,
+    mix_source: mixRows.length ? { dataset_id: mixRows[0]!.dataset_id, as_of: mixRows[0]!.as_of, name: 'NSW Landuse 2017 v1.5' } : null,
     geojson: {
       type: 'FeatureCollection',
       features: ringGeo.map((g) => ({

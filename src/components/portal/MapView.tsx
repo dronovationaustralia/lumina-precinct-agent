@@ -12,13 +12,14 @@
 import { useEffect, useRef } from 'react';
 import type { ExpressionSpecification, FilterSpecification, GeoJSONSource, Map as MlMap, Marker, Popup } from 'maplibre-gl';
 
+import { LAND_USE_CATEGORIES, type LandUseCategory } from '@/lib/landuse';
 import { LINE_COLOURS } from '@/lib/lines';
 
 import type { StationDto } from './api';
 
 export type HexMode = 'off' | 'unit' | 'house';
 export type BoundaryMode = 'off' | 'suburb' | 'lga' | 'postcode';
-export type LayerState = { lines: boolean; rings: boolean; hex: HexMode; bounds: BoundaryMode };
+export type LayerState = { lines: boolean; rings: boolean; hex: HexMode; bounds: BoundaryMode; landuse: boolean };
 
 export type MapState = {
   focus: string | null;
@@ -89,6 +90,7 @@ export function MapView({
   const fitted = useRef(false);
   const hexLoaded = useRef<HexMode>('off');
   const boundsLoaded = useRef(false);
+  const landuseFor = useRef<string | null>(null);
   const latest = useRef({ stations, state, layers, kpis, onSelect, onHexMeta });
   latest.current = { stations, state, layers, kpis, onSelect, onHexMeta };
 
@@ -102,15 +104,22 @@ export function MapView({
       // The worker is copied into public/ (scripts/copy-map-worker.mjs) because bundling moves the main module.
       maplibre.setWorkerUrl('/maplibre-gl-worker.mjs');
       lib.current = maplibre;
-      const m = new maplibre.Map({ container: el.current, style: STYLE_URL, center: SYDNEY, zoom: 10.6, attributionControl: { compact: true } });
+      // Fetch the basemap style first and decide once: real basemap, or a plain ground if it is
+      // unreachable. (Switching styles after the map starts loading drops every layer added later.)
+      const style = await fetch(STYLE_URL, { signal: AbortSignal.timeout(6000) })
+        .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
+        .catch((e: Error) => {
+          console.warn('[map] basemap style unreachable, using a plain ground:', e.message);
+          return FALLBACK_STYLE;
+        });
+      if (cancelled || !el.current) return;
+      const m = new maplibre.Map({ container: el.current, style, center: SYDNEY, zoom: 10.6, attributionControl: { compact: true } });
       m.addControl(new maplibre.NavigationControl({ showCompass: false }), 'bottom-right');
       map.current = m;
-      let fellBack = false;
-      m.on('error', () => {
-        if (!fellBack && !ready.current && !m.isStyleLoaded()) {
-          fellBack = true;
-          m.setStyle(FALLBACK_STYLE);
-        }
+      if (process.env.NODE_ENV !== 'production') (window as unknown as { __luminaMap?: MlMap }).__luminaMap = m;
+      // Tile or data errors are reported, never fatal: the rest of the map keeps working.
+      m.on('error', (e: { error?: { message?: string }; sourceId?: string }) => {
+        console.warn('[map] error', e.sourceId ?? '', e.error?.message ?? e);
       });
       m.on('load', () => {
         const css = getComputedStyle(document.documentElement);
@@ -131,6 +140,21 @@ export function MapView({
           id: 'hex-suppressed', type: 'line', source: 'hex', filter: ['==', ['get', 'median'], null],
           paint: { 'line-color': '#8a948f', 'line-width': 0.8, 'line-dasharray': [2, 2], 'line-opacity': 0.6 },
         }, firstSymbol);
+
+        // Official land use around the selected station (NSW Landuse 2017), under the labels.
+        m.addSource('landuse', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+        const catColour: ExpressionSpecification = ['match', ['get', 'category'],
+          ...Object.entries(LAND_USE_CATEGORIES).flatMap(([k, v]) => [k, v.colour]), '#cccccc'] as unknown as ExpressionSpecification;
+        m.addLayer({ id: 'landuse-fill', type: 'fill', source: 'landuse', paint: { 'fill-color': catColour, 'fill-opacity': 0.62 } }, firstSymbol);
+        m.addLayer({ id: 'landuse-line', type: 'line', source: 'landuse', paint: { 'line-color': '#ffffff', 'line-width': 0.4, 'line-opacity': 0.7 } }, firstSymbol);
+        m.on('mousemove', 'landuse-fill', (e) => {
+          if (m.getLayer('hex-fill') && latest.current.layers.hex !== 'off') return;
+          const p = e.features?.[0]?.properties as { category?: string; tertiary?: string } | undefined;
+          if (!p?.category) return;
+          const label = LAND_USE_CATEGORIES[p.category as LandUseCategory]?.label ?? p.category;
+          popup.current?.setLngLat(e.lngLat).setHTML(`<strong>${label}</strong><br>${(p.tertiary ?? '').replace(/^[\d.]+\s*/, '')}<br><span style="opacity:.7">NSW Landuse 2017</span>`).addTo(m);
+        });
+        m.on('mouseleave', 'landuse-fill', () => popup.current?.remove());
 
         // Boundaries: loaded on first use (about 850 KB), drawn as quiet outlines with names.
         m.addSource('bounds', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
@@ -154,13 +178,17 @@ export function MapView({
         m.on('mouseleave', 'bounds-hit', () => m.setFilter('bounds-hover', ['==', ['get', 'code'], '']));
 
         m.addSource('network', { type: 'geojson', data: '/data/network.geojson' });
-        const lineWidth: ExpressionSpecification = ['interpolate', ['linear'], ['zoom'], 9, ['case', ['==', ['get', 'mode'], 'light_rail'], 1, 1.8], 14, ['case', ['==', ['get', 'mode'], 'light_rail'], 3, 5]];
+        // Zoom must be the top-level input of a width expression, so the casing gets its own ramp.
+        const widthAt = (extra: number): ExpressionSpecification => ['interpolate', ['linear'], ['zoom'],
+          9, ['case', ['==', ['get', 'mode'], 'light_rail'], 1 + extra, 1.8 + extra],
+          14, ['case', ['==', ['get', 'mode'], 'light_rail'], 3 + extra, 5 + extra]];
+        const lineWidth = widthAt(0);
         // Where lines share track, the precinct lines (T1, then Metro and L4) draw on top.
         const sortKey: ExpressionSpecification = ['match', ['get', 'line'], 'T1', 10, 'M1', 9, 'L4', 8, 'T9', 7, 'T2', 3, 'T3', 3, 1];
         m.addLayer({
           id: 'lines-casing', type: 'line', source: 'network', filter: ['==', ['get', 'kind'], 'line'],
           layout: { 'line-cap': 'round', 'line-join': 'round', 'line-sort-key': sortKey },
-          paint: { 'line-color': '#ffffff', 'line-width': ['+', lineWidth, 2.5], 'line-opacity': 0.9 },
+          paint: { 'line-color': '#ffffff', 'line-width': widthAt(2.5), 'line-opacity': 0.9 },
         });
         m.addLayer({
           id: 'lines', type: 'line', source: 'network', filter: ['==', ['get', 'kind'], 'line'],
@@ -252,6 +280,7 @@ export function MapView({
       fitted.current = false;
       hexLoaded.current = 'off';
       boundsLoaded.current = false;
+      landuseFor.current = null;
     };
   }, []);
 
@@ -285,6 +314,18 @@ export function MapView({
     (m.getSource('rings') as GeoJSONSource | undefined)?.setData(ringFeatures(st, ringIds, s.radius_m));
     for (const id of ['lines', 'lines-casing']) if (m.getLayer(id)) m.setLayoutProperty(id, 'visibility', ly.lines ? 'visible' : 'none');
     if (ly.hex !== hexLoaded.current) void loadHex(ly.hex);
+    const luTarget = ly.landuse ? s.focus : null;
+    if (luTarget !== landuseFor.current) {
+      landuseFor.current = luTarget;
+      const src = m.getSource('landuse') as GeoJSONSource | undefined;
+      if (!luTarget) src?.setData({ type: 'FeatureCollection', features: [] });
+      else {
+        fetch(`/api/v1/layers/landuse?station=${luTarget}`)
+          .then((r) => (r.ok ? r.json() : null))
+          .then((fc) => { if (fc && landuseFor.current === luTarget) src?.setData(fc); })
+          .catch(() => null);
+      }
+    }
     if (ly.bounds !== 'off' && !boundsLoaded.current) {
       boundsLoaded.current = true;
       (m.getSource('bounds') as GeoJSONSource | undefined)?.setData('/data/boundaries.geojson');
@@ -335,7 +376,7 @@ export function MapView({
 
   useEffect(() => {
     apply();
-  }, [stations, state.focus, state.radius_m, state.compare, state.highlight, layers.lines, layers.rings, layers.hex, layers.bounds, kpis]);
+  }, [stations, state.focus, state.radius_m, state.compare, state.highlight, layers.lines, layers.rings, layers.hex, layers.bounds, layers.landuse, kpis]);
 
   useEffect(() => {
     const m = map.current;

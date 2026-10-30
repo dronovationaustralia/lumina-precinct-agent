@@ -13,6 +13,7 @@ import { PERSONA_INFO } from '@/lib/personas';
 
 import { AnswerCard, type Turn } from './AnswerCard';
 import { ask, fetchLandUse, fetchStations, fetchSummary, fetchUser, type LandUseDto, type StationDto, type StationSummary, type User } from './api';
+import { LandUsePanel } from './LandUsePanel';
 import { LayerPanel } from './LayerPanel';
 import { LineBadges } from './LineBadges';
 import { MapView, type HexMeta, type LayerState, type MapState } from './MapView';
@@ -22,8 +23,6 @@ import { StationSearch } from './StationSearch';
 import 'maplibre-gl/dist/maplibre-gl.css';
 
 type Persona = keyof typeof PERSONA_INFO;
-const CLASS_NAMES: Record<string, string> = { building: 'Building', tree_canopy: 'Tree canopy', car_park: 'Car park', construction_site: 'Construction site' };
-const RING_NAMES: Record<string, string> = { '0-400m': 'Within 400 m', '0-800m': 'Within 800 m', '800m-2km': '800 m to 2 km' };
 const money = (v: number) => (v >= 1_000_000 ? `$${(v / 1_000_000).toFixed(2)}m` : `$${Math.round(v / 1000)}k`);
 
 export function Portal() {
@@ -38,7 +37,7 @@ export function Portal() {
   const [note, setNote] = useState<string | null>(null);
   const [health, setHealth] = useState<Health | null>(null);
   const [showModels, setShowModels] = useState(false);
-  const [layers, setLayers] = useState<LayerState>({ lines: true, rings: true, hex: 'off', bounds: 'off' });
+  const [layers, setLayers] = useState<LayerState>({ lines: true, rings: true, hex: 'off', bounds: 'off', landuse: true });
   const [hexMeta, setHexMeta] = useState<HexMeta | null>(null);
   const [map, setMap] = useState<MapState>({ focus: null, radius_m: 800, compare: null, highlight: [], view: 'overview', flyNonce: 0 });
   const listRef = useRef<HTMLDivElement>(null);
@@ -83,6 +82,7 @@ export function Portal() {
         }
       } else if (a.type === 'show_layer') {
         if (a.layer === 'land_use' && a.visible !== false) {
+          setLayers((l) => ({ ...l, landuse: true }));
           if (focus) setLandUse(await fetchLandUse(focus).catch(() => null));
         } else if (a.layer === 'sales') {
           setLayers((l) => ({ ...l, hex: a.visible === false ? 'off' : l.hex === 'off' ? 'unit' : l.hex }));
@@ -139,7 +139,7 @@ export function Portal() {
 
   const focus = stations.find((s) => s.id === map.focus) ?? null;
   const kpis = Object.fromEntries(summary.map((k) => [k.id, k.unit_median_800m ? `${money(k.unit_median_800m)} unit median` : '']));
-  const TOPIC: Record<string, string> = { demo_sales: 'Property sales', demo_patronage: 'Station patronage', demo_land_use: 'Land use' };
+  const TOPIC: Record<string, string> = { demo_sales: 'Property sales', demo_patronage: 'Station patronage', demo_land_use: 'Aerial land cover (until the SAM 3.1 run)' };
   const demoTopics = (health?.datasets ?? []).filter((d) => d.demo).map((d) => TOPIC[d.id] ?? d.id);
   const offline = health?.provider === 'offline';
   const info = PERSONA_INFO[persona];
@@ -265,25 +265,7 @@ export function Portal() {
         <LayerPanel layers={layers} onChange={setLayers} hexMeta={hexMeta} canLandUse={Boolean(map.focus)}
           onLandUse={async () => map.focus && setLandUse(await fetchLandUse(map.focus).catch(() => null))} />
         {landUse && (
-          <aside className="landuse" aria-label="Land use">
-            <div className="landuse-head">
-              <h2>Land use near {stations.find((s) => s.id === landUse.station)?.name}</h2>
-              <button type="button" className="icon-button" onClick={() => setLandUse(null)} aria-label="Close land use">×</button>
-            </div>
-            {Object.entries(landUse.rings).map(([ring, classes]) => (
-              <div key={ring} className="landuse-ring">
-                <h3>{RING_NAMES[ring] ?? ring}</h3>
-                {Object.entries(classes).sort((a, b) => b[1] - a[1]).map(([cls, pct]) => (
-                  <div key={cls} className={`bar bar-${cls}`}>
-                    <span className="bar-name">{CLASS_NAMES[cls] ?? cls}</span>
-                    <span className="bar-track"><span className="bar-fill" style={{ width: `${Math.min(100, pct)}%` }} /></span>
-                    <span className="bar-value">{pct.toFixed(1)}%</span>
-                  </div>
-                ))}
-              </div>
-            ))}
-            <p className="landuse-foot">One capture date{landUse.capture_date ? ` (${landUse.capture_date})` : ''}. Classes can overlap.{landUse.demo_data ? ' Demo data.' : ''}</p>
-          </aside>
+          <LandUsePanel data={landUse} stationName={stations.find((st) => st.id === landUse.station)?.name ?? landUse.station} onClose={() => setLandUse(null)} />
         )}
       </section>
 

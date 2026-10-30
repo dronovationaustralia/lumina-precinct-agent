@@ -4,6 +4,7 @@ import { useState } from 'react';
 
 import { HEX_COLOURS, type HexMeta, type LayerState } from './MapView';
 import { money } from '@/lib/format';
+import { LAND_USE_CATEGORIES } from '@/lib/landuse';
 
 const LINES = [
   { key: 'T1', color: '#F99D1C' },
@@ -92,9 +93,20 @@ export function LayerPanel({
         </div>
       </fieldset>
       <fieldset>
-        <legend>Land use</legend>
+        <legend>Land use (NSW 2017)</legend>
+        <label className="layer-row">
+          <input type="checkbox" checked={layers.landuse} onChange={(e) => onChange({ ...layers, landuse: e.target.checked })} />
+          <span>Land use around the selected station</span>
+        </label>
+        {layers.landuse && (
+          <ul className="lu-keys">
+            {Object.values(LAND_USE_CATEGORIES).slice(0, 8).map((c) => (
+              <li key={c.label}><span className="swatch" style={{ background: c.colour }} />{c.label}</li>
+            ))}
+          </ul>
+        )}
         <button type="button" className="layer-button" disabled={!canLandUse} onClick={onLandUse}>
-          {canLandUse ? 'Show cover by ring' : 'Pick a station first'}
+          {canLandUse ? 'Land-use mix by ring' : 'Pick a station first'}
         </button>
       </fieldset>
     </aside>
