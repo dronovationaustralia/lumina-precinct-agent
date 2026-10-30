@@ -6,12 +6,13 @@
  */
 import { z } from 'zod';
 
-export const STATION_IDS = [
-  'wynyard', 'milsons_point', 'north_sydney', 'st_leonards', 'chatswood',
-  'westmead', 'parramatta', 'harris_park', 'granville', 'auburn',
-] as const;
-export const StationId = z.enum(STATION_IDS);
-export type StationId = z.infer<typeof StationId>;
+import REGISTRY from './station-registry.json';
+
+/** Every Sydney Trains and Metro station id (from the GTFS registry). */
+export const STATION_IDS: readonly string[] = REGISTRY.stations.map((s) => s.id);
+const STATION_SET = new Set(STATION_IDS);
+export const StationId = z.string().refine((v) => STATION_SET.has(v), { message: 'Unknown station id' });
+export type StationId = string;
 
 /** Distance bands around a station. 0-400m and 0-800m overlap on purpose. */
 export const RINGS = {

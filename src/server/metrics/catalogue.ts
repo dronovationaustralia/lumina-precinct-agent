@@ -149,7 +149,8 @@ export const METRICS: readonly MetricDef[] = [
     default_ring: '0-800m',
     sql: `with m as (select * from v_patronage_monthly where station_id = $1),
           b as (select max(month) as last from m)
-          select sum(total)::float8 as value, false as suppressed, null::int as sales_count, min(dataset_id) as dataset_id, max(month) as as_of
+          select case when count(*) = 12 then sum(total)::float8 end as value, count(*) < 12 as suppressed, null::int as sales_count,
+                 min(dataset_id) as dataset_id, max(month) as as_of
           from m, b where m.month > to_char(to_date(b.last, 'YYYY-MM') - interval '12 months', 'YYYY-MM') and $2::text is not null and $3::text is not null`,
     label: (p) => `Station entries and exits, ${p.stationName}, last 12 months`,
   },
@@ -167,9 +168,11 @@ export const METRICS: readonly MetricDef[] = [
                   sum(case when month > to_char(to_date(b.last, 'YYYY-MM') - interval '12 months', 'YYYY-MM') then total end) as last12,
                   sum(case when month <= to_char(to_date(b.last, 'YYYY-MM') - interval '12 months', 'YYYY-MM')
                             and month > to_char(to_date(b.last, 'YYYY-MM') - interval '24 months', 'YYYY-MM') then total end) as prior12,
+                  count(*) filter (where month > to_char(to_date(b.last, 'YYYY-MM') - interval '24 months', 'YYYY-MM')) as months,
                   min(dataset_id) as dataset_id, max(month) as as_of
                 from m, b)
-          select (last12::float8 / nullif(prior12, 0) - 1) * 100 as value, false as suppressed, null::int as sales_count, dataset_id, as_of
+          -- Both periods must be complete (stations closed for works, e.g. the Bankstown line, have gaps).
+          select case when months = 24 then (last12::float8 / nullif(prior12, 0) - 1) * 100 end as value, months < 24 as suppressed, null::int as sales_count, dataset_id, as_of
           from t where $2::text is not null and $3::text is not null`,
     label: (p) => `Change in station entries and exits, ${p.stationName}, last 12 months vs the 12 months before`,
   },

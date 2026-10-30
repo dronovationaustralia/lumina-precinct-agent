@@ -4,6 +4,23 @@ All work in this repository was built during the Meta Global AI Developer Hackat
 (27 Oct – 4 Nov 2026). Dates are Sydney time. No code is copied from earlier Lumina
 repositories (`LuminaSpatialInsightsXR`, `LuminaSpatial`, `extended-tableau-mcp`).
 
+## 2026-10-30 (Fri), late afternoon
+
+### Changed
+- All Sydney Trains and Sydney Metro stations: the station registry (185 stations) is generated
+  from the TfNSW GTFS feed (`src/lib/station-registry.json`) instead of a fixed list of ten. Station
+  ids are validated against it; the ten original stations stay "featured" for demos. The agent's
+  prompt names example ids and uses `search_place` for the rest.
+- Patronage covers every station (train, metro and shared rows summed per station). 12-month
+  patronage and its change are withheld when months are missing (stations on the Bankstown line,
+  closed for metro conversion, and the airport stations).
+- Sales aggregates are materialized views, refreshed after each load: with 185 stations a sale
+  sits in many stations' rings (about 2 million sale-station pairs for Greater Sydney).
+- The local database is kept on disk (`data/pglite`, gitignored) and rebuilt only when its inputs
+  change: about a minute to build, two seconds to reopen.
+- `ingest:gnaf` keeps addresses near any station, using a grid index; `ingest:gnaf` and
+  `ingest:geocode` run with 8 GB of heap for Greater Sydney.
+
 ## 2026-10-30 (Fri)
 
 ### Added

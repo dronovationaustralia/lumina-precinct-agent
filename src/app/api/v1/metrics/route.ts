@@ -19,7 +19,7 @@ export function OPTIONS() {
 export async function GET(request: NextRequest) {
   const q = request.nextUrl.searchParams;
   const station = StationId.safeParse(q.get('station'));
-  if (!station.success) return errorJson(400, 'invalid_station', `station must be one of ${StationId.options.join(', ')}`);
+  if (!station.success) return errorJson(400, 'invalid_station', 'station must be a Sydney Trains or Metro station id (see /api/v1/stations)');
   const ring = q.get('ring') ? RingId.safeParse(q.get('ring')) : undefined;
   if (ring && !ring.success) return errorJson(400, 'invalid_ring', `ring must be one of ${RingId.options.join(', ')}`);
   const pt = q.get('property_type') ? PropertyType.safeParse(q.get('property_type')) : undefined;

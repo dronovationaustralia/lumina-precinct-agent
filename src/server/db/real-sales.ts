@@ -8,6 +8,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 
+import { refreshAggregates } from './aggregates';
 import type { Db } from './client';
 
 export const REAL_SALES_DATASET = 'nsw_vg_sales';
@@ -75,5 +76,7 @@ export async function loadRealSales(db: Db, dir = DERIVED_DIR, log: (m: string) 
     select s.id, st.id, st_distance(s.geom, st.geom)
     from sales s join stations st on st_dwithin(s.geom, st.geom, 5000);
   `);
+  log('  station distances done; computing aggregates');
+  await refreshAggregates(db);
   return { sales: loaded, asOf: summary.as_of };
 }

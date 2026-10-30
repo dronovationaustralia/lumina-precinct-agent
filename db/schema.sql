@@ -95,9 +95,22 @@ from stations;
 create or replace view v_datasets as
 select id as dataset_id, name, description, source_url, licence, to_char(as_of, 'YYYY-MM-DD') as as_of, coverage, is_demo from datasets;
 
+-- Sales aggregates are MATERIALIZED views: with every Sydney station (185) a sale falls in many
+-- stations' rings, so they are computed once after each load (refreshAggregates) rather than per query.
+do $$
+declare r record;
+begin
+  for r in select c.relname, c.relkind from pg_class c join pg_namespace n on n.oid = c.relnamespace
+           where n.nspname = 'public' and c.relname in ('v_sales_period', 'v_sales_monthly', 'v_affordable_share', 'v_sales_hex') loop
+    if r.relkind = 'm' then execute format('drop materialized view %I cascade', r.relname);
+    elsif r.relkind = 'v' then execute format('drop view %I cascade', r.relname);
+    end if;
+  end loop;
+end $$;
+
 -- Sales in each station ring, split into the last 12 months and the 12 before,
 -- anchored on the latest contract date in the data (not today's date).
-create or replace view v_sales_period as
+create materialized view v_sales_period as
 with bounds as (select max(contract_date) as as_of from sales),
 tagged as (
   select ss.station_id, r.id as ring_id, s.property_type, s.price, s.land_area_m2, s.dataset_id,
@@ -123,21 +136,25 @@ select station_id, ring_id, property_type, period,
        min(dataset_id) as dataset_id,
        to_char(max(as_of), 'YYYY-MM-DD') as as_of
 from typed
-group by station_id, ring_id, property_type, period;
+group by station_id, ring_id, property_type, period
+with no data;
+create index if not exists v_sales_period_idx on v_sales_period (station_id, ring_id, property_type, period);
 
 -- Monthly sale counts per ring (counts only, no prices).
-create or replace view v_sales_monthly as
+create materialized view v_sales_monthly as
 select ss.station_id, r.id as ring_id, s.property_type,
        to_char(date_trunc('month', s.contract_date), 'YYYY-MM') as month,
        count(*)::int as sales_count
 from sales s
 join sale_station ss on ss.sale_id = s.id
 join rings r on ss.distance_m >= r.min_m and ss.distance_m < r.max_m
-group by 1, 2, 3, 4;
+group by 1, 2, 3, 4
+with no data;
+create index if not exists v_sales_monthly_idx on v_sales_monthly (station_id, ring_id, property_type);
 
 -- Share of last-12-month sales in a ring at or below the median of all sales of the
 -- same type in the dataset over the same 12 months ("city median").
-create or replace view v_affordable_share as
+create materialized view v_affordable_share as
 with bounds as (select max(contract_date) as as_of from sales),
 recent as (
   select s.* from sales s, bounds b where s.contract_date > b.as_of - interval '12 months'
@@ -162,7 +179,9 @@ from recent s
 join city c on c.property_type = s.property_type
 join sale_station ss on ss.sale_id = s.id
 join rings r on ss.distance_m >= r.min_m and ss.distance_m < r.max_m
-group by 1, 2, 3;
+group by 1, 2, 3
+with no data;
+create index if not exists v_affordable_share_idx on v_affordable_share (station_id, ring_id, property_type);
 
 create or replace view v_patronage_monthly as
 select station_id, to_char(month, 'YYYY-MM') as month, entries, exits, entries + exits as total, dataset_id from patronage;
@@ -173,7 +192,7 @@ select station_id, ring_id, class, cover_pct::float8 as cover_pct, to_char(captu
 -- Sales binned into hexagons (300 m circumradius, about 520 m across) for the map, last 12 months.
 -- Axial hex coordinates (q, r) on a local metric plane; the API turns them back into polygons.
 -- Only hexes with at least one sale within 5 km of a station; medians below 10 sales are suppressed.
-create or replace view v_sales_hex as
+create materialized view v_sales_hex as
 with bounds as (select max(contract_date) as as_of from sales),
 pts as (
   select s.property_type, s.price, s.dataset_id,
@@ -207,7 +226,8 @@ select property_type, q, r,
        min(dataset_id) as dataset_id,
        (select to_char(as_of, 'YYYY-MM-DD') from bounds) as as_of
 from axial
-group by property_type, q, r;
+group by property_type, q, r
+with no data;
 
 -- ---------------------------------------------------------------------------
 -- Read-only role for the agent. It can read the views above and nothing else.

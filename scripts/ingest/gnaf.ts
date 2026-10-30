@@ -1,5 +1,5 @@
 /**
- * Step 2a: extract G-NAF addresses near the ten stations, streaming straight from the zip.
+ * Step 2a: extract G-NAF addresses near any Sydney train or metro station, streaming from the zip.
  *
  *   npm run ingest:gnaf                       # writes data/derived/gnaf_near_stations.csv
  *   npm run ingest:gnaf -- --radius 5600      # metres around each station (default 5600)
@@ -34,9 +34,22 @@ const box = {
   minLon: Math.min(...STATIONS.map((s) => s.lon)) - RADIUS / 92_000,
   maxLon: Math.max(...STATIONS.map((s) => s.lon)) + RADIUS / 92_000,
 };
-const near = (lat: number, lon: number) =>
-  lat >= box.minLat && lat <= box.maxLat && lon >= box.minLon && lon <= box.maxLon &&
-  STATIONS.some((s) => metresBetween(lat, lon, s.lat, s.lon) <= RADIUS);
+// Stations bucketed on a 0.1 degree grid (about 9 x 11 km, more than the radius), so each address
+// is checked only against stations in its own and neighbouring cells.
+const CELL = 0.1;
+const grid = new Map<string, typeof STATIONS[number][]>();
+for (const s of STATIONS) {
+  const k = `${Math.floor(s.lat / CELL)}:${Math.floor(s.lon / CELL)}`;
+  (grid.get(k) ?? grid.set(k, []).get(k)!).push(s);
+}
+const near = (lat: number, lon: number) => {
+  if (lat < box.minLat || lat > box.maxLat || lon < box.minLon || lon > box.maxLon) return false;
+  const gy = Math.floor(lat / CELL), gx = Math.floor(lon / CELL);
+  for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+    for (const s of grid.get(`${gy + dy}:${gx + dx}`) ?? []) if (metresBetween(lat, lon, s.lat, s.lon) <= RADIUS) return true;
+  }
+  return false;
+};
 
 async function table(re: RegExp, cols: string[], onRow: (r: Record<string, string>) => void): Promise<number> {
   let idx: Record<string, number> | null = null;

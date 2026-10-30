@@ -100,7 +100,7 @@ export function offlineComposeFromFacts(question: string, facts: Fact[]): string
   const usable = facts.filter((f) => f.value !== null && f.metric);
   if (!facts.length) {
     return JSON.stringify({
-      lines: [`I can answer questions about property, transport and land use around ${STATIONS.map((s) => s.name).join(', ')}.`],
+      lines: ['I can answer questions about property, transport and land use around Sydney train and metro stations, such as Chatswood or Parramatta.'],
       actions: [], followups: [{ label: 'Try Chatswood', question: 'Compare Chatswood and St Leonards on canopy and car parks' }], chart: null,
     });
   }

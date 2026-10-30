@@ -68,7 +68,7 @@ describe('verifier', () => {
   test('validates map actions against the Quest schema', () => {
     expect(errorsOf({ actions: [{ type: 'set_radius', radius_m: 150 }] })).toMatch(/multiple of 100/);
     expect(errorsOf({ actions: [{ type: 'set_radius', radius_m: 2500 }] })).toMatch(/action 1 invalid/);
-    expect(errorsOf({ actions: [{ type: 'fly_to', target: 'bondi' }] })).toMatch(/unknown fly_to target/);
+    expect(errorsOf({ actions: [{ type: 'fly_to', target: 'manly' }] })).toMatch(/unknown fly_to target/);
     expect(errorsOf({ actions: [{ type: 'compare', station_ids: ['chatswood', 'bondi'], metrics: ['vibes'] }] })).toMatch(/unknown station bondi.*unknown metric vibes/);
     expect(errorsOf({ actions: [{ type: 'teleport' }] })).toMatch(/action 1 invalid/);
   });

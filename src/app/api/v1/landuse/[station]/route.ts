@@ -17,7 +17,7 @@ export function OPTIONS() {
 export async function GET(_req: NextRequest, ctx: { params: Promise<{ station: string }> }) {
   const { station } = await ctx.params;
   const parsed = StationId.safeParse(station);
-  if (!parsed.success) return errorJson(404, 'unknown_station', `station must be one of ${StationId.options.join(', ')}`);
+  if (!parsed.success) return errorJson(404, 'unknown_station', 'station must be a Sydney Trains or Metro station id (see /api/v1/stations)');
   const db = await getDb();
   const rows = await db.readOnly<{ ring_id: string; class: string; cover_pct: number; capture_date: string; method: string; dataset_id: string }>(
     'select ring_id, class, cover_pct, capture_date, method, dataset_id from v_land_use where station_id = $1 order by ring_id, class',

@@ -1,0 +1,2246 @@
+{
+ "source": "Transport for NSW GTFS (full_greater_sydney_gtfs_static_0.zip), CC BY 4.0",
+ "stations": [
+  {
+   "id": "allawah",
+   "name": "Allawah",
+   "lines": [
+    "T4"
+   ],
+   "lat": -33.96973,
+   "lon": 151.114549,
+   "gtfs_stop_id": "222020",
+   "featured": false
+  },
+  {
+   "id": "arncliffe",
+   "name": "Arncliffe",
+   "lines": [
+    "T4"
+   ],
+   "lat": -33.936782,
+   "lon": 151.147174,
+   "gtfs_stop_id": "220520",
+   "featured": false
+  },
+  {
+   "id": "artarmon",
+   "name": "Artarmon",
+   "lines": [
+    "T1",
+    "T9"
+   ],
+   "lat": -33.808542,
+   "lon": 151.184701,
+   "gtfs_stop_id": "206410",
+   "featured": false
+  },
+  {
+   "id": "ashfield",
+   "name": "Ashfield",
+   "lines": [
+    "T1",
+    "T2",
+    "T3",
+    "T7",
+    "T9"
+   ],
+   "lat": -33.887638,
+   "lon": 151.125851,
+   "gtfs_stop_id": "213110",
+   "featured": false
+  },
+  {
+   "id": "asquith",
+   "name": "Asquith",
+   "lines": [
+    "T1",
+    "T9"
+   ],
+   "lat": -33.688523,
+   "lon": 151.108201,
+   "gtfs_stop_id": "207730",
+   "featured": false
+  },
+  {
+   "id": "auburn",
+   "name": "Auburn",
+   "lines": [
+    "T1",
+    "T2"
+   ],
+   "lat": -33.84943,
+   "lon": 151.033017,
+   "gtfs_stop_id": "214410",
+   "featured": true
+  },
+  {
+   "id": "banksia",
+   "name": "Banksia",
+   "lines": [
+    "T4"
+   ],
+   "lat": -33.944996,
+   "lon": 151.140589,
+   "gtfs_stop_id": "221610",
+   "featured": false
+  },
+  {
+   "id": "bankstown",
+   "name": "Bankstown",
+   "lines": [
+    "M1",
+    "T6"
+   ],
+   "lat": -33.917848,
+   "lon": 151.034654,
+   "gtfs_stop_id": "220010",
+   "featured": false
+  },
+  {
+   "id": "barangaroo",
+   "name": "Barangaroo",
+   "lines": [
+    "M1"
+   ],
+   "lat": -33.859577,
+   "lon": 151.202615,
+   "gtfs_stop_id": "200046",
+   "featured": false
+  },
+  {
+   "id": "bardwell_park",
+   "name": "Bardwell Park",
+   "lines": [
+    "T8"
+   ],
+   "lat": -33.93142,
+   "lon": 151.125263,
+   "gtfs_stop_id": "220710",
+   "featured": false
+  },
+  {
+   "id": "beecroft",
+   "name": "Beecroft",
+   "lines": [
+    "T9"
+   ],
+   "lat": -33.749272,
+   "lon": 151.066607,
+   "gtfs_stop_id": "211910",
+   "featured": false
+  },
+  {
+   "id": "bella_vista",
+   "name": "Bella Vista",
+   "lines": [
+    "M1"
+   ],
+   "lat": -33.730566,
+   "lon": 150.94402,
+   "gtfs_stop_id": "2153478",
+   "featured": false
+  },
+  {
+   "id": "belmore",
+   "name": "Belmore",
+   "lines": [
+    "M1"
+   ],
+   "lat": -33.917225,
+   "lon": 151.088415,
+   "gtfs_stop_id": "219210",
+   "featured": false
+  },
+  {
+   "id": "berala",
+   "name": "Berala",
+   "lines": [
+    "T2",
+    "T3",
+    "T6"
+   ],
+   "lat": -33.871784,
+   "lon": 151.032525,
+   "gtfs_stop_id": "214120",
+   "featured": false
+  },
+  {
+   "id": "berowra",
+   "name": "Berowra",
+   "lines": [
+    "T1",
+    "T9"
+   ],
+   "lat": -33.623385,
+   "lon": 151.153235,
+   "gtfs_stop_id": "208110",
+   "featured": false
+  },
+  {
+   "id": "beverly_hills",
+   "name": "Beverly Hills",
+   "lines": [
+    "T8"
+   ],
+   "lat": -33.949121,
+   "lon": 151.08086,
+   "gtfs_stop_id": "220910",
+   "featured": false
+  },
+  {
+   "id": "bexley_north",
+   "name": "Bexley North",
+   "lines": [
+    "T8"
+   ],
+   "lat": -33.937508,
+   "lon": 151.113774,
+   "gtfs_stop_id": "220720",
+   "featured": false
+  },
+  {
+   "id": "birrong",
+   "name": "Birrong",
+   "lines": [
+    "T6"
+   ],
+   "lat": -33.892589,
+   "lon": 151.024278,
+   "gtfs_stop_id": "214320",
+   "featured": false
+  },
+  {
+   "id": "blacktown",
+   "name": "Blacktown",
+   "lines": [
+    "T1",
+    "T5",
+    "T7"
+   ],
+   "lat": -33.768544,
+   "lon": 150.90708,
+   "gtfs_stop_id": "214810",
+   "featured": false
+  },
+  {
+   "id": "bondi_junction",
+   "name": "Bondi Junction",
+   "lines": [
+    "T4"
+   ],
+   "lat": -33.891197,
+   "lon": 151.248377,
+   "gtfs_stop_id": "202210",
+   "featured": false
+  },
+  {
+   "id": "burwood",
+   "name": "Burwood",
+   "lines": [
+    "T1",
+    "T2",
+    "T3",
+    "T7",
+    "T9"
+   ],
+   "lat": -33.877102,
+   "lon": 151.103857,
+   "gtfs_stop_id": "213410",
+   "featured": false
+  },
+  {
+   "id": "cabramatta",
+   "name": "Cabramatta",
+   "lines": [
+    "T2",
+    "T3",
+    "T5"
+   ],
+   "lat": -33.89474,
+   "lon": 150.938876,
+   "gtfs_stop_id": "216620",
+   "featured": false
+  },
+  {
+   "id": "campbelltown",
+   "name": "Campbelltown",
+   "lines": [
+    "T2",
+    "T5",
+    "T8"
+   ],
+   "lat": -34.063556,
+   "lon": 150.814631,
+   "gtfs_stop_id": "256020",
+   "featured": false
+  },
+  {
+   "id": "campsie",
+   "name": "Campsie",
+   "lines": [
+    "M1"
+   ],
+   "lat": -33.910435,
+   "lon": 151.103458,
+   "gtfs_stop_id": "219410",
+   "featured": false
+  },
+  {
+   "id": "canley_vale",
+   "name": "Canley Vale",
+   "lines": [
+    "T2",
+    "T5"
+   ],
+   "lat": -33.887328,
+   "lon": 150.943538,
+   "gtfs_stop_id": "216610",
+   "featured": false
+  },
+  {
+   "id": "canterbury",
+   "name": "Canterbury",
+   "lines": [
+    "M1"
+   ],
+   "lat": -33.912087,
+   "lon": 151.118731,
+   "gtfs_stop_id": "219320",
+   "featured": false
+  },
+  {
+   "id": "caringbah",
+   "name": "Caringbah",
+   "lines": [
+    "T4"
+   ],
+   "lat": -34.041578,
+   "lon": 151.122026,
+   "gtfs_stop_id": "222910",
+   "featured": false
+  },
+  {
+   "id": "carlton",
+   "name": "Carlton",
+   "lines": [
+    "T4"
+   ],
+   "lat": -33.968243,
+   "lon": 151.124502,
+   "gtfs_stop_id": "221810",
+   "featured": false
+  },
+  {
+   "id": "carramar",
+   "name": "Carramar",
+   "lines": [
+    "T2",
+    "T3"
+   ],
+   "lat": -33.884452,
+   "lon": 150.960984,
+   "gtfs_stop_id": "216330",
+   "featured": false
+  },
+  {
+   "id": "castle_hill",
+   "name": "Castle Hill",
+   "lines": [
+    "M1"
+   ],
+   "lat": -33.731626,
+   "lon": 151.007288,
+   "gtfs_stop_id": "2154391",
+   "featured": false
+  },
+  {
+   "id": "casula",
+   "name": "Casula",
+   "lines": [
+    "T2",
+    "T3",
+    "T5"
+   ],
+   "lat": -33.950211,
+   "lon": 150.911829,
+   "gtfs_stop_id": "217030",
+   "featured": false
+  },
+  {
+   "id": "central",
+   "name": "Central",
+   "lines": [
+    "M1",
+    "T1",
+    "T2",
+    "T3",
+    "T4",
+    "T6",
+    "T7",
+    "T8",
+    "T9"
+   ],
+   "lat": -33.884024,
+   "lon": 151.206203,
+   "gtfs_stop_id": "200060",
+   "featured": false
+  },
+  {
+   "id": "chatswood",
+   "name": "Chatswood",
+   "lines": [
+    "M1",
+    "T1",
+    "T9"
+   ],
+   "lat": -33.797237,
+   "lon": 151.180934,
+   "gtfs_stop_id": "206710",
+   "featured": true
+  },
+  {
+   "id": "cheltenham",
+   "name": "Cheltenham",
+   "lines": [
+    "T9"
+   ],
+   "lat": -33.755612,
+   "lon": 151.07846,
+   "gtfs_stop_id": "211920",
+   "featured": false
+  },
+  {
+   "id": "cherrybrook",
+   "name": "Cherrybrook",
+   "lines": [
+    "M1"
+   ],
+   "lat": -33.736659,
+   "lon": 151.031994,
+   "gtfs_stop_id": "2126158",
+   "featured": false
+  },
+  {
+   "id": "chester_hill",
+   "name": "Chester Hill",
+   "lines": [
+    "T2",
+    "T3"
+   ],
+   "lat": -33.883659,
+   "lon": 151.000252,
+   "gtfs_stop_id": "216220",
+   "featured": false
+  },
+  {
+   "id": "circular_quay",
+   "name": "Circular Quay",
+   "lines": [
+    "T2",
+    "T3",
+    "T4",
+    "T6",
+    "T7",
+    "T8"
+   ],
+   "lat": -33.861351,
+   "lon": 151.210813,
+   "gtfs_stop_id": "200020",
+   "featured": false
+  },
+  {
+   "id": "clarendon",
+   "name": "Clarendon",
+   "lines": [
+    "T1",
+    "T5"
+   ],
+   "lat": -33.608585,
+   "lon": 150.787895,
+   "gtfs_stop_id": "275630",
+   "featured": false
+  },
+  {
+   "id": "clyde",
+   "name": "Clyde",
+   "lines": [
+    "T1",
+    "T2"
+   ],
+   "lat": -33.835953,
+   "lon": 151.016942,
+   "gtfs_stop_id": "214230",
+   "featured": false
+  },
+  {
+   "id": "como",
+   "name": "Como",
+   "lines": [
+    "T4"
+   ],
+   "lat": -34.004619,
+   "lon": 151.068241,
+   "gtfs_stop_id": "222610",
+   "featured": false
+  },
+  {
+   "id": "concord_west",
+   "name": "Concord West",
+   "lines": [
+    "T9"
+   ],
+   "lat": -33.848605,
+   "lon": 151.085624,
+   "gtfs_stop_id": "213810",
+   "featured": false
+  },
+  {
+   "id": "cronulla",
+   "name": "Cronulla",
+   "lines": [
+    "T4"
+   ],
+   "lat": -34.055785,
+   "lon": 151.151498,
+   "gtfs_stop_id": "223020",
+   "featured": false
+  },
+  {
+   "id": "crows_nest",
+   "name": "Crows Nest",
+   "lines": [
+    "M1"
+   ],
+   "lat": -33.82562,
+   "lon": 151.199137,
+   "gtfs_stop_id": "206516",
+   "featured": false
+  },
+  {
+   "id": "croydon",
+   "name": "Croydon",
+   "lines": [
+    "T1",
+    "T2",
+    "T3",
+    "T7",
+    "T9"
+   ],
+   "lat": -33.883075,
+   "lon": 151.115206,
+   "gtfs_stop_id": "213210",
+   "featured": false
+  },
+  {
+   "id": "denistone",
+   "name": "Denistone",
+   "lines": [
+    "T9"
+   ],
+   "lat": -33.799626,
+   "lon": 151.086928,
+   "gtfs_stop_id": "211410",
+   "featured": false
+  },
+  {
+   "id": "domestic_airport",
+   "name": "Domestic Airport",
+   "lines": [
+    "T8"
+   ],
+   "lat": -33.93363,
+   "lon": 151.18066,
+   "gtfs_stop_id": "202020",
+   "featured": false
+  },
+  {
+   "id": "doonside",
+   "name": "Doonside",
+   "lines": [
+    "T1",
+    "T5"
+   ],
+   "lat": -33.763898,
+   "lon": 150.868697,
+   "gtfs_stop_id": "276710",
+   "featured": false
+  },
+  {
+   "id": "dulwich_hill",
+   "name": "Dulwich Hill",
+   "lines": [
+    "M1"
+   ],
+   "lat": -33.910943,
+   "lon": 151.140722,
+   "gtfs_stop_id": "220310",
+   "featured": false
+  },
+  {
+   "id": "east_hills",
+   "name": "East Hills",
+   "lines": [
+    "T8"
+   ],
+   "lat": -33.961817,
+   "lon": 150.984729,
+   "gtfs_stop_id": "221320",
+   "featured": false
+  },
+  {
+   "id": "east_richmond",
+   "name": "East Richmond",
+   "lines": [
+    "T1",
+    "T5"
+   ],
+   "lat": -33.601729,
+   "lon": 150.758916,
+   "gtfs_stop_id": "275310",
+   "featured": false
+  },
+  {
+   "id": "eastwood",
+   "name": "Eastwood",
+   "lines": [
+    "T9"
+   ],
+   "lat": -33.790301,
+   "lon": 151.082297,
+   "gtfs_stop_id": "212210",
+   "featured": false
+  },
+  {
+   "id": "edgecliff",
+   "name": "Edgecliff",
+   "lines": [
+    "T4"
+   ],
+   "lat": -33.879371,
+   "lon": 151.236253,
+   "gtfs_stop_id": "202710",
+   "featured": false
+  },
+  {
+   "id": "edmondson_park",
+   "name": "Edmondson Park",
+   "lines": [
+    "T2",
+    "T5",
+    "T8"
+   ],
+   "lat": -33.969323,
+   "lon": 150.858802,
+   "gtfs_stop_id": "217426",
+   "featured": false
+  },
+  {
+   "id": "emu_plains",
+   "name": "Emu Plains",
+   "lines": [
+    "T1",
+    "T5"
+   ],
+   "lat": -33.745725,
+   "lon": 150.671427,
+   "gtfs_stop_id": "275020",
+   "featured": false
+  },
+  {
+   "id": "engadine",
+   "name": "Engadine",
+   "lines": [
+    "T4"
+   ],
+   "lat": -34.067702,
+   "lon": 151.01486,
+   "gtfs_stop_id": "223310",
+   "featured": false
+  },
+  {
+   "id": "epping",
+   "name": "Epping",
+   "lines": [
+    "M1",
+    "T9"
+   ],
+   "lat": -33.772837,
+   "lon": 151.082082,
+   "gtfs_stop_id": "212110",
+   "featured": false
+  },
+  {
+   "id": "erskineville",
+   "name": "Erskineville",
+   "lines": [
+    "T4",
+    "T8"
+   ],
+   "lat": -33.900183,
+   "lon": 151.185496,
+   "gtfs_stop_id": "204310",
+   "featured": false
+  },
+  {
+   "id": "fairfield",
+   "name": "Fairfield",
+   "lines": [
+    "T2",
+    "T5"
+   ],
+   "lat": -33.872245,
+   "lon": 150.957254,
+   "gtfs_stop_id": "216510",
+   "featured": false
+  },
+  {
+   "id": "flemington",
+   "name": "Flemington",
+   "lines": [
+    "T1",
+    "T2",
+    "T3",
+    "T6"
+   ],
+   "lat": -33.864912,
+   "lon": 151.070178,
+   "gtfs_stop_id": "214020",
+   "featured": false
+  },
+  {
+   "id": "gadigal",
+   "name": "Gadigal",
+   "lines": [
+    "M1"
+   ],
+   "lat": -33.873081,
+   "lon": 151.208722,
+   "gtfs_stop_id": "200066",
+   "featured": false
+  },
+  {
+   "id": "glenfield",
+   "name": "Glenfield",
+   "lines": [
+    "T2",
+    "T3",
+    "T5",
+    "T8"
+   ],
+   "lat": -33.972208,
+   "lon": 150.893067,
+   "gtfs_stop_id": "216710",
+   "featured": false
+  },
+  {
+   "id": "gordon",
+   "name": "Gordon",
+   "lines": [
+    "T1",
+    "T9"
+   ],
+   "lat": -33.755911,
+   "lon": 151.154448,
+   "gtfs_stop_id": "207210",
+   "featured": false
+  },
+  {
+   "id": "granville",
+   "name": "Granville",
+   "lines": [
+    "T1",
+    "T2",
+    "T7"
+   ],
+   "lat": -33.832758,
+   "lon": 151.011869,
+   "gtfs_stop_id": "214240",
+   "featured": true
+  },
+  {
+   "id": "green_square",
+   "name": "Green Square",
+   "lines": [
+    "T8"
+   ],
+   "lat": -33.906078,
+   "lon": 151.202577,
+   "gtfs_stop_id": "201710",
+   "featured": false
+  },
+  {
+   "id": "guildford",
+   "name": "Guildford",
+   "lines": [
+    "T2",
+    "T5"
+   ],
+   "lat": -33.854438,
+   "lon": 150.984393,
+   "gtfs_stop_id": "216110",
+   "featured": false
+  },
+  {
+   "id": "gymea",
+   "name": "Gymea",
+   "lines": [
+    "T4"
+   ],
+   "lat": -34.034869,
+   "lon": 151.085261,
+   "gtfs_stop_id": "222710",
+   "featured": false
+  },
+  {
+   "id": "harris_park",
+   "name": "Harris Park",
+   "lines": [
+    "T1",
+    "T2",
+    "T5"
+   ],
+   "lat": -33.823353,
+   "lon": 151.00765,
+   "gtfs_stop_id": "215010",
+   "featured": true
+  },
+  {
+   "id": "heathcote",
+   "name": "Heathcote",
+   "lines": [
+    "T4"
+   ],
+   "lat": -34.087919,
+   "lon": 151.008332,
+   "gtfs_stop_id": "223320",
+   "featured": false
+  },
+  {
+   "id": "hills_showground",
+   "name": "Hills Showground",
+   "lines": [
+    "M1"
+   ],
+   "lat": -33.727912,
+   "lon": 150.987025,
+   "gtfs_stop_id": "2154392",
+   "featured": false
+  },
+  {
+   "id": "holsworthy",
+   "name": "Holsworthy",
+   "lines": [
+    "T8"
+   ],
+   "lat": -33.963195,
+   "lon": 150.95659,
+   "gtfs_stop_id": "217310",
+   "featured": false
+  },
+  {
+   "id": "homebush",
+   "name": "Homebush",
+   "lines": [
+    "T1",
+    "T2",
+    "T3",
+    "T6",
+    "T7"
+   ],
+   "lat": -33.866688,
+   "lon": 151.086195,
+   "gtfs_stop_id": "214010",
+   "featured": false
+  },
+  {
+   "id": "hornsby",
+   "name": "Hornsby",
+   "lines": [
+    "T1",
+    "T9"
+   ],
+   "lat": -33.703475,
+   "lon": 151.09836,
+   "gtfs_stop_id": "207720",
+   "featured": false
+  },
+  {
+   "id": "hurlstone_park",
+   "name": "Hurlstone Park",
+   "lines": [
+    "M1"
+   ],
+   "lat": -33.910202,
+   "lon": 151.132484,
+   "gtfs_stop_id": "219310",
+   "featured": false
+  },
+  {
+   "id": "hurstville",
+   "name": "Hurstville",
+   "lines": [
+    "T4"
+   ],
+   "lat": -33.967441,
+   "lon": 151.102694,
+   "gtfs_stop_id": "222010",
+   "featured": false
+  },
+  {
+   "id": "ingleburn",
+   "name": "Ingleburn",
+   "lines": [
+    "T2",
+    "T5",
+    "T8"
+   ],
+   "lat": -33.997482,
+   "lon": 150.864577,
+   "gtfs_stop_id": "256510",
+   "featured": false
+  },
+  {
+   "id": "international_airport",
+   "name": "International Airport",
+   "lines": [
+    "T8"
+   ],
+   "lat": -33.934971,
+   "lon": 151.165841,
+   "gtfs_stop_id": "202030",
+   "featured": false
+  },
+  {
+   "id": "jannali",
+   "name": "Jannali",
+   "lines": [
+    "T4"
+   ],
+   "lat": -34.01611,
+   "lon": 151.064646,
+   "gtfs_stop_id": "222620",
+   "featured": false
+  },
+  {
+   "id": "kellyville",
+   "name": "Kellyville",
+   "lines": [
+    "M1"
+   ],
+   "lat": -33.713374,
+   "lon": 150.935231,
+   "gtfs_stop_id": "2155382",
+   "featured": false
+  },
+  {
+   "id": "killara",
+   "name": "Killara",
+   "lines": [
+    "T1",
+    "T9"
+   ],
+   "lat": -33.765699,
+   "lon": 151.161847,
+   "gtfs_stop_id": "207110",
+   "featured": false
+  },
+  {
+   "id": "kings_cross",
+   "name": "Kings Cross",
+   "lines": [
+    "T4"
+   ],
+   "lat": -33.874483,
+   "lon": 151.222228,
+   "gtfs_stop_id": "201110",
+   "featured": false
+  },
+  {
+   "id": "kingsgrove",
+   "name": "Kingsgrove",
+   "lines": [
+    "T8"
+   ],
+   "lat": -33.940482,
+   "lon": 151.100815,
+   "gtfs_stop_id": "220810",
+   "featured": false
+  },
+  {
+   "id": "kingswood",
+   "name": "Kingswood",
+   "lines": [
+    "T1",
+    "T5"
+   ],
+   "lat": -33.75842,
+   "lon": 150.720533,
+   "gtfs_stop_id": "274720",
+   "featured": false
+  },
+  {
+   "id": "kirrawee",
+   "name": "Kirrawee",
+   "lines": [
+    "T4"
+   ],
+   "lat": -34.034976,
+   "lon": 151.071218,
+   "gtfs_stop_id": "223230",
+   "featured": false
+  },
+  {
+   "id": "kogarah",
+   "name": "Kogarah",
+   "lines": [
+    "T4"
+   ],
+   "lat": -33.962541,
+   "lon": 151.132487,
+   "gtfs_stop_id": "221710",
+   "featured": false
+  },
+  {
+   "id": "lakemba",
+   "name": "Lakemba",
+   "lines": [
+    "M1"
+   ],
+   "lat": -33.919961,
+   "lon": 151.076311,
+   "gtfs_stop_id": "219510",
+   "featured": false
+  },
+  {
+   "id": "leightonfield",
+   "name": "Leightonfield",
+   "lines": [
+    "T2",
+    "T3"
+   ],
+   "lat": -33.881481,
+   "lon": 150.984895,
+   "gtfs_stop_id": "216310",
+   "featured": false
+  },
+  {
+   "id": "leppington",
+   "name": "Leppington",
+   "lines": [
+    "T2",
+    "T5",
+    "T8"
+   ],
+   "lat": -33.954457,
+   "lon": 150.80817,
+   "gtfs_stop_id": "217933",
+   "featured": false
+  },
+  {
+   "id": "leumeah",
+   "name": "Leumeah",
+   "lines": [
+    "T2",
+    "T5",
+    "T8"
+   ],
+   "lat": -34.050677,
+   "lon": 150.830607,
+   "gtfs_stop_id": "256010",
+   "featured": false
+  },
+  {
+   "id": "lewisham",
+   "name": "Lewisham",
+   "lines": [
+    "T1",
+    "T2",
+    "T3",
+    "T7",
+    "T9"
+   ],
+   "lat": -33.893417,
+   "lon": 151.147706,
+   "gtfs_stop_id": "204920",
+   "featured": false
+  },
+  {
+   "id": "lidcombe",
+   "name": "Lidcombe",
+   "lines": [
+    "T1",
+    "T2",
+    "T3",
+    "T6",
+    "T7"
+   ],
+   "lat": -33.863756,
+   "lon": 151.04513,
+   "gtfs_stop_id": "214110",
+   "featured": false
+  },
+  {
+   "id": "lindfield",
+   "name": "Lindfield",
+   "lines": [
+    "T1",
+    "T9"
+   ],
+   "lat": -33.775521,
+   "lon": 151.169271,
+   "gtfs_stop_id": "207010",
+   "featured": false
+  },
+  {
+   "id": "liverpool",
+   "name": "Liverpool",
+   "lines": [
+    "T2",
+    "T3",
+    "T5"
+   ],
+   "lat": -33.924927,
+   "lon": 150.927328,
+   "gtfs_stop_id": "217020",
+   "featured": false
+  },
+  {
+   "id": "loftus",
+   "name": "Loftus",
+   "lines": [
+    "T4"
+   ],
+   "lat": -34.045221,
+   "lon": 151.051316,
+   "gtfs_stop_id": "223220",
+   "featured": false
+  },
+  {
+   "id": "macarthur",
+   "name": "Macarthur",
+   "lines": [
+    "T2",
+    "T5",
+    "T8"
+   ],
+   "lat": -34.071991,
+   "lon": 150.797164,
+   "gtfs_stop_id": "256030",
+   "featured": false
+  },
+  {
+   "id": "macdonaldtown",
+   "name": "Macdonaldtown",
+   "lines": [
+    "T1",
+    "T2",
+    "T3",
+    "T7",
+    "T9"
+   ],
+   "lat": -33.896959,
+   "lon": 151.185695,
+   "gtfs_stop_id": "201520",
+   "featured": false
+  },
+  {
+   "id": "macquarie_fields",
+   "name": "Macquarie Fields",
+   "lines": [
+    "T2",
+    "T5",
+    "T8"
+   ],
+   "lat": -33.984859,
+   "lon": 150.878824,
+   "gtfs_stop_id": "256410",
+   "featured": false
+  },
+  {
+   "id": "macquarie_park",
+   "name": "Macquarie Park",
+   "lines": [
+    "M1"
+   ],
+   "lat": -33.78508,
+   "lon": 151.128374,
+   "gtfs_stop_id": "211340",
+   "featured": false
+  },
+  {
+   "id": "macquarie_university",
+   "name": "Macquarie University",
+   "lines": [
+    "M1"
+   ],
+   "lat": -33.777282,
+   "lon": 151.118267,
+   "gtfs_stop_id": "211310",
+   "featured": false
+  },
+  {
+   "id": "marayong",
+   "name": "Marayong",
+   "lines": [
+    "T1",
+    "T5"
+   ],
+   "lat": -33.7461,
+   "lon": 150.900171,
+   "gtfs_stop_id": "214820",
+   "featured": false
+  },
+  {
+   "id": "marrickville",
+   "name": "Marrickville",
+   "lines": [
+    "M1"
+   ],
+   "lat": -33.913868,
+   "lon": 151.153356,
+   "gtfs_stop_id": "220410",
+   "featured": false
+  },
+  {
+   "id": "martin_place",
+   "name": "Martin Place",
+   "lines": [
+    "M1",
+    "T4"
+   ],
+   "lat": -33.867648,
+   "lon": 151.210583,
+   "gtfs_stop_id": "200030",
+   "featured": false
+  },
+  {
+   "id": "mascot",
+   "name": "Mascot",
+   "lines": [
+    "T8"
+   ],
+   "lat": -33.923176,
+   "lon": 151.187335,
+   "gtfs_stop_id": "202010",
+   "featured": false
+  },
+  {
+   "id": "meadowbank",
+   "name": "Meadowbank",
+   "lines": [
+    "T9"
+   ],
+   "lat": -33.815794,
+   "lon": 151.090106,
+   "gtfs_stop_id": "211430",
+   "featured": false
+  },
+  {
+   "id": "merrylands",
+   "name": "Merrylands",
+   "lines": [
+    "T2",
+    "T5"
+   ],
+   "lat": -33.836686,
+   "lon": 150.992487,
+   "gtfs_stop_id": "216010",
+   "featured": false
+  },
+  {
+   "id": "milsons_point",
+   "name": "Milsons Point",
+   "lines": [
+    "T1",
+    "T9"
+   ],
+   "lat": -33.845936,
+   "lon": 151.211837,
+   "gtfs_stop_id": "206110",
+   "featured": true
+  },
+  {
+   "id": "minto",
+   "name": "Minto",
+   "lines": [
+    "T2",
+    "T5",
+    "T8"
+   ],
+   "lat": -34.027444,
+   "lon": 150.842494,
+   "gtfs_stop_id": "256610",
+   "featured": false
+  },
+  {
+   "id": "miranda",
+   "name": "Miranda",
+   "lines": [
+    "T4"
+   ],
+   "lat": -34.036254,
+   "lon": 151.102092,
+   "gtfs_stop_id": "222810",
+   "featured": false
+  },
+  {
+   "id": "mortdale",
+   "name": "Mortdale",
+   "lines": [
+    "T4"
+   ],
+   "lat": -33.971047,
+   "lon": 151.081001,
+   "gtfs_stop_id": "222310",
+   "featured": false
+  },
+  {
+   "id": "mount_colah",
+   "name": "Mount Colah",
+   "lines": [
+    "T1",
+    "T9"
+   ],
+   "lat": -33.671746,
+   "lon": 151.114698,
+   "gtfs_stop_id": "207910",
+   "featured": false
+  },
+  {
+   "id": "mount_druitt",
+   "name": "Mount Druitt",
+   "lines": [
+    "T1",
+    "T5"
+   ],
+   "lat": -33.769558,
+   "lon": 150.820126,
+   "gtfs_stop_id": "277010",
+   "featured": false
+  },
+  {
+   "id": "mount_kuring_gai",
+   "name": "Mount Kuring-gai",
+   "lines": [
+    "T1",
+    "T9"
+   ],
+   "lat": -33.653589,
+   "lon": 151.136824,
+   "gtfs_stop_id": "208010",
+   "featured": false
+  },
+  {
+   "id": "mulgrave",
+   "name": "Mulgrave",
+   "lines": [
+    "T1",
+    "T5"
+   ],
+   "lat": -33.626516,
+   "lon": 150.830036,
+   "gtfs_stop_id": "275610",
+   "featured": false
+  },
+  {
+   "id": "museum",
+   "name": "Museum",
+   "lines": [
+    "T2",
+    "T3",
+    "T4",
+    "T6",
+    "T7",
+    "T8"
+   ],
+   "lat": -33.875571,
+   "lon": 151.209946,
+   "gtfs_stop_id": "200040",
+   "featured": false
+  },
+  {
+   "id": "narwee",
+   "name": "Narwee",
+   "lines": [
+    "T8"
+   ],
+   "lat": -33.947677,
+   "lon": 151.070585,
+   "gtfs_stop_id": "220920",
+   "featured": false
+  },
+  {
+   "id": "newtown",
+   "name": "Newtown",
+   "lines": [
+    "T1",
+    "T2",
+    "T3",
+    "T7",
+    "T9"
+   ],
+   "lat": -33.897913,
+   "lon": 151.179377,
+   "gtfs_stop_id": "204210",
+   "featured": false
+  },
+  {
+   "id": "normanhurst",
+   "name": "Normanhurst",
+   "lines": [
+    "T9"
+   ],
+   "lat": -33.720827,
+   "lon": 151.097072,
+   "gtfs_stop_id": "207620",
+   "featured": false
+  },
+  {
+   "id": "north_ryde",
+   "name": "North Ryde",
+   "lines": [
+    "M1"
+   ],
+   "lat": -33.794218,
+   "lon": 151.137987,
+   "gtfs_stop_id": "211320",
+   "featured": false
+  },
+  {
+   "id": "north_strathfield",
+   "name": "North Strathfield",
+   "lines": [
+    "T9"
+   ],
+   "lat": -33.859188,
+   "lon": 151.088181,
+   "gtfs_stop_id": "213710",
+   "featured": false
+  },
+  {
+   "id": "north_sydney",
+   "name": "North Sydney",
+   "lines": [
+    "T1",
+    "T9"
+   ],
+   "lat": -33.84115,
+   "lon": 151.207412,
+   "gtfs_stop_id": "206010",
+   "featured": true
+  },
+  {
+   "id": "norwest",
+   "name": "Norwest",
+   "lines": [
+    "M1"
+   ],
+   "lat": -33.734617,
+   "lon": 150.963522,
+   "gtfs_stop_id": "2153477",
+   "featured": false
+  },
+  {
+   "id": "oatley",
+   "name": "Oatley",
+   "lines": [
+    "T4"
+   ],
+   "lat": -33.980385,
+   "lon": 151.079014,
+   "gtfs_stop_id": "222320",
+   "featured": false
+  },
+  {
+   "id": "olympic_park",
+   "name": "Olympic Park",
+   "lines": [
+    "T1",
+    "T2",
+    "T3",
+    "T7"
+   ],
+   "lat": -33.846595,
+   "lon": 151.06933,
+   "gtfs_stop_id": "212710",
+   "featured": false
+  },
+  {
+   "id": "padstow",
+   "name": "Padstow",
+   "lines": [
+    "T8"
+   ],
+   "lat": -33.951917,
+   "lon": 151.032177,
+   "gtfs_stop_id": "221110",
+   "featured": false
+  },
+  {
+   "id": "panania",
+   "name": "Panania",
+   "lines": [
+    "T8"
+   ],
+   "lat": -33.954277,
+   "lon": 150.99826,
+   "gtfs_stop_id": "221310",
+   "featured": false
+  },
+  {
+   "id": "parramatta",
+   "name": "Parramatta",
+   "lines": [
+    "T1",
+    "T2",
+    "T5",
+    "T7"
+   ],
+   "lat": -33.81749,
+   "lon": 151.005325,
+   "gtfs_stop_id": "215020",
+   "featured": true
+  },
+  {
+   "id": "pendle_hill",
+   "name": "Pendle Hill",
+   "lines": [
+    "T1",
+    "T5"
+   ],
+   "lat": -33.801204,
+   "lon": 150.95608,
+   "gtfs_stop_id": "214530",
+   "featured": false
+  },
+  {
+   "id": "pennant_hills",
+   "name": "Pennant Hills",
+   "lines": [
+    "T9"
+   ],
+   "lat": -33.737912,
+   "lon": 151.072552,
+   "gtfs_stop_id": "212020",
+   "featured": false
+  },
+  {
+   "id": "penrith",
+   "name": "Penrith",
+   "lines": [
+    "T1",
+    "T5"
+   ],
+   "lat": -33.750149,
+   "lon": 150.696516,
+   "gtfs_stop_id": "275010",
+   "featured": false
+  },
+  {
+   "id": "penshurst",
+   "name": "Penshurst",
+   "lines": [
+    "T4"
+   ],
+   "lat": -33.966209,
+   "lon": 151.088847,
+   "gtfs_stop_id": "222210",
+   "featured": false
+  },
+  {
+   "id": "petersham",
+   "name": "Petersham",
+   "lines": [
+    "T1",
+    "T2",
+    "T3",
+    "T7",
+    "T9"
+   ],
+   "lat": -33.893863,
+   "lon": 151.155572,
+   "gtfs_stop_id": "204910",
+   "featured": false
+  },
+  {
+   "id": "punchbowl",
+   "name": "Punchbowl",
+   "lines": [
+    "M1"
+   ],
+   "lat": -33.925405,
+   "lon": 151.055548,
+   "gtfs_stop_id": "219610",
+   "featured": false
+  },
+  {
+   "id": "pymble",
+   "name": "Pymble",
+   "lines": [
+    "T1",
+    "T9"
+   ],
+   "lat": -33.74478,
+   "lon": 151.142261,
+   "gtfs_stop_id": "207310",
+   "featured": false
+  },
+  {
+   "id": "quakers_hill",
+   "name": "Quakers Hill",
+   "lines": [
+    "T1",
+    "T5"
+   ],
+   "lat": -33.727463,
+   "lon": 150.886234,
+   "gtfs_stop_id": "276310",
+   "featured": false
+  },
+  {
+   "id": "redfern",
+   "name": "Redfern",
+   "lines": [
+    "T1",
+    "T2",
+    "T3",
+    "T4",
+    "T6",
+    "T7",
+    "T8",
+    "T9"
+   ],
+   "lat": -33.892048,
+   "lon": 151.198419,
+   "gtfs_stop_id": "201510",
+   "featured": false
+  },
+  {
+   "id": "regents_park",
+   "name": "Regents Park",
+   "lines": [
+    "T2",
+    "T3",
+    "T6"
+   ],
+   "lat": -33.88319,
+   "lon": 151.02402,
+   "gtfs_stop_id": "214310",
+   "featured": false
+  },
+  {
+   "id": "revesby",
+   "name": "Revesby",
+   "lines": [
+    "T8"
+   ],
+   "lat": -33.952518,
+   "lon": 151.015197,
+   "gtfs_stop_id": "221210",
+   "featured": false
+  },
+  {
+   "id": "rhodes",
+   "name": "Rhodes",
+   "lines": [
+    "T9"
+   ],
+   "lat": -33.830492,
+   "lon": 151.087049,
+   "gtfs_stop_id": "213820",
+   "featured": false
+  },
+  {
+   "id": "richmond",
+   "name": "Richmond",
+   "lines": [
+    "T1",
+    "T5"
+   ],
+   "lat": -33.598846,
+   "lon": 150.752641,
+   "gtfs_stop_id": "275320",
+   "featured": false
+  },
+  {
+   "id": "riverstone",
+   "name": "Riverstone",
+   "lines": [
+    "T1",
+    "T5"
+   ],
+   "lat": -33.679262,
+   "lon": 150.86038,
+   "gtfs_stop_id": "276510",
+   "featured": false
+  },
+  {
+   "id": "riverwood",
+   "name": "Riverwood",
+   "lines": [
+    "T8"
+   ],
+   "lat": -33.951394,
+   "lon": 151.052457,
+   "gtfs_stop_id": "221010",
+   "featured": false
+  },
+  {
+   "id": "rockdale",
+   "name": "Rockdale",
+   "lines": [
+    "T4"
+   ],
+   "lat": -33.952248,
+   "lon": 151.136616,
+   "gtfs_stop_id": "221620",
+   "featured": false
+  },
+  {
+   "id": "rooty_hill",
+   "name": "Rooty Hill",
+   "lines": [
+    "T1",
+    "T5"
+   ],
+   "lat": -33.771625,
+   "lon": 150.844647,
+   "gtfs_stop_id": "276610",
+   "featured": false
+  },
+  {
+   "id": "roseville",
+   "name": "Roseville",
+   "lines": [
+    "T1",
+    "T9"
+   ],
+   "lat": -33.784436,
+   "lon": 151.177667,
+   "gtfs_stop_id": "206910",
+   "featured": false
+  },
+  {
+   "id": "rouse_hill",
+   "name": "Rouse Hill",
+   "lines": [
+    "M1"
+   ],
+   "lat": -33.691812,
+   "lon": 150.924168,
+   "gtfs_stop_id": "2155383",
+   "featured": false
+  },
+  {
+   "id": "schofields",
+   "name": "Schofields",
+   "lines": [
+    "T1",
+    "T5"
+   ],
+   "lat": -33.70438,
+   "lon": 150.873775,
+   "gtfs_stop_id": "276220",
+   "featured": false
+  },
+  {
+   "id": "sefton",
+   "name": "Sefton",
+   "lines": [
+    "T2",
+    "T3"
+   ],
+   "lat": -33.885277,
+   "lon": 151.011704,
+   "gtfs_stop_id": "216210",
+   "featured": false
+  },
+  {
+   "id": "seven_hills",
+   "name": "Seven Hills",
+   "lines": [
+    "T1",
+    "T5",
+    "T7"
+   ],
+   "lat": -33.774351,
+   "lon": 150.936123,
+   "gtfs_stop_id": "214710",
+   "featured": false
+  },
+  {
+   "id": "st_james",
+   "name": "St James",
+   "lines": [
+    "T2",
+    "T3",
+    "T4",
+    "T6",
+    "T7",
+    "T8"
+   ],
+   "lat": -33.870622,
+   "lon": 151.211863,
+   "gtfs_stop_id": "200050",
+   "featured": false
+  },
+  {
+   "id": "st_leonards",
+   "name": "St Leonards",
+   "lines": [
+    "T1",
+    "T9"
+   ],
+   "lat": -33.822232,
+   "lon": 151.194134,
+   "gtfs_stop_id": "206520",
+   "featured": true
+  },
+  {
+   "id": "st_marys",
+   "name": "St Marys",
+   "lines": [
+    "T1",
+    "T5"
+   ],
+   "lat": -33.762103,
+   "lon": 150.77518,
+   "gtfs_stop_id": "276010",
+   "featured": false
+  },
+  {
+   "id": "st_peters",
+   "name": "St Peters",
+   "lines": [
+    "T4",
+    "T8"
+   ],
+   "lat": -33.907273,
+   "lon": 151.180743,
+   "gtfs_stop_id": "204410",
+   "featured": false
+  },
+  {
+   "id": "stanmore",
+   "name": "Stanmore",
+   "lines": [
+    "T1",
+    "T2",
+    "T3",
+    "T7",
+    "T9"
+   ],
+   "lat": -33.894474,
+   "lon": 151.164148,
+   "gtfs_stop_id": "204810",
+   "featured": false
+  },
+  {
+   "id": "strathfield",
+   "name": "Strathfield",
+   "lines": [
+    "T1",
+    "T2",
+    "T3",
+    "T6",
+    "T7",
+    "T9"
+   ],
+   "lat": -33.871672,
+   "lon": 151.094286,
+   "gtfs_stop_id": "213510",
+   "featured": false
+  },
+  {
+   "id": "summer_hill",
+   "name": "Summer Hill",
+   "lines": [
+    "T1",
+    "T2",
+    "T3",
+    "T7",
+    "T9"
+   ],
+   "lat": -33.890441,
+   "lon": 151.138703,
+   "gtfs_stop_id": "213010",
+   "featured": false
+  },
+  {
+   "id": "sutherland",
+   "name": "Sutherland",
+   "lines": [
+    "T4"
+   ],
+   "lat": -34.031754,
+   "lon": 151.057222,
+   "gtfs_stop_id": "223210",
+   "featured": false
+  },
+  {
+   "id": "sydenham",
+   "name": "Sydenham",
+   "lines": [
+    "M1",
+    "T4",
+    "T8"
+   ],
+   "lat": -33.914459,
+   "lon": 151.166526,
+   "gtfs_stop_id": "204420",
+   "featured": false
+  },
+  {
+   "id": "tallawong",
+   "name": "Tallawong",
+   "lines": [
+    "M1"
+   ],
+   "lat": -33.691631,
+   "lon": 150.906006,
+   "gtfs_stop_id": "2155384",
+   "featured": false
+  },
+  {
+   "id": "tempe",
+   "name": "Tempe",
+   "lines": [
+    "T4"
+   ],
+   "lat": -33.923904,
+   "lon": 151.1566,
+   "gtfs_stop_id": "204430",
+   "featured": false
+  },
+  {
+   "id": "thornleigh",
+   "name": "Thornleigh",
+   "lines": [
+    "T9"
+   ],
+   "lat": -33.731897,
+   "lon": 151.078155,
+   "gtfs_stop_id": "212010",
+   "featured": false
+  },
+  {
+   "id": "toongabbie",
+   "name": "Toongabbie",
+   "lines": [
+    "T1",
+    "T5"
+   ],
+   "lat": -33.787386,
+   "lon": 150.95144,
+   "gtfs_stop_id": "214610",
+   "featured": false
+  },
+  {
+   "id": "town_hall",
+   "name": "Town Hall",
+   "lines": [
+    "T1",
+    "T2",
+    "T3",
+    "T4",
+    "T6",
+    "T7",
+    "T8",
+    "T9"
+   ],
+   "lat": -33.873539,
+   "lon": 151.20693,
+   "gtfs_stop_id": "200070",
+   "featured": false
+  },
+  {
+   "id": "turramurra",
+   "name": "Turramurra",
+   "lines": [
+    "T1",
+    "T9"
+   ],
+   "lat": -33.732586,
+   "lon": 151.128636,
+   "gtfs_stop_id": "207410",
+   "featured": false
+  },
+  {
+   "id": "turrella",
+   "name": "Turrella",
+   "lines": [
+    "T8"
+   ],
+   "lat": -33.929796,
+   "lon": 151.140339,
+   "gtfs_stop_id": "220530",
+   "featured": false
+  },
+  {
+   "id": "victoria_cross",
+   "name": "Victoria Cross",
+   "lines": [
+    "M1"
+   ],
+   "lat": -33.837727,
+   "lon": 151.207385,
+   "gtfs_stop_id": "206044",
+   "featured": false
+  },
+  {
+   "id": "villawood",
+   "name": "Villawood",
+   "lines": [
+    "T2",
+    "T3"
+   ],
+   "lat": -33.880831,
+   "lon": 150.976859,
+   "gtfs_stop_id": "216320",
+   "featured": false
+  },
+  {
+   "id": "vineyard",
+   "name": "Vineyard",
+   "lines": [
+    "T1",
+    "T5"
+   ],
+   "lat": -33.650308,
+   "lon": 150.851154,
+   "gtfs_stop_id": "276520",
+   "featured": false
+  },
+  {
+   "id": "wahroonga",
+   "name": "Wahroonga",
+   "lines": [
+    "T1",
+    "T9"
+   ],
+   "lat": -33.718045,
+   "lon": 151.117545,
+   "gtfs_stop_id": "207610",
+   "featured": false
+  },
+  {
+   "id": "waitara",
+   "name": "Waitara",
+   "lines": [
+    "T1",
+    "T9"
+   ],
+   "lat": -33.710365,
+   "lon": 151.104941,
+   "gtfs_stop_id": "207710",
+   "featured": false
+  },
+  {
+   "id": "warrawee",
+   "name": "Warrawee",
+   "lines": [
+    "T1",
+    "T9"
+   ],
+   "lat": -33.724399,
+   "lon": 151.121828,
+   "gtfs_stop_id": "207420",
+   "featured": false
+  },
+  {
+   "id": "warwick_farm",
+   "name": "Warwick Farm",
+   "lines": [
+    "T2",
+    "T3",
+    "T5"
+   ],
+   "lat": -33.913316,
+   "lon": 150.935095,
+   "gtfs_stop_id": "217010",
+   "featured": false
+  },
+  {
+   "id": "waterfall",
+   "name": "Waterfall",
+   "lines": [
+    "T4"
+   ],
+   "lat": -34.134908,
+   "lon": 150.994548,
+   "gtfs_stop_id": "223330",
+   "featured": false
+  },
+  {
+   "id": "waterloo",
+   "name": "Waterloo",
+   "lines": [
+    "M1"
+   ],
+   "lat": -33.897445,
+   "lon": 151.20024,
+   "gtfs_stop_id": "201721",
+   "featured": false
+  },
+  {
+   "id": "waverton",
+   "name": "Waverton",
+   "lines": [
+    "T1",
+    "T9"
+   ],
+   "lat": -33.837618,
+   "lon": 151.197381,
+   "gtfs_stop_id": "206020",
+   "featured": false
+  },
+  {
+   "id": "wentworthville",
+   "name": "Wentworthville",
+   "lines": [
+    "T1",
+    "T5"
+   ],
+   "lat": -33.807069,
+   "lon": 150.97237,
+   "gtfs_stop_id": "214520",
+   "featured": false
+  },
+  {
+   "id": "werrington",
+   "name": "Werrington",
+   "lines": [
+    "T1",
+    "T5"
+   ],
+   "lat": -33.759161,
+   "lon": 150.757594,
+   "gtfs_stop_id": "274710",
+   "featured": false
+  },
+  {
+   "id": "west_ryde",
+   "name": "West Ryde",
+   "lines": [
+    "T9"
+   ],
+   "lat": -33.807195,
+   "lon": 151.090192,
+   "gtfs_stop_id": "211420",
+   "featured": false
+  },
+  {
+   "id": "westmead",
+   "name": "Westmead",
+   "lines": [
+    "T1",
+    "T5",
+    "T7"
+   ],
+   "lat": -33.808478,
+   "lon": 150.987892,
+   "gtfs_stop_id": "214510",
+   "featured": true
+  },
+  {
+   "id": "wiley_park",
+   "name": "Wiley Park",
+   "lines": [
+    "M1"
+   ],
+   "lat": -33.922762,
+   "lon": 151.067917,
+   "gtfs_stop_id": "219520",
+   "featured": false
+  },
+  {
+   "id": "windsor",
+   "name": "Windsor",
+   "lines": [
+    "T1",
+    "T5"
+   ],
+   "lat": -33.613752,
+   "lon": 150.811214,
+   "gtfs_stop_id": "275620",
+   "featured": false
+  },
+  {
+   "id": "wolli_creek",
+   "name": "Wolli Creek",
+   "lines": [
+    "T4",
+    "T8"
+   ],
+   "lat": -33.928538,
+   "lon": 151.154113,
+   "gtfs_stop_id": "220510",
+   "featured": false
+  },
+  {
+   "id": "wollstonecraft",
+   "name": "Wollstonecraft",
+   "lines": [
+    "T1",
+    "T9"
+   ],
+   "lat": -33.831945,
+   "lon": 151.191749,
+   "gtfs_stop_id": "206510",
+   "featured": false
+  },
+  {
+   "id": "woolooware",
+   "name": "Woolooware",
+   "lines": [
+    "T4"
+   ],
+   "lat": -34.047541,
+   "lon": 151.143757,
+   "gtfs_stop_id": "223010",
+   "featured": false
+  },
+  {
+   "id": "wynyard",
+   "name": "Wynyard",
+   "lines": [
+    "T1",
+    "T2",
+    "T3",
+    "T4",
+    "T6",
+    "T7",
+    "T8",
+    "T9"
+   ],
+   "lat": -33.865945,
+   "lon": 151.206103,
+   "gtfs_stop_id": "200080",
+   "featured": true
+  },
+  {
+   "id": "yagoona",
+   "name": "Yagoona",
+   "lines": [
+    "T6"
+   ],
+   "lat": -33.907211,
+   "lon": 151.024599,
+   "gtfs_stop_id": "219910",
+   "featured": false
+  },
+  {
+   "id": "yennora",
+   "name": "Yennora",
+   "lines": [
+    "T2",
+    "T5"
+   ],
+   "lat": -33.864664,
+   "lon": 150.971053,
+   "gtfs_stop_id": "216120",
+   "featured": false
+  }
+ ]
+}

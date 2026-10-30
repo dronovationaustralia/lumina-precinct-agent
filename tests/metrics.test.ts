@@ -2,6 +2,7 @@
  * Metrics catalogue vs a hand check: the same figures computed directly from raw rows
  * (as an admin) must match what the governed path returns.
  */
+import { STATIONS } from '../src/lib/stations';
 import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 
 import { createTestDb, type Db } from '@/server/db/client';
@@ -65,6 +66,6 @@ describe('metrics catalogue (demo data)', () => {
     await expect(db.readOnly('select * from sales limit 1')).rejects.toThrow(/permission denied/);
     await expect(db.readOnly('select * from sale_station limit 1')).rejects.toThrow(/permission denied/);
     await expect(db.readOnly("insert into datasets values ('x','x','x',null,'x','2026-01-01','x',true)")).rejects.toThrow();
-    expect((await db.readOnly('select count(*)::int as n from v_stations'))[0]).toEqual({ n: 10 });
+    expect((await db.readOnly('select count(*)::int as n from v_stations'))[0]).toEqual({ n: STATIONS.length });
   });
 });

@@ -8,6 +8,8 @@
  * `readOnly()` is the only path the agent's tools use: a READ ONLY transaction as the
  * agent_ro role (or the DATABASE_URL_RO login), with a statement timeout.
  */
+import { createHash } from 'node:crypto';
+import { existsSync, readdirSync, readFileSync, rmSync, statSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 
@@ -29,10 +31,72 @@ export async function schemaSql(): Promise<string> {
   return readFile(path.join(process.cwd(), 'db', 'schema.sql'), 'utf8');
 }
 
+/**
+ * A fingerprint of everything the local database is built from: the schema, the demo seed and
+ * the derived data files. When it changes, the persisted database is rebuilt.
+ */
+function buildSignature(): string {
+  const h = createHash('sha256');
+  const root = process.cwd();
+  for (const f of ['db/schema.sql', 'src/server/db/seed-demo.ts', 'src/server/db/real-sales.ts', 'src/server/db/real-patronage.ts', 'src/lib/station-registry.json']) {
+    const p = path.join(root, f);
+    if (existsSync(p)) h.update(readFileSync(p));
+  }
+  const derived = path.join(root, 'data', 'derived');
+  if (existsSync(derived)) {
+    for (const f of readdirSync(derived).sort()) {
+      const st = statSync(path.join(derived, f));
+      h.update(`${f}:${st.size}:${st.mtimeMs}`);
+    }
+  }
+  return h.digest('hex').slice(0, 16);
+}
+
+function wantsRealData(opts: { realSales?: boolean }) {
+  return opts.realSales !== false && process.env.LUMINA_REAL_DATA !== 'off' && process.env.LUMINA_REAL_SALES !== 'off';
+}
+
 async function createPglite(opts: { realSales?: boolean } = {}): Promise<Db> {
   const { PGlite } = await import('@electric-sql/pglite');
   const { postgis } = await import('@electric-sql/pglite-postgis');
-  const pg = await PGlite.create({ extensions: { postgis } });
+  // With real data the build takes a minute or two (every sale against every station within 5 km),
+  // so it is kept on disk in data/pglite (gitignored) and reused until its inputs change.
+  const persist = wantsRealData(opts) && existsSync(path.join(process.cwd(), 'data', 'derived', 'sales_geocoded.csv'));
+  const dataDir = path.join(process.cwd(), 'data', 'pglite');
+  const signature = persist ? buildSignature() : '';
+  if (persist && existsSync(dataDir)) {
+    const pg = await PGlite.create({ dataDir, extensions: { postgis } });
+    const ok = await pg
+      .query<{ v: string }>("select value as v from app_meta where key = 'signature'")
+      .then((r) => r.rows[0]?.v === signature)
+      .catch(() => false);
+    if (ok) return wrap(pg);
+    await pg.close();
+    rmSync(dataDir, { recursive: true, force: true });
+  }
+  if (persist) console.log('[db] Building the local database from data/derived (one to two minutes, kept in data/pglite)...');
+  const pg = await PGlite.create({ ...(persist ? { dataDir } : {}), extensions: { postgis } });
+  const db = wrap(pg);
+  await db.exec(await schemaSql());
+  const { seedDemo } = await import('./seed-demo');
+  await seedDemo(db);
+  // Local development: use real data when the ingest has produced it
+  // (LUMINA_REAL_DATA=off, or the older LUMINA_REAL_SALES=off, to skip).
+  if (wantsRealData(opts)) {
+    const { loadRealSales, realSalesAvailable } = await import('./real-sales');
+    if (realSalesAvailable()) await loadRealSales(db, undefined, (m) => persist && console.log(`[db]${m}`));
+    const { loadRealPatronage, realPatronageAvailable } = await import('./real-patronage');
+    if (realPatronageAvailable()) await loadRealPatronage(db);
+  }
+  if (persist) {
+    await db.exec(`create table if not exists app_meta (key text primary key, value text not null);`);
+    await db.admin(`insert into app_meta (key, value) values ('signature', $1) on conflict (key) do update set value = excluded.value`, [signature]);
+    console.log('[db] Local database ready.');
+  }
+  return db;
+}
+
+function wrap(pg: import('@electric-sql/pglite').PGlite): Db {
   const db: Db = {
     kind: 'pglite',
     async admin<T extends Row>(sql: string, params: unknown[] = []) {
@@ -51,17 +115,6 @@ async function createPglite(opts: { realSales?: boolean } = {}): Promise<Db> {
       await pg.close();
     },
   };
-  await db.exec(await schemaSql());
-  const { seedDemo } = await import('./seed-demo');
-  await seedDemo(db);
-  // Local development: use real data when the ingest has produced it
-  // (LUMINA_REAL_DATA=off, or the older LUMINA_REAL_SALES=off, to skip).
-  if (opts.realSales !== false && process.env.LUMINA_REAL_DATA !== 'off' && process.env.LUMINA_REAL_SALES !== 'off') {
-    const { loadRealSales, realSalesAvailable } = await import('./real-sales');
-    if (realSalesAvailable()) await loadRealSales(db);
-    const { loadRealPatronage, realPatronageAvailable } = await import('./real-patronage');
-    if (realPatronageAvailable()) await loadRealPatronage(db);
-  }
   return db;
 }
 

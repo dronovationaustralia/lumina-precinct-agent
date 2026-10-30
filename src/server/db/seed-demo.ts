@@ -8,6 +8,8 @@
 import { RINGS } from '@/lib/contracts';
 import { STATIONS, type Station } from '@/lib/stations';
 
+import { refreshAggregates } from './aggregates';
+
 import type { Db } from './client';
 
 export const DEMO_AS_OF = '2026-09-30';
@@ -132,8 +134,10 @@ export async function seedDemo(db: Db): Promise<void> {
     );
   }
 
+  // Demo data covers the ten featured stations only; the rest of the registry has no demo figures.
+  const demoStations = STATIONS.filter((x) => PROFILES[x.id]);
   // Sales, inserted in batches of literal VALUES (generated numbers only, no user input).
-  for (const s of STATIONS) {
+  for (const s of demoStations) {
     const rows = salesFor(s);
     for (let i = 0; i < rows.length; i += 500) {
       const values = rows.slice(i, i + 500).map((x) =>
@@ -149,7 +153,7 @@ export async function seedDemo(db: Db): Promise<void> {
   `);
 
   // Patronage: seasonal monthly totals with a station-specific trend.
-  for (const s of STATIONS) {
+  for (const s of demoStations) {
     const p = PROFILES[s.id]!;
     const r = rng(`patronage:${s.id}`);
     const trend = 0.001 + (r() - 0.3) * 0.006;
@@ -170,7 +174,7 @@ export async function seedDemo(db: Db): Promise<void> {
     '0-800m': { building: 1.0, tree_canopy: 1.0, car_park: 1.0, construction_site: 1.0 },
     '800m-2km': { building: 0.85, tree_canopy: 1.3, car_park: 0.8, construction_site: 0.6 },
   };
-  for (const s of STATIONS) {
+  for (const s of demoStations) {
     const p = PROFILES[s.id]!;
     const r = rng(`landuse:${s.id}`);
     const base: Record<string, number> = { building: p.build, tree_canopy: p.canopy, car_park: p.carpark, construction_site: p.construct };
@@ -183,4 +187,5 @@ export async function seedDemo(db: Db): Promise<void> {
     }
     await db.exec(`insert into land_use_ring (dataset_id, station_id, ring_id, class, cover_pct, capture_date, method) values ${values.join(',')};`);
   }
+  await refreshAggregates(db);
 }

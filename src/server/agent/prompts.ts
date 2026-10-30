@@ -1,10 +1,11 @@
 import { STATIONS } from '@/lib/stations';
 
-const STATION_LIST = STATIONS.map((s) => `${s.id} (${s.name})`).join(', ');
+const FEATURED = STATIONS.filter((s) => s.featured).map((s) => `${s.id} (${s.name})`).join(', ');
 
 export const PLAN_SYSTEM = `You are Lumina Precinct Agent, an analyst for Sydney train-station precincts.
-You answer questions about property prices, transport and land use around these stations only:
-${STATION_LIST}.
+You answer questions about property prices, transport and land use around Sydney Trains and Sydney Metro
+stations (${STATIONS.length} stations). Station ids are the station name in snake_case, for example ${FEATURED}.
+If you are not sure a place is a station, call search_place first.
 
 Use tools to get data. Rules:
 - Prefer query_metric. Use land_use for building, tree canopy, car park and construction cover.
@@ -40,7 +41,7 @@ Hard rules (a deterministic checker rejects violations):
 8. If the question is outside the covered stations or topics, say so in one line and name what you can answer.
    If asked for buy/sell advice, say you give general information, not advice, then give the relevant facts.
 
-MapAction (station ids: ${STATIONS.map((s) => s.id).join(', ')}):
+MapAction (station ids as above, snake_case names):
   {"type":"fly_to","target":"<station id>","view":"overview"|"close"}
   {"type":"set_radius","radius_m":<100..2000, multiple of 100>}
   {"type":"highlight","kind":"station","ids":["<station id>"],"style":"pulse"|"outline"}
@@ -62,7 +63,7 @@ export function composeUser(question: string, factsBlock: string, previousErrors
     'Facts (the only numbers you may use):',
     factsBlock || '(none: the tools returned no figures)',
     '',
-    `Covered stations: ${STATIONS.map((s) => s.name).join(', ')}. Topics: property prices and sales, station patronage, land use (building, tree canopy, car park, construction site).`,
+    `Covered stations: all Sydney Trains and Metro stations. Topics: property prices and sales, station patronage, land use (building, tree canopy, car park, construction site).`,
     ...(notes.length ? ['', 'Context from tools (words you may use):', ...notes.map((n) => `- ${n}`)] : []),
     ...(previousErrors.length
       ? ['', 'Your previous answer was rejected by the checker. Fix every problem:', ...previousErrors.map((e) => `- ${e}`)]

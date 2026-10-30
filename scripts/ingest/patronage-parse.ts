@@ -5,8 +5,8 @@
  * Station_Type (Train, Metro, Metro Shared, Light rail), Entry_Exit (Entry | Exit), Trip
  * (a count, or "Less than 50").
  *
- * Only the station's own train (or shared train/metro) row is kept. Nearby light rail stops and
- * separate metro stations (Victoria Cross, Crows Nest, Barangaroo) are not added in.
+ * Train, Metro and shared train/metro rows are kept and summed per station (Martin Place, Central and
+ * others report train and metro separately). Light rail stops are not added in.
  *
  * Licence: CC BY 4.0, Transport for NSW.
  */
@@ -17,9 +17,9 @@ import { readCsv } from './csv';
 export type PatronageRow = { station_id: string; month: string; entries: number; exits: number };
 
 const norm = (s: string) => s.toUpperCase().replace(/\s+/g, ' ').trim();
-const KEEP_TYPES = new Set(['TRAIN', 'METRO SHARED']);
+const KEEP_TYPES = new Set(['TRAIN', 'METRO', 'METRO SHARED']);
 
-/** "Chatswood  Station" -> chatswood. Light rail and metro-only rows are ignored. */
+/** "Chatswood  Station" -> chatswood. Light rail rows and unknown stations are ignored. */
 export function stationIdFor(name: string, type: string): string | null {
   if (!KEEP_TYPES.has(norm(type))) return null;
   const n = norm(name).replace(/ STATION$/, '');

@@ -153,6 +153,31 @@ for (const [id, s] of stations) {
   });
 }
 
+// 7. Station registry: every Sydney Trains (T1 to T9) and Metro station, one entry per name.
+// Committed as src/lib/station-registry.json; the app, the agent and the ingest scripts read it.
+const FEATURED = new Set(['wynyard', 'milsons_point', 'north_sydney', 'st_leonards', 'chatswood', 'westmead', 'parramatta', 'harris_park', 'granville', 'auburn']);
+const registry = new Map<string, { id: string; name: string; lines: string[]; lat: number; lon: number; gtfs_stop_id: string; featured: boolean }>();
+for (const [id, s] of [...stations].sort((a, b) => a[0].localeCompare(b[0]))) {
+  const lines = [...s.lines].filter((k) => /^(T\d|M\d)$/.test(k)).sort();
+  if (!lines.length) continue;
+  const name = s.name.replace(/ Station$/, '').replace(/,.*$/, '').trim();
+  const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+  const prev = registry.get(slug);
+  if (prev) {
+    // Same station listed twice (e.g. separate metro and train parents): merge lines, keep the train location.
+    prev.lines = [...new Set([...prev.lines, ...lines])].sort();
+    continue;
+  }
+  registry.set(slug, { id: slug, name, lines, lat: Number(s.lat.toFixed(6)), lon: Number(s.lon.toFixed(6)), gtfs_stop_id: id, featured: FEATURED.has(slug) });
+}
+const missingFeatured = [...FEATURED].filter((f) => !registry.has(f));
+if (missingFeatured.length) throw new Error(`Featured stations missing from GTFS: ${missingFeatured.join(', ')}`);
+writeFileSync(
+  path.join('src', 'lib', 'station-registry.json'),
+  JSON.stringify({ source: `Transport for NSW GTFS (${zipName}), CC BY 4.0`, stations: [...registry.values()].sort((a, b) => a.name.localeCompare(b.name)) }, null, 1) + '\n',
+);
+console.log(`${registry.size} train and metro stations -> src/lib/station-registry.json`);
+
 mkdirSync(path.join('public', 'data'), { recursive: true });
 const out = JSON.stringify({
   type: 'FeatureCollection',
