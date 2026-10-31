@@ -27,6 +27,9 @@ repositories (`LuminaSpatialInsightsXR`, `LuminaSpatial`, `extended-tableau-mcp`
   for a follow-up (their cover stays labelled demo until then).
 
 ### Changed
+- Custom domain support: with `AUTH_URL` on a custom domain, the default azurewebsites.net
+  address forwards there (one address for sign-in cookies and the Microsoft return address);
+  Bicep takes `customDomain`.
 - Microsoft sign-in can be limited to one organisation: with `AUTH_MICROSOFT_TENANT` set to a
   tenant ID, accounts from other tenants are refused with a clear message.
 - Sign-in: the no-account option is now "Try the demo (no account)" and its user shows as "Demo user".

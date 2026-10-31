@@ -152,6 +152,24 @@ In the Entra app registration, add the redirect URI
 `https://<web-app-name>.azurewebsites.net/api/auth/callback/microsoft` (platform: Web).
 Judges use "Try the demo (no account)", which needs no account; set `AUTH_DEMO_DISABLED=1` after judging.
 
+## 3c. Custom domain (optional)
+
+Example: `lumina.dronovation.com.au`. In your DNS add a CNAME `lumina` → `<webAppName>.azurewebsites.net`
+and a TXT `asuid.lumina` with the value of
+`az webapp show -g $rg -n <webAppName> --query customDomainVerificationId -o tsv`. Then:
+
+```powershell
+$domain = "lumina.dronovation.com.au"
+az webapp config hostname add -g $rg --webapp-name <webAppName> --hostname $domain
+$tp = az webapp config ssl create -g $rg -n <webAppName> --hostname $domain --query thumbprint -o tsv
+az webapp config ssl bind -g $rg -n <webAppName> --certificate-thumbprint $tp --ssl-type SNI
+az webapp config appsettings set -g $rg -n <webAppName> --settings AUTH_URL=https://$domain -o none
+```
+
+The certificate is a free App Service managed certificate (renewed automatically). With `AUTH_URL`
+on the custom domain, visits to the `azurewebsites.net` address are forwarded there. Pass
+`customDomain=$domain` when you re-run the Bicep deployment so it keeps that `AUTH_URL`.
+
 ## 4. Deploy
 
 Every push to `main` now deploys to the hackathon app while `AZURE_DEPLOY_ON_PUSH` is `true`. To

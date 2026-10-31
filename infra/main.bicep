@@ -42,6 +42,9 @@ param modelApiKey string
 @description('Signs session cookies: 32+ random characters (different from your local one).')
 param authSecret string
 
+@description('Optional: custom domain for the app (e.g. lumina.example.com). Sets AUTH_URL; bind the domain and certificate with the CLI (docs/deploy-azure.md).')
+param customDomain string = ''
+
 @description('Optional: Microsoft Entra app (client) ID for "Sign in with Microsoft".')
 param authMicrosoftClientId string = ''
 
@@ -176,7 +179,7 @@ var appSettings = [
   { name: 'MODEL_API_KEY', value: modelApiKey }
   { name: 'MUSE_SPARK_MODEL', value: museSparkModel }
   { name: 'AUTH_SECRET', value: authSecret }
-  { name: 'AUTH_URL', value: 'https://${webName}.azurewebsites.net' }
+  { name: 'AUTH_URL', value: empty(customDomain) ? 'https://${webName}.azurewebsites.net' : 'https://${customDomain}' }
   { name: 'AUTH_MICROSOFT_CLIENT_ID', value: authMicrosoftClientId }
   { name: 'AUTH_MICROSOFT_CLIENT_SECRET', value: authMicrosoftClientSecret }
   { name: 'DATABASE_URL_RO', value: agentDbUrl }
