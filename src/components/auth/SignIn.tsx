@@ -14,6 +14,7 @@ const ERRORS: Record<string, string> = {
   state_mismatch: 'The sign-in could not be verified. Please try again.',
   token_exchange_failed: 'Microsoft did not confirm the sign-in. Please try again.',
   invalid_token: 'The sign-in could not be verified. Please try again.',
+  wrong_tenant: 'This Microsoft account is not part of the organisation that runs Lumina. Use the demo, or ask for access.',
   bad_issuer: 'The sign-in could not be verified. Please try again.',
   nonce_mismatch: 'The sign-in could not be verified. Please try again.',
 };

@@ -142,6 +142,7 @@ the Bicep deployment. To change them later, open the Web App → Settings → En
 | `AUTH_SECRET` | 32+ random characters (different from your local one) |
 | `AUTH_MICROSOFT_CLIENT_ID` | Application (client) ID of the Entra app registration |
 | `AUTH_MICROSOFT_CLIENT_SECRET` | Client secret value |
+| `AUTH_MICROSOFT_TENANT` | Optional: your tenant ID, to accept only accounts from your organisation |
 | `LUMINA_API_KEYS` | Optional, comma-separated 24+ character keys for the Quest app |
 
 Setting these with `az webapp config appsettings set` works, but a later Bicep deployment without

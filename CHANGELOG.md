@@ -24,6 +24,8 @@ repositories (`LuminaSpatialInsightsXR`, `LuminaSpatial`, `extended-tableau-mcp`
   for a follow-up (their cover stays labelled demo until then).
 
 ### Changed
+- Microsoft sign-in can be limited to one organisation: with `AUTH_MICROSOFT_TENANT` set to a
+  tenant ID, accounts from other tenants are refused with a clear message.
 - Sign-in: the no-account option is now "Try the demo (no account)" and its user shows as "Demo user".
 - Azure: the Bicep template now sets the sign-in settings (`AUTH_SECRET`, `AUTH_URL`, optional
   Microsoft app), and no longer sets the unused Baseten key. `db:setup` gains `--load-cover` and
