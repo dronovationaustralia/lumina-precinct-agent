@@ -46,5 +46,8 @@ Tell Claude the branch name to review it before merging.
 | 8 | [Station screener: rank and colour all 185 stations](08-station-screener.md) | Impact, Demo | Medium |
 | 9 | [Opportunity sites found by SAM 3.1](09-sam-site-finder.md) | Use of Meta AI tooling, Impact, Demo | Large |
 | 10 | [Corridor tour: guided, verified briefing](10-corridor-tour.md) | Demo | Medium |
+| 11 | [Rents and gross rental yield (NSW rental bonds)](11-rental-yield.md) | Impact | Medium (needs the bond files) |
+| 12 | [Public schools within walking distance](12-schools.md) | Impact | Medium (needs the schools file) |
+| 13 | [Share links with rich previews](13-share-links.md) | Most Viral on X, Demo | Medium |
 
 Run 1 before 2. Each finished task: note it in the write-up as "built with Muse Code".
