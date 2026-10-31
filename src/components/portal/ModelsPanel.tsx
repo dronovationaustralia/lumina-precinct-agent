@@ -13,8 +13,17 @@ function sparkStatus(health: Health | null, checking: boolean): { text: string; 
   return { text: 'Error: see the server log', tone: 'warn' };
 }
 
+/** Status of a Meta feature (voice, image) that needs a Meta key on the server. */
+function featureStatus(health: Health | null, checking: boolean, liveText: string): { text: string; tone: Tone } {
+  if (!health) return checking ? { text: 'Checking…', tone: 'muted' } : { text: 'Unknown: the server did not answer', tone: 'warn' };
+  if (health.provider === 'meta') return { text: liveText, tone: 'ok' };
+  return { text: 'Offline: no API key set', tone: 'warn' };
+}
+
 export function ModelsPanel({ health, checking, onClose }: { health: Health | null; checking: boolean; onClose: () => void }) {
   const spark = sparkStatus(health, checking);
+  const voice = featureStatus(health, checking, 'Live: microphone in the question box');
+  const image = featureStatus(health, checking, 'Live: “Brief me” on the precinct snapshot');
   const sam = health?.datasets?.find((d) => d.id === 'sam_land_cover');
   const rows: { name: string; id: string; role: string; where: string; status: { text: string; tone: Tone } }[] = [
     {
@@ -29,8 +38,8 @@ export function ModelsPanel({ health, checking, onClose }: { health: Health | nu
       where: 'Aerial land cover in the land-use breakdown and land-use answers. Run offline with npm run sam:batch.',
       status: !health ? { text: checking ? 'Checking…' : 'Unknown', tone: 'muted' } : sam ? { text: 'Live: measured cover loaded', tone: 'ok' } : { text: 'Not run yet: demo cover shown', tone: 'warn' },
     },
-    { name: 'Muse Voice Transcribe', id: 'muse-voice-transcribe-1.0', role: 'Ask by voice, biased to station and street names.', where: 'Microphone in the question box.', status: { text: 'Planned: not built yet', tone: 'muted' } },
-    { name: 'Muse Image', id: 'muse-image-1.0', role: 'A shareable precinct briefing card, built only from verified figures and labelled AI-generated.', where: '"Brief me" on a precinct.', status: { text: 'Planned: not built yet', tone: 'muted' } },
+    { name: 'Muse Voice Transcribe', id: 'muse-voice-transcribe-1.0', role: 'Ask by voice, biased to station and street names.', where: 'Microphone in the question box.', status: voice },
+    { name: 'Muse Image', id: 'muse-image-1.0', role: 'A shareable precinct briefing card, built only from verified figures and labelled AI-generated.', where: '“Brief me” on the precinct snapshot.', status: image },
     { name: 'Muse Code', id: 'coding agent', role: 'Used to build parts of Lumina itself; those changes are marked in the changelog and commits.', where: 'Repository history, not inside the app.', status: { text: 'Development tool', tone: 'ok' } },
   ];
   return (

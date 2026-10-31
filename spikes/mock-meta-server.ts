@@ -23,6 +23,9 @@ const SAM_TEXT =
   ',1<|box;x1=155;y1=228;x2=202;y2=254;w=1024;h=1024|>' +
   '<|mask;x=0;y=0;data=27,48,~!!!!J!0c[q=Pj_zs=*4C4(/./x#:/`S_GnD`=o3?X{emCgO$y@|>\n';
 
+// A 1x1 transparent PNG, standing in for a Muse Image picture.
+const ONE_PX_PNG = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+
 async function body(req: IncomingMessage): Promise<Buffer> {
   const chunks: Buffer[] = [];
   for await (const c of req) chunks.push(c as Buffer);
@@ -133,6 +136,13 @@ async function handle(req: IncomingMessage, res: ServerResponse) {
       audioDurationMs: 4200,
       turns: [{ text: 'mock turn', startMs: 0, endMs: 4200 }],
     });
+  }
+
+  if (req.method === 'POST' && url.pathname === '/v1/images/generations') {
+    if (!parsed || typeof parsed.model !== 'string' || typeof parsed.prompt !== 'string') {
+      return json(res, 400, { error: { message: 'body needs model and prompt' } });
+    }
+    return json(res, 200, { created: Math.floor(Date.now() / 1000), data: [{ b64_json: ONE_PX_PNG }] });
   }
 
   json(res, 404, { error: { message: `mock has no route ${req.method} ${url.pathname}` } });

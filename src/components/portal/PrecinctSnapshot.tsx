@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react';
 
 import { fetchMetrics, type MetricDto, type StationDto } from './api';
+import { BriefingCard } from './BriefingCard';
 import { LineBadges } from './LineBadges';
 
 type Persona = 'developer' | 'lender' | 'planner';
@@ -18,6 +19,7 @@ const ORDER: Record<Persona, string[]> = {
 export function PrecinctSnapshot({ station, persona, onAsk }: { station: StationDto; persona: Persona; onAsk: (q: string) => void }) {
   const [data, setData] = useState<{ id: string; unit: MetricDto[]; house: MetricDto[]; station: MetricDto[] } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [briefOpen, setBriefOpen] = useState(false);
 
   useEffect(() => {
     let live = true;
@@ -53,7 +55,13 @@ export function PrecinctSnapshot({ station, persona, onAsk }: { station: Station
           <p className="kicker">Precinct snapshot</p>
           <h2>{n}</h2>
         </div>
-        <LineBadges lines={station.lines} />
+        <span className="snap-side">
+          <LineBadges lines={station.lines} />
+          <button type="button" className="brief-button" onClick={() => setBriefOpen(true)}>
+            <span className="meta-dot" aria-hidden="true" />
+            Brief me
+          </button>
+        </span>
       </header>
       {error && <p className="turn-error">{error}</p>}
       <ul className="snap-tiles">
@@ -71,6 +79,7 @@ export function PrecinctSnapshot({ station, persona, onAsk }: { station: Station
         })}
       </ul>
       <p className="snap-foot">NSW Valuer General sales{asOf ? ` to ${asOf}` : ''}; Transport for NSW Opal entries and exits. Click a figure to ask about it.</p>
+      {briefOpen && <BriefingCard station={station} onClose={() => setBriefOpen(false)} />}
     </section>
   );
 }

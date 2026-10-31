@@ -99,6 +99,25 @@ export async function fetchMetrics(station: string, propertyType?: 'unit' | 'hou
 }
 
 export type User = { sub: string; name: string; email?: string; provider: 'microsoft' | 'demo'; persona: 'developer' | 'lender' | 'planner' };
+
+export type BriefingFigureDto = {
+  label: string; display: string; value: number | null; unit: string;
+  source: string; dataset_id: string; as_of: string; demo?: boolean;
+};
+
+export type BriefingDto = {
+  station: string; name: string;
+  image: string | null; image_model: string | null; image_ms: number | null;
+  cached: boolean; figures: BriefingFigureDto[]; generated_at: string;
+  error?: { code: string; message: string };
+};
+
+/** GET /api/v1/briefing/{station}. A 503 still carries the figures when the image fails. */
+export async function fetchBriefing(station: string): Promise<BriefingDto> {
+  const res = await fetch(`/api/v1/briefing/${station}`);
+  if (res.status !== 200 && res.status !== 503) throw new Error(`Briefing failed to load (HTTP ${res.status})`);
+  return res.json();
+}
 export async function fetchUser(): Promise<User | null> {
   const res = await fetch('/api/auth/session');
   return res.ok ? (await res.json()).user : null;

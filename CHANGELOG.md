@@ -15,6 +15,7 @@ repositories (`LuminaSpatialInsightsXR`, `LuminaSpatial`, `extended-tableau-mcp`
   can never disagree; the vegetation threshold is pinned by a test (built with Muse Code).
 - Voice questions: /api/v1/transcribe with Muse Voice Transcribe (built with Muse Code).
 - Ask by voice: microphone in the question box (Muse Voice Transcribe; built with Muse Code).
+- Brief me: precinct briefing card with a Muse Image illustration and verified figures (built with Muse Code).
 
 ### Results
 - SAM tuning on Chatswood: re-running with the current code (512 px start tiles, quarter

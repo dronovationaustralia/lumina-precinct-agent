@@ -281,6 +281,26 @@ body {
 @media (prefers-reduced-motion: reduce) { .rec-dot { animation: none; } }
 .mic-error { font-size: 12px; color: #b42318; max-width: 200px; }
 
+/* Brief me button in the snapshot header */
+.snap-side { display: inline-flex; align-items: flex-start; gap: 8px; }
+.brief-button { display: inline-flex; align-items: center; height: 30px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--rule); background: var(--raised); color: var(--ink); font: inherit; font-size: 13px; font-weight: 650; cursor: pointer; white-space: nowrap; }
+.brief-button:hover { border-color: var(--harbour); }
+
+/* Briefing card drawer */
+.brief-drawer { width: min(560px, 100%); }
+.brief-loading { display: flex; align-items: center; gap: 8px; color: var(--ink-muted); font-size: 14px; margin: 24px 0; }
+.brief-figure { margin: 14px 0 10px; }
+.brief-figure img { display: block; width: 100%; border-radius: 10px; border: 1px solid var(--rule-soft); }
+.brief-figure figcaption { margin-top: 6px; font-size: 12px; color: var(--ink-faint); }
+.brief-lines { margin: 10px 0 4px; }
+.brief-tiles { list-style: none; margin: 10px 0 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.brief-tile { display: grid; gap: 2px; align-content: start; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--rule-soft); background: var(--raised); }
+.brief-value { font-size: 19px; font-weight: 750; letter-spacing: -0.01em; }
+.brief-label { font-size: 12.5px; color: var(--ink-muted); }
+.brief-source { font-size: 11.5px; color: var(--ink-faint); }
+.brief-foot { margin: 12px 0 0; font-size: 12.5px; color: var(--ink-muted); }
+.brief-actions { display: flex; gap: 8px; margin-top: 14px; }
+
 /* Map overlays */
 .roundel { display: flex; align-items: center; gap: 6px; padding: 0; border: 0; background: transparent; cursor: pointer; font: inherit; color: var(--ink); text-align: left; z-index: 2; }
 .roundel-dot { flex: none; width: 22px; height: 22px; border-radius: 50%; background: #fff; border: 5px solid var(--harbour); box-shadow: 0 0 0 2px #fff, 0 0 0 8px rgb(31 95 173 / 0.22); }
