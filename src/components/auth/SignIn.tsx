@@ -95,7 +95,7 @@ export function SignIn() {
           )}
           {providers?.demo !== false && (
             <button type="button" className={`btn ${providers?.microsoft ? 'btn-secondary' : 'btn-primary'}`} onClick={demo} disabled={busy}>
-              {busy ? 'Opening…' : 'Continue as judge (demo)'}
+              {busy ? 'Opening…' : 'Try the demo (no account)'}
             </button>
           )}
         </div>

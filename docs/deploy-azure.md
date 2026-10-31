@@ -40,7 +40,7 @@ prompt for it. The CLI prompts for the rest:
   `-join ((48..57)+(65..90)+(97..122) | Get-Random -Count 40 | % {[char]$_})`.
 
 Microsoft sign-in is optional: add `-p authMicrosoftClientId=<id> authMicrosoftClientSecret=<secret>`
-(see 3b). Without it, the sign-in page offers only "Continue as judge (demo)".
+(see 3b). Without it, the sign-in page offers only "Try the demo (no account)".
 
 Keep both passwords in your password manager. Then read the outputs:
 
@@ -144,9 +144,12 @@ the Bicep deployment. To change them later, open the Web App → Settings → En
 | `AUTH_MICROSOFT_CLIENT_SECRET` | Client secret value |
 | `LUMINA_API_KEYS` | Optional, comma-separated 24+ character keys for the Quest app |
 
+Setting these with `az webapp config appsettings set` works, but a later Bicep deployment without
+`authMicrosoftClientId`/`authMicrosoftClientSecret` clears them; pass both when you re-run it.
+
 In the Entra app registration, add the redirect URI
 `https://<web-app-name>.azurewebsites.net/api/auth/callback/microsoft` (platform: Web).
-Judges use "Continue as judge (demo)", which needs no account; set `AUTH_DEMO_DISABLED=1` after judging.
+Judges use "Try the demo (no account)", which needs no account; set `AUTH_DEMO_DISABLED=1` after judging.
 
 ## 4. Deploy
 

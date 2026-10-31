@@ -24,6 +24,7 @@ repositories (`LuminaSpatialInsightsXR`, `LuminaSpatial`, `extended-tableau-mcp`
   for a follow-up (their cover stays labelled demo until then).
 
 ### Changed
+- Sign-in: the no-account option is now "Try the demo (no account)" and its user shows as "Demo user".
 - Azure: the Bicep template now sets the sign-in settings (`AUTH_SECRET`, `AUTH_URL`, optional
   Microsoft app), and no longer sets the unused Baseten key. `db:setup` gains `--load-cover` and
   refreshes the aggregates after any load.
@@ -93,7 +94,7 @@ repositories (`LuminaSpatialInsightsXR`, `LuminaSpatial`, `extended-tableau-mcp`
 ### Added
 - Sign-in required for the portal and API (`src/proxy.ts`). Microsoft sign-in (Entra ID, any work
   or personal account; authorization code flow with PKCE, ID token checked against Microsoft's keys)
-  and a one-click "Continue as judge (demo)" session. Sessions are signed HTTP-only cookies. Machine
+  and a one-click "Try the demo (no account)" session. Sessions are signed HTTP-only cookies. Machine
   clients can use `LUMINA_API_KEYS`. Sign-in page asks the user's work type.
 - Work types (development, lending, planning) shape the starter questions, the precinct snapshot
   order and the agent's emphasis (`persona` in `AskRequest`; never the figures). Changeable in the

@@ -1,6 +1,6 @@
 Add an end-to-end browser smoke test for Lumina Precinct Agent using Playwright.
 
-Context: read `AGENTS.md`. Sign-in: `/signin` has a "Continue as judge (demo)" button; the workspace has a station search (`.station-search input`), a question box (`#q`), and each answer card shows "How this answer was made" (`.made`). Without `MODEL_API_KEY` the offline planner answers, which is fine for this test.
+Context: read `AGENTS.md`. Sign-in: `/signin` has a "Try the demo (no account)" button; the workspace has a station search (`.station-search input`), a question box (`#q`), and each answer card shows "How this answer was made" (`.made`). Without `MODEL_API_KEY` the offline planner answers, which is fine for this test.
 
 Build:
 1. Add `@playwright/test` as a dev dependency and `playwright.config.ts` that starts `npm run dev` on port 3100 (`webServer`), Chromium only, one worker, 120 s timeout.
