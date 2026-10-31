@@ -20,6 +20,7 @@ import { LandUsePanel } from './LandUsePanel';
 import { LayerPanel } from './LayerPanel';
 import { LineBadges } from './LineBadges';
 import { MapView, type HexMeta, type LayerState, type MapState } from './MapView';
+import { MicButton } from './MicButton';
 import { ModelsPanel, type Health } from './ModelsPanel';
 import { PrecinctSnapshot } from './PrecinctSnapshot';
 import { StationSearch } from './StationSearch';
@@ -312,7 +313,10 @@ export function Portal() {
             />
             <div className="composer-foot">
               <span className="composer-hint"><span className="meta-dot" aria-hidden="true" />{offline ? 'Offline planner' : 'Muse Spark'} · figures checked before display</span>
-              <button type="submit" className="ask-button" disabled={busy || !draft.trim()}>{busy ? 'Working…' : 'Ask'}</button>
+              <span className="composer-actions">
+                <MicButton onTranscript={setDraft} />
+                <button type="submit" className="ask-button" disabled={busy || !draft.trim()}>{busy ? 'Working…' : 'Ask'}</button>
+              </span>
             </div>
           </div>
         </form>

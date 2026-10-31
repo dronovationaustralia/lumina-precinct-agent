@@ -270,6 +270,16 @@ body {
 .composer-hint { display: inline-flex; align-items: center; font-size: 12px; color: var(--ink-muted); }
 .ask-button { height: 34px; min-width: 76px; padding: 0 16px; border: 0; border-radius: 8px; background: var(--harbour); color: #fff; font: inherit; font-weight: 650; cursor: pointer; }
 .ask-button:disabled { opacity: 0.45; cursor: default; }
+.composer-actions { display: inline-flex; align-items: center; gap: 8px; }
+.mic-wrap { display: inline-flex; align-items: center; gap: 8px; }
+.mic-button { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--rule); background: var(--raised); color: var(--ink-muted); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.mic-button:hover { color: var(--ink); border-color: var(--harbour); }
+.mic-button:disabled { opacity: 0.65; cursor: default; }
+.mic-button.is-recording { color: var(--ink); border-color: #d11f2f; }
+.rec-dot { width: 8px; height: 8px; border-radius: 50%; background: #d11f2f; flex: none; animation: rec-pulse 1.2s ease-in-out infinite; }
+@keyframes rec-pulse { 50% { opacity: 0.3; } }
+@media (prefers-reduced-motion: reduce) { .rec-dot { animation: none; } }
+.mic-error { font-size: 12px; color: #b42318; max-width: 200px; }
 
 /* Map overlays */
 .roundel { display: flex; align-items: center; gap: 6px; padding: 0; border: 0; background: transparent; cursor: pointer; font: inherit; color: var(--ink); text-align: left; z-index: 2; }
