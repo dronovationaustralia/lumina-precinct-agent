@@ -1,0 +1,12 @@
+Add a station screener to Lumina Precinct Agent: rank all 185 stations by a governed metric, colour the station dots on the map by it, and let the agent answer screening questions such as "Which stations under $900k unit median had the strongest unit price growth?".
+
+Context: read `AGENTS.md`. Metrics: `src/server/metrics/catalogue.ts` and `computeMetric` / `resolveMetricArgs` / `metricFact` in `src/server/metrics/query.ts`. Agent tools: `src/server/tools/index.ts` (facts go through `ctx.facts`, so the verifier can check them). Map: `src/components/portal/MapView.tsx` (station circles and the `highlight` list), layers panel `LayerPanel.tsx`, map guide `MapGuide.tsx`. Existing map actions are in `src/lib/contracts.ts` (`MapAction` must not change: the Quest app shares it).
+
+Build:
+1. `src/server/screener.ts`: `rankStations(db, { metric, property_type, ring, filters?: { max_median_price?, min_sales? }, order: 'desc'|'asc', limit })` computing the metric for every station with the existing governed queries (batch it: one query per metric over all stations, not 185 round trips; add a governed view if needed). Suppressed values are excluded, never estimated. Returns rows with station id, name, value, display, n_sales, and as-of.
+2. Agent tool `rank_stations` (zod args, description saying it screens all 185 stations). Each returned row becomes a fact via `ctx.facts` (label like "Unit price change, 12 months, Parramatta, within 800 m"). It also returns a `highlight` map action with the top station ids (max 20) and `style: 'pulse'`. Add two eval questions to `evals/` that use it.
+3. `GET /api/v1/layers/station-metric?metric=&property_type=&ring=`: every station's value for the map (same auth and rate limit as other `/api/v1` routes).
+4. Map: a "Colour stations by" select in the Layers panel (Off, Unit median, Unit price change 12 m, House median, Station trips, Trips change). When on, station dots are coloured on a 5-step scale with a legend (same palette approach as the price hexagons) and hover shows the value; stations with no value are grey. When an answer contains a `rank_stations` result, switch the colouring to that metric automatically. Explain it in `MapGuide.tsx`.
+5. Tests: `tests/screener.test.ts` on the seeded PGlite DB: ordering, filters, suppressed values excluded, facts match the governed numbers.
+
+Do not weaken the verifier or the SQL guard. Run `npm test`, `npm run typecheck`, `npm run lint`. CHANGELOG (Sydney date): "Station screener: rank and colour all 185 stations by a governed metric (built with Muse Code)."
