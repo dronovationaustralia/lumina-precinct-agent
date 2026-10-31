@@ -49,6 +49,8 @@ jobs:
       - run: npm test
       - run: npm run build
       - run: npm run package:azure
+      # OneDeploy with clean: true needs a zip file, not a folder.
+      - run: cd .next/standalone && zip -qry ../../app.zip .
 
       - name: Check the target app is configured
         run: test -n "$APP_NAME" || (echo "Set the AZURE_WEBAPP_NAME (or AZURE_QUEST_WEBAPP_NAME) repository variable" && exit 1)
@@ -63,7 +65,7 @@ jobs:
         uses: azure/webapps-deploy@v3
         with:
           app-name: ${{ env.APP_NAME }}
-          package: .next/standalone
+          package: app.zip
           # Replace, don't overlay: files left by earlier builds (old pre-rendered pages,
           # Next.js caches, old chunks) were still being served after a deploy.
           type: zip
