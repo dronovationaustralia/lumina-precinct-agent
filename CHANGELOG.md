@@ -13,6 +13,7 @@ repositories (`LuminaSpatialInsightsXR`, `LuminaSpatial`, `extended-tableau-mcp`
   10 building objects or tree cover under a third of the vegetation share. Class prompts
   and tiling moved to the shared `scripts/sam/concepts.ts` so the batch and the check
   can never disagree; the vegetation threshold is pinned by a test (built with Muse Code).
+- Voice questions: /api/v1/transcribe with Muse Voice Transcribe (built with Muse Code).
 
 ### Results
 - SAM tuning on Chatswood: re-running with the current code (512 px start tiles, quarter

@@ -123,7 +123,9 @@ async function handle(req: IncomingMessage, res: ServerResponse) {
     const audio = form.get('audio');
     if (!(request instanceof Blob) || !(audio instanceof Blob)) return json(res, 400, { error: { message: 'need multipart parts "request" (JSON) and "audio"' } });
     const params = JSON.parse(await request.text());
-    if (params.audioEncoding !== 'WAV' || !params.model) return json(res, 400, { error: { message: 'request part needs model and audioEncoding' } });
+    if (!['WAV', 'OGG', 'WEBM', 'MP4'].includes(params.audioEncoding) || !params.model) {
+      return json(res, 400, { error: { message: 'request part needs model and an audioEncoding of WAV, OGG, WEBM or MP4' } });
+    }
     const kw = Array.isArray(params.keywords);
     return json(res, 200, {
       sessionId: 'mock-session',
