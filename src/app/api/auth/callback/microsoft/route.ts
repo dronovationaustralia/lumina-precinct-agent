@@ -26,7 +26,7 @@ export async function GET(request: Request) {
   }
   if (url.searchParams.get('state') !== pending.state) return fail(request, 'state_mismatch');
 
-  const tenant = process.env.AUTH_MICROSOFT_TENANT ?? 'common';
+  const tenant = process.env.AUTH_MICROSOFT_TENANT?.trim() || 'common';
   const tokenRes = await fetch(`https://login.microsoftonline.com/${tenant}/oauth2/v2.0/token`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -50,7 +50,7 @@ export async function GET(request: Request) {
     if (payload.iss !== `https://login.microsoftonline.com/${tid}/v2.0`) return fail(request, 'bad_issuer');
     // Single-tenant deployments (AUTH_MICROSOFT_TENANT set to a tenant ID) accept only that tenant,
     // whatever the app registration allows; Entra "assignment required" then limits who in it.
-    const only = process.env.AUTH_MICROSOFT_TENANT;
+    const only = process.env.AUTH_MICROSOFT_TENANT?.trim();
     if (only && /^[0-9a-f-]{36}$/i.test(only) && tid.toLowerCase() !== only.toLowerCase()) return fail(request, 'wrong_tenant');
     if (payload.nonce !== pending.nonce) return fail(request, 'nonce_mismatch');
     const name = typeof payload.name === 'string' ? payload.name : 'Signed-in user';

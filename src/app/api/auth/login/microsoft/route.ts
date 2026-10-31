@@ -17,7 +17,7 @@ export function GET(request: Request) {
   const verifier = b64url(randomBytes(32));
   const state = b64url(randomBytes(16));
   const nonce = b64url(randomBytes(16));
-  const tenant = process.env.AUTH_MICROSOFT_TENANT ?? 'common';
+  const tenant = process.env.AUTH_MICROSOFT_TENANT?.trim() || 'common';
   const auth = new URL(`https://login.microsoftonline.com/${tenant}/oauth2/v2.0/authorize`);
   auth.search = new URLSearchParams({
     client_id: process.env.AUTH_MICROSOFT_CLIENT_ID!,
