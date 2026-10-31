@@ -41,6 +41,7 @@ Tell Claude the branch name to review it before merging.
 | 3 | [Eval set: 10 more questions](03-eval-questions.md) | Technical depth | Small |
 | 4 | [Browser smoke test](04-smoke-test.md) | Technical depth | Small |
 | 5 | [README: how each Meta model is used](05-readme-meta.md) | Use of Meta AI tooling, Impact | Small |
+| 7 | [Brief me: Muse Image briefing card](07-muse-image-briefing.md) | Use of Meta AI tooling, Demo, Best Creative Build | Medium |
 | 6 | [Tune the SAM 3.1 land-cover batch](06-sam-tuning.md) | Use of Meta AI tooling, Technical depth | Medium (runs SAM) |
 
 Run 1 before 2. Each finished task: note it in the write-up as "built with Muse Code".
