@@ -35,6 +35,9 @@ repositories (`LuminaSpatialInsightsXR`, `LuminaSpatial`, `extended-tableau-mcp`
   refreshes the aggregates after any load.
 
 ### Fixed
+- Deploys: the app now restarts after each deployment, `/api/v1/health` reports the commit it
+  was built from, and the deploy waits until the live app reports the new commit. Before, a
+  deploy could succeed while the old server kept answering.
 - SAM batch survives network trouble: each SAM call is retried up to five times with growing
   pauses, and a station that still fails is skipped (its finished tiles stay cached) while the
   others carry on; re-running the same command finishes it.
