@@ -19,7 +19,7 @@ import { ask, fetchLandUse, fetchStations, fetchSummary, fetchUser, type LandUse
 import { LandUsePanel } from './LandUsePanel';
 import { LayerPanel } from './LayerPanel';
 import { LineBadges } from './LineBadges';
-import { MapView, type HexMeta, type LayerState, type MapState } from './MapView';
+import { MapView, type HexMeta, type LayerState, type MapState, type MetricMeta, type StationMetricMode } from './MapView';
 import { MicButton } from './MicButton';
 import { ModelsPanel, type Health } from './ModelsPanel';
 import { PrecinctSnapshot } from './PrecinctSnapshot';
@@ -50,8 +50,9 @@ export function Portal() {
   // The first start after a data change rebuilds the local database (a few minutes); say so.
   const [warming, setWarming] = useState(false);
   const [checked, setChecked] = useState(false);
-  const [layers, setLayers] = useState<LayerState>({ lines: true, rings: true, hex: 'off', bounds: 'off', landuse: true });
+  const [layers, setLayers] = useState<LayerState>({ lines: true, rings: true, hex: 'off', bounds: 'off', landuse: true, stationMetric: 'off' });
   const [hexMeta, setHexMeta] = useState<HexMeta | null>(null);
+  const [metricMeta, setMetricMeta] = useState<MetricMeta | null>(null);
   const [map, setMap] = useState<MapState>({ focus: null, radius_m: 800, compare: null, highlight: [], view: 'overview', flyNonce: 0 });
   const listRef = useRef<HTMLDivElement>(null);
   const stationsRef = useRef<StationDto[]>([]);
@@ -144,6 +145,18 @@ export function Portal() {
       });
       setTurns((t) => t.map((x) => (x.id === id ? { ...x, answer } : x)));
       await runActions(answer.actions);
+      // A screening answer colours the stations by the metric it ranked.
+      const ranked = answer.meta.tool_calls.find((t) => t.tool === 'rank_stations' && t.ok);
+      const rArgs = ranked?.args as { metric?: string; property_type?: string } | undefined;
+      const pt = rArgs?.property_type ?? (rArgs?.metric === 'median_price' || rArgs?.metric === 'price_change_12m' ? 'unit' : 'all');
+      const mode: StationMetricMode | undefined =
+        rArgs?.metric === 'median_price' && pt === 'house' ? 'house_median'
+        : rArgs?.metric === 'median_price' && pt === 'unit' ? 'unit_median'
+        : rArgs?.metric === 'price_change_12m' && pt === 'unit' ? 'unit_change'
+        : rArgs?.metric === 'patronage_12m' ? 'trips'
+        : rArgs?.metric === 'patronage_change_12m' ? 'trips_change'
+        : undefined;
+      if (mode) setLayers((l) => ({ ...l, stationMetric: mode }));
     } catch (e) {
       setTurns((t) => t.map((x) => (x.id === id ? { ...x, error: `${e instanceof Error ? e.message : String(e)}. Try again, or name a station.` } : x)));
     } finally {
@@ -323,15 +336,16 @@ export function Portal() {
       </main>
 
       <section className="map-pane" aria-label="Map">
-        <MapView stations={stations} state={map} layers={layers} kpis={kpis} onSelect={select} onHexMeta={setHexMeta} />
+        <MapView stations={stations} state={map} layers={layers} kpis={kpis} onSelect={select} onHexMeta={setHexMeta} onMetricMeta={setMetricMeta} />
         <div className="map-status" aria-live="polite">
           {map.compare
             ? `Comparing ${stations.find((s) => s.id === map.compare![0])?.name} and ${stations.find((s) => s.id === map.compare![1])?.name}`
             : focus ? `${focus.name} · 400 m and ${map.radius_m} m rings` : `${stations.length || 185} train and metro stations`}
           {layers.hex !== 'off' && <span className="map-status-sub">Hexagons: median {layers.hex} price, last 12 months</span>}
+          {layers.stationMetric !== 'off' && <span className="map-status-sub">Stations coloured by {metricMeta?.label ?? 'metric'}</span>}
         </div>
         {note && <div className="map-note">{note}</div>}
-        <LayerPanel layers={layers} onChange={setLayers} hexMeta={hexMeta} canLandUse={Boolean(map.focus)}
+        <LayerPanel layers={layers} onChange={setLayers} hexMeta={hexMeta} metricMeta={metricMeta} canLandUse={Boolean(map.focus)}
           onLandUse={async () => {
             if (!map.focus) return;
             setToast('Loading land use…');

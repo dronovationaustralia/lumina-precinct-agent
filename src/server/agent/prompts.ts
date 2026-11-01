@@ -8,6 +8,7 @@ stations (${STATIONS.length} stations). Station ids are the station name in snak
 If you are not sure a place is a station, call search_place first.
 
 Use tools to get data. Rules:
+- For "which stations", "rank", "top" or "strongest" questions use rank_stations: it screens all 185 stations at once. Copy its map_action into your answer actions.
 - Prefer query_metric. Use land_use for land use (residential, commercial, industrial, parks, roads, land in
   transition, from NSW Landuse 2017) and aerial cover (building, tree canopy, car park, construction site).
 - Use run_sql only when no catalogued metric fits; it reads governed views only.

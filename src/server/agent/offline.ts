@@ -76,6 +76,26 @@ export function planCalls(question: string, contextStation?: string): Call[] {
     metric('median_price', { ring, property_type: type ?? 'unit' });
     metric('price_change_12m', { ring, property_type: type ?? 'unit' });
   }
+  // Screening questions run across all stations in one call instead of one metric call per station.
+  if (/\brank\b/i.test(q) || (/\bwhich\b.*\bstations\b/i.test(q) && /\b(strongest|most|highest|lowest|cheapest|cheaper|busiest)\b/i.test(q))) {
+    const growth = calls.find((c) => c.name === 'query_metric' && (c.args as { metric?: string }).metric === 'price_change_12m');
+    const first = /\b(momentum|growth)\b/i.test(q) && growth ? growth : calls.find((c) => c.name === 'query_metric');
+    if (first) {
+      const a = first.args as { metric: string; ring?: RingId; property_type?: PropertyType };
+      const def = METRIC_BY_ID.get(a.metric);
+      const pt = a.property_type ?? (type && def?.property_types.includes(type) ? type : def?.property_types[0] ?? 'unit');
+      const cap = q.match(/under\s?\$([\d,.]+)\s?(m|k)?/);
+      const maxMedian = cap ? Math.round(Number(cap[1]!.replace(/,/g, '')) * (cap[2] === 'm' ? 1_000_000 : cap[2] === 'k' ? 1000 : 1)) : undefined;
+      return [{
+        name: 'rank_stations',
+        args: {
+          metric: a.metric, ring: a.ring ?? ring, property_type: pt,
+          order: /\b(cheapest|cheaper|lowest)\b/i.test(q) ? 'asc' : 'desc', limit: 10,
+          ...(maxMedian ? { max_median_price: maxMedian } : {}),
+        },
+      }];
+    }
+  }
   return calls.slice(0, 5);
 }
 

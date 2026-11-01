@@ -16,6 +16,7 @@ import type { Db } from '../db/client';
 import type { FactStore } from '../facts';
 import { METRIC_IDS, METRICS } from '../metrics/catalogue';
 import { computeMetric, listDatasets, metricFact, resolveMetricArgs } from '../metrics/query';
+import { rankStations } from '../screener';
 import { guardSql, VIEW_DATASET } from './sql-guard';
 
 export const MAX_TOOL_CALLS = 5;
@@ -38,6 +39,15 @@ export const landUseArgs = z.object({
   ring: z.enum(['0-400m', '0-800m', '800m-2km']).optional(),
 });
 export const searchPlaceArgs = z.object({ query: z.string().min(2).max(80) });
+export const rankStationsArgs = z.object({
+  metric: z.enum(METRIC_IDS).describe('Catalogued metric id to rank by'),
+  ring: RingId.optional().describe('Distance ring; defaults to the metric default (usually 0-800m)'),
+  property_type: PropertyType.optional().describe('house, unit or all; defaults to the metric default'),
+  max_median_price: z.number().positive().max(100_000_000).optional().describe('Only stations whose median price (same ring and type) is below this, in dollars'),
+  min_sales: z.number().int().min(10).max(100_000).optional().describe('Only stations with at least this many sales'),
+  order: z.enum(['desc', 'asc']).optional().describe('desc = highest first (default); asc = lowest first'),
+  limit: z.number().int().min(1).max(20).optional().describe('How many top stations to return as facts (default 10, max 20)'),
+});
 
 export const TOOL_ARG_SCHEMAS: Record<string, z.ZodTypeAny> = {
   list_datasets: z.object({}),
@@ -45,6 +55,7 @@ export const TOOL_ARG_SCHEMAS: Record<string, z.ZodTypeAny> = {
   run_sql: runSqlArgs,
   land_use: landUseArgs,
   search_place: searchPlaceArgs,
+  rank_stations: rankStationsArgs,
 };
 
 async function traced<T>(ctx: ToolContext, name: string, args: unknown, fn: () => Promise<{ result: T; fact_ids: string[]; sql?: string }>): Promise<string> {
@@ -193,5 +204,43 @@ export function buildTools(ctx: ToolContext): StructuredToolInterface[] {
     { name: 'search_place', description: 'Resolve a place or station name to a covered station id.', schema: searchPlaceArgs },
   );
 
-  return [queryMetricTool, landUseTool, runSqlTool, searchPlaceTool, listDatasetsTool] as StructuredToolInterface[];
+  const rankStationsTool = tool(
+    async (args) =>
+      traced(ctx, 'rank_stations', args, async () => {
+        const ranked = await rankStations(ctx.db, {
+          metric: args.metric,
+          ring: args.ring,
+          property_type: args.property_type,
+          filters: { ...(args.max_median_price !== undefined ? { max_median_price: args.max_median_price } : {}), ...(args.min_sales !== undefined ? { min_sales: args.min_sales } : {}) },
+          order: args.order ?? 'desc',
+          limit: args.limit ?? 10,
+        });
+        const datasets = await listDatasets(ctx.db);
+        const out = ranked.rows.map((r) => {
+          const fact = metricFact(
+            ctx.facts,
+            { metric: ranked.metric, station: r.station_id, ring: ranked.ring, property_type: ranked.property_type, row: { value: r.value, suppressed: false, sales_count: r.n_sales, dataset_id: r.dataset_id, as_of: r.as_of }, sql: ranked.sql },
+            datasets,
+          );
+          return { fact_id: fact.id, label: fact.label, display: fact.display, station_id: r.station_id };
+        });
+        const mapAction = { type: 'highlight', kind: 'station', ids: ranked.rows.map((r) => r.station_id), style: 'pulse' };
+        return {
+          result: {
+            metric: ranked.metric.id, ring: ranked.ring, property_type: ranked.property_type, order: args.order ?? 'desc',
+            facts: out, map_action: mapAction,
+            note: 'Facts are in ranked order. Include the map_action in your answer actions so the map highlights these stations.',
+          },
+          fact_ids: out.map((o) => o.fact_id),
+          sql: ranked.sql,
+        };
+      }),
+    {
+      name: 'rank_stations',
+      description: `Screen all 185 stations by one catalogued metric, highest (or lowest) first, with optional filters. Prefer this over query_metric for "which stations", "rank", "top" or "strongest" questions. Returns numbered facts in ranked order plus a map_action to highlight them. Metrics:\n${METRIC_HELP}`,
+      schema: rankStationsArgs,
+    },
+  );
+
+  return [queryMetricTool, rankStationsTool, landUseTool, runSqlTool, searchPlaceTool, listDatasetsTool] as StructuredToolInterface[];
 }

@@ -11,21 +11,22 @@ import { LAND_USE_CATEGORIES } from '@/lib/landuse';
 import { LINE_COLOURS } from '@/lib/lines';
 
 import { MapGuide } from './MapGuide';
-import { HEX_COLOURS, type HexMeta, type LayerState } from './MapView';
+import { HEX_COLOURS, type HexMeta, type LayerState, type MetricMeta, type StationMetricMode } from './MapView';
 
 const LINES = ['T1', 'T2', 'T3', 'T4', 'T8', 'T9', 'M1', 'L4'];
 
-export function LayerPanel({ layers, onChange, hexMeta, canLandUse, onLandUse }: {
+export function LayerPanel({ layers, onChange, hexMeta, metricMeta, canLandUse, onLandUse }: {
   layers: LayerState;
   onChange: (l: LayerState) => void;
   hexMeta: HexMeta | null;
+  metricMeta: MetricMeta | null;
   canLandUse: boolean;
   onLandUse: () => void;
 }) {
   // null = not chosen yet: CSS shows the panel on desktop and only the button on phones.
   const [open, setOpen] = useState<boolean | null>(null);
   const [guide, setGuide] = useState(false);
-  const on = [layers.lines && 'lines', layers.hex !== 'off' && (layers.hex === 'unit' ? 'unit prices' : 'house prices'), layers.bounds !== 'off' && `${layers.bounds}s`, layers.landuse && 'land use'].filter(Boolean);
+  const on = [layers.lines && 'lines', layers.hex !== 'off' && (layers.hex === 'unit' ? 'unit prices' : 'house prices'), layers.stationMetric !== 'off' && 'station colours', layers.bounds !== 'off' && `${layers.bounds}s`, layers.landuse && 'land use'].filter(Boolean);
   const auto = open === null ? ' is-auto' : '';
   const toggle = (
     <button type="button" className={`layers-toggle${auto}`} aria-expanded="false" onClick={() => setOpen(true)} title="Show the layers panel">
@@ -92,6 +93,38 @@ export function LayerPanel({ layers, onChange, hexMeta, canLandUse, onLandUse }:
                   Each hexagon is about 520 m across. Its colour is the median {hexMeta.property_type} sale price inside it over the
                   12 months to {hexMeta.as_of ?? 'the latest data'}; darker is dearer. Hover for the price and number of sales.
                   Dashed outline: fewer than 10 sales, so no price is shown.{hexMeta.demo_data ? ' Demo data.' : ''}
+                </p>
+              </div>
+            )}
+          </fieldset>
+
+          <fieldset>
+            <legend>Colour stations by</legend>
+            <select
+              className="layer-select"
+              aria-label="Colour stations by"
+              value={layers.stationMetric}
+              onChange={(e) => onChange({ ...layers, stationMetric: e.target.value as StationMetricMode })}
+            >
+              <option value="off">Off</option>
+              <option value="unit_median">Unit median</option>
+              <option value="unit_change">Unit price change 12 m</option>
+              <option value="house_median">House median</option>
+              <option value="trips">Station trips</option>
+              <option value="trips_change">Trips change</option>
+            </select>
+            {layers.stationMetric !== 'off' && metricMeta && metricMeta.breaks.length === 4 && (
+              <div className="hex-legend">
+                <div className="ramp">{HEX_COLOURS.map((c) => <span key={c} style={{ background: c }} />)}</div>
+                <div className="ramp-labels">
+                  <span>under {metricMeta.breakLabels[0]}</span>
+                  <span>{metricMeta.breakLabels[1]}</span>
+                  <span>{metricMeta.breakLabels[2]}</span>
+                  <span>over {metricMeta.breakLabels[3]}</span>
+                </div>
+                <p>
+                  {metricMeta.label}, split into five equal-sized groups; darker is higher. Hover a
+                  station for its figure. Grey: no figure{metricMeta.as_of ? ` (12 months to ${metricMeta.as_of})` : ''}.
                 </p>
               </div>
             )}

@@ -4,6 +4,11 @@ All work in this repository was built during the Meta Global AI Developer Hackat
 (27 Oct – 4 Nov 2026). Dates are Sydney time. No code is copied from earlier Lumina
 repositories (`LuminaSpatialInsightsXR`, `LuminaSpatial`, `extended-tableau-mcp`).
 
+## 2026-11-01 (Sun)
+
+### Added
+- Station screener: rank and colour all 185 stations by a governed metric (built with Muse Code).
+
 ## 2026-10-31 (Sat)
 
 ### Added

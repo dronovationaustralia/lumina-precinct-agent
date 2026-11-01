@@ -48,6 +48,8 @@ export const CASES: Case[] = [
   { id: 'q20', q: 'Should I buy an apartment in Parramatta now?', expect: ['median_price|price_change_12m|none'] },
   { id: 'q21', q: 'Tell me about Bondi Junction station.', expect: ['none|search_place'], kind: 'out_of_scope' },
   { id: 'q22', q: 'Monthly sales counts for units within 800 m of Chatswood over the last year.', expect: ['run_sql|sales_count'] },
+  { id: 'q23', q: 'Which stations under $900k unit median had the strongest unit price growth?', expect: ['rank_stations'] },
+  { id: 'q24', q: 'Which stations have the lowest unit medians within 800 m?', expect: ['rank_stations'] },
 ];
 
 function arg(name: string): string | undefined {

@@ -338,6 +338,7 @@ body {
 .ramp span { flex: 1; }
 .ramp-labels { display: flex; justify-content: space-around; font-size: 10.5px; color: var(--ink-muted); margin-top: 2px; }
 .hex-legend p { margin: 4px 0 0; font-size: 11px; color: var(--ink-muted); }
+.layer-select { width: 100%; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--rule); background: var(--panel); color: var(--ink); font: inherit; font-size: 12.5px; cursor: pointer; }
 .layer-button { width: 100%; padding: 7px 8px; border-radius: 8px; border: 1px solid var(--harbour); background: transparent; color: var(--harbour); font: inherit; font-size: 12.5px; font-weight: 650; cursor: pointer; }
 .layer-button:disabled { border-color: var(--rule); color: var(--ink-muted); cursor: default; font-weight: 400; }
 .layers-toggle { position: absolute; right: 12px; top: 12px; padding: 7px 12px; border-radius: 8px; border: 0; cursor: pointer; background: var(--panel); color: var(--ink); font: inherit; font-size: 13px; font-weight: 650; box-shadow: 0 0 0 1px var(--rule), var(--shadow); }

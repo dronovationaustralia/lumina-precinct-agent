@@ -19,7 +19,8 @@ import type { StationDto } from './api';
 
 export type HexMode = 'off' | 'unit' | 'house';
 export type BoundaryMode = 'off' | 'suburb' | 'lga' | 'postcode';
-export type LayerState = { lines: boolean; rings: boolean; hex: HexMode; bounds: BoundaryMode; landuse: boolean };
+export type StationMetricMode = 'off' | 'unit_median' | 'unit_change' | 'house_median' | 'trips' | 'trips_change';
+export type LayerState = { lines: boolean; rings: boolean; hex: HexMode; bounds: BoundaryMode; landuse: boolean; stationMetric: StationMetricMode };
 
 export type MapState = {
   focus: string | null;
@@ -32,12 +33,31 @@ export type MapState = {
 };
 
 export type HexMeta = { breaks: number[]; as_of: string | null; demo_data: boolean; source: string | null; property_type: string };
+export type MetricMeta = { breaks: number[]; breakLabels: string[]; as_of: string | null; unit: string; label: string };
 
 const STYLE_URL = process.env.NEXT_PUBLIC_MAP_STYLE ?? 'https://tiles.openfreemap.org/styles/positron';
 const SYDNEY: [number, number] = [151.1, -33.83];
 /** Used when the basemap cannot be reached: stations, lines and rings still render on a plain ground. */
 const FALLBACK_STYLE = { version: 8 as const, sources: {}, layers: [{ id: 'ground', type: 'background' as const, paint: { 'background-color': '#e6ebe6' } }] };
 export const HEX_COLOURS = ['#efe9da', '#cddbe6', '#93b6d8', '#5487c2', '#1f5fad'];
+/** Station dots with no value for the selected metric. */
+export const STATION_NO_VALUE = '#9aa5a1';
+
+const STATION_METRIC_QUERY: Record<Exclude<StationMetricMode, 'off'>, { metric: string; property_type: string }> = {
+  unit_median: { metric: 'median_price', property_type: 'unit' },
+  unit_change: { metric: 'price_change_12m', property_type: 'unit' },
+  house_median: { metric: 'median_price', property_type: 'house' },
+  trips: { metric: 'patronage_12m', property_type: 'all' },
+  trips_change: { metric: 'patronage_change_12m', property_type: 'all' },
+};
+
+const STATION_METRIC_LABEL: Record<Exclude<StationMetricMode, 'off'>, string> = {
+  unit_median: 'Median unit price within 800 m',
+  unit_change: 'Unit price change over 12 months',
+  house_median: 'Median house price within 800 m',
+  trips: 'Station trips over 12 months',
+  trips_change: 'Trips change over 12 months',
+};
 
 function circle(lon: number, lat: number, radiusM: number, steps = 96): [number, number][] {
   const out: [number, number][] = [];
@@ -65,6 +85,7 @@ function ringFeatures(stations: StationDto[], ids: string[], radius: number) {
 
 const narrow = () => window.matchMedia('(max-width: 900px)').matches;
 const money = (v: number) => (v >= 1_000_000 ? `$${(v / 1_000_000).toFixed(2)}m` : `$${Math.round(v / 1000)}k`);
+const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
 export function MapView({
   stations,
@@ -73,12 +94,14 @@ export function MapView({
   kpis,
   onSelect,
   onHexMeta,
+  onMetricMeta,
 }: {
   stations: StationDto[];
   state: MapState;
   layers: LayerState;
   kpis: Record<string, string>;
   onSelect: (id: string) => void;
+  onMetricMeta: (meta: MetricMeta | null) => void;
   onHexMeta: (meta: HexMeta | null) => void;
 }) {
   const el = useRef<HTMLDivElement>(null);
@@ -89,10 +112,12 @@ export function MapView({
   const popup = useRef<Popup | null>(null);
   const fitted = useRef(false);
   const hexLoaded = useRef<HexMode>('off');
+  const metricLoaded = useRef<StationMetricMode>('off');
+  const metricData = useRef<{ mode: StationMetricMode; values: Map<string, { value: number; display: string }>; breaks: number[] } | null>(null);
   const boundsLoaded = useRef(false);
   const landuseFor = useRef<string | null>(null);
-  const latest = useRef({ stations, state, layers, kpis, onSelect, onHexMeta });
-  latest.current = { stations, state, layers, kpis, onSelect, onHexMeta };
+  const latest = useRef({ stations, state, layers, kpis, onSelect, onHexMeta, onMetricMeta });
+  latest.current = { stations, state, layers, kpis, onSelect, onHexMeta, onMetricMeta };
 
   // Create the map once.
   useEffect(() => {
@@ -254,6 +279,19 @@ export function MapView({
           if (typeof id === 'string') latest.current.onSelect(id);
         });
         m.on('mouseenter', 'stations-dot', () => (m.getCanvas().style.cursor = 'pointer'));
+        m.on('mousemove', 'stations-dot', (e) => {
+          const md = metricData.current;
+          if (!md || latest.current.layers.stationMetric === 'off') return;
+          const p = e.features?.[0]?.properties as { name?: string; value?: number | null; display?: string | null } | undefined;
+          if (!p?.name) return;
+          const html = p.value == null
+            ? `<strong>${esc(p.name)}</strong><br>No figure for this metric`
+            : `<strong>${esc(p.name)}</strong><br>${esc(p.display ?? String(p.value))}`;
+          popup.current?.setLngLat(e.lngLat).setHTML(html).addTo(m);
+        });
+        m.on('mouseleave', 'stations-dot', () => {
+          if (latest.current.layers.stationMetric !== 'off') popup.current?.remove();
+        });
         m.on('mouseleave', 'stations-dot', () => (m.getCanvas().style.cursor = ''));
 
         popup.current = new maplibre.Popup({ closeButton: false, closeOnClick: false, className: 'hex-popup', offset: 8 });
@@ -283,6 +321,8 @@ export function MapView({
       markers.clear();
       fitted.current = false;
       hexLoaded.current = 'off';
+      metricLoaded.current = 'off';
+      metricData.current = null;
       boundsLoaded.current = false;
       landuseFor.current = null;
     };
@@ -309,6 +349,29 @@ export function MapView({
     latest.current.onHexMeta({ breaks: b, as_of: fc.meta?.as_of ?? null, demo_data: Boolean(fc.meta?.demo_data), source: fc.meta?.source ?? null, property_type: mode });
   }
 
+  async function loadMetric(mode: StationMetricMode) {
+    const m = map.current;
+    if (!m) return;
+    metricLoaded.current = mode;
+    if (mode === 'off') {
+      metricData.current = null;
+      latest.current.onMetricMeta(null);
+      apply();
+      return;
+    }
+    const q = STATION_METRIC_QUERY[mode];
+    const res = await fetch(`/api/v1/layers/station-metric?metric=${q.metric}&property_type=${q.property_type}&ring=0-800m`).catch(() => null);
+    if (!res?.ok || metricLoaded.current !== mode) return;
+    const fc = await res.json();
+    const b: number[] = fc.breaks ?? [];
+    const values = new Map<string, { value: number; display: string }>(
+      ((fc.stations ?? []) as { id: string; value: number; display: string }[]).map((s) => [s.id, { value: s.value, display: s.display }]),
+    );
+    metricData.current = { mode, values, breaks: b };
+    latest.current.onMetricMeta({ breaks: b, breakLabels: fc.break_labels ?? [], as_of: fc.as_of ?? null, unit: fc.unit ?? '', label: STATION_METRIC_LABEL[mode] });
+    apply();
+  }
+
   function apply() {
     const m = map.current;
     if (!m || !ready.current) return;
@@ -318,6 +381,7 @@ export function MapView({
     (m.getSource('rings') as GeoJSONSource | undefined)?.setData(ringFeatures(st, ringIds, s.radius_m));
     for (const id of ['lines', 'lines-casing']) if (m.getLayer(id)) m.setLayoutProperty(id, 'visibility', ly.lines ? 'visible' : 'none');
     if (ly.hex !== hexLoaded.current) void loadHex(ly.hex);
+    if (ly.stationMetric !== metricLoaded.current) void loadMetric(ly.stationMetric);
     const luTarget = ly.landuse ? s.focus : null;
     if (luTarget !== landuseFor.current) {
       landuseFor.current = luTarget;
@@ -341,10 +405,22 @@ export function MapView({
       type: 'FeatureCollection',
       features: st.map((x) => ({
         type: 'Feature',
-        properties: { id: x.id, name: x.name, featured: x.featured, color: LINE_COLOURS[x.corridor] ?? '#4a5754' },
+        properties: { id: x.id, name: x.name, featured: x.featured, color: LINE_COLOURS[x.corridor] ?? '#4a5754', value: metricData.current?.values.get(x.id)?.value ?? null, display: metricData.current?.values.get(x.id)?.display ?? null },
         geometry: { type: 'Point', coordinates: [x.lon, x.lat] },
       })),
     });
+
+    // Station dots coloured by the selected metric; grey where there is no value.
+    if (m.getLayer('stations-dot')) {
+      const md = metricData.current;
+      const b = md?.mode === ly.stationMetric ? md.breaks : [];
+      if (md && ly.stationMetric !== 'off' && b.length === 4 && b.every((x, i) => i === 0 || x > b[i - 1]!)) {
+        m.setPaintProperty('stations-dot', 'circle-color', ['case', ['==', ['get', 'value'], null], STATION_NO_VALUE,
+          ['step', ['get', 'value'], HEX_COLOURS[0], b[0], HEX_COLOURS[1], b[1], HEX_COLOURS[2], b[2], HEX_COLOURS[3], b[3], HEX_COLOURS[4]]] as unknown as ExpressionSpecification);
+      } else {
+        m.setPaintProperty('stations-dot', 'circle-color', '#ffffff');
+      }
+    }
 
     // Selected stations: HTML roundels (independent of basemap fonts) with name and a KPI.
     const ml = lib.current;
@@ -380,7 +456,7 @@ export function MapView({
 
   useEffect(() => {
     apply();
-  }, [stations, state.focus, state.radius_m, state.compare, state.highlight, layers.lines, layers.rings, layers.hex, layers.bounds, layers.landuse, kpis]);
+  }, [stations, state.focus, state.radius_m, state.compare, state.highlight, layers.lines, layers.rings, layers.hex, layers.bounds, layers.landuse, layers.stationMetric, kpis]);
 
   useEffect(() => {
     const m = map.current;
