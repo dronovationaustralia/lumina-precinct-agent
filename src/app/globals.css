@@ -490,7 +490,8 @@ body {
 .signin-note { margin: 0; font-size: 12.5px; color: var(--ink-muted); }
 .signin-scale p:first-child { margin: 0 0 8px; font-size: 12px; font-weight: 650; text-transform: uppercase; letter-spacing: 0.06em; color: #9fb7c9; }
 .signin-scale-line { margin: 0 0 12px; font-size: 14px; color: #cfdcd6; }
-.adapters { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px; }
+.adapters { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+@media (max-width: 560px) { .adapters { grid-template-columns: 1fr; } }
 .adapter { display: grid; gap: 2px; padding: 10px 12px; border-radius: 10px; border: 1px solid; font-size: 13px; }
 .adapters[data-tone="dark"] .adapter { border-color: rgb(255 255 255 / 0.14); background: rgb(255 255 255 / 0.05); color: #cfdcd6; }
 .adapters[data-tone="dark"] .adapter strong { color: #fff; font-size: 13.5px; }
