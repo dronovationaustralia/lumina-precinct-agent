@@ -49,5 +49,6 @@ Tell Claude the branch name to review it before merging.
 | 11 | [Rents and gross rental yield (NSW rental bonds)](11-rental-yield.md) | Impact | Medium (needs the bond files) |
 | 12 | [Public schools within walking distance](12-schools.md) | Impact | Medium (needs the schools file) |
 | 13 | [Share links with rich previews](13-share-links.md) | Most Viral on X, Demo | Medium |
+| 14 | [Guided playbooks per user, and the any-city story](14-guidance-and-scale.md) | Impact, Demo | Medium (run after 8, 9, 10, 13) |
 
 Run 1 before 2. Each finished task: note it in the write-up as "built with Muse Code".
