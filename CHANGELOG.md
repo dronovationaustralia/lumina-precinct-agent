@@ -7,6 +7,7 @@ repositories (`LuminaSpatialInsightsXR`, `LuminaSpatial`, `extended-tableau-mcp`
 ## 2026-11-02 (Mon)
 
 ### Added
+- Guided playbooks per user type, "What can I ask?", and the any-city story on the landing page and /about (built with Muse Code).
 - What SAM 3.1 sees: aerial photo with SAM segmentation revealed on the map (built with Muse Code).
 - Corridor tours: a guided, verified station-by-station briefing on the map (built with Muse Code).
 - Share links: public precinct cards and verified answers with rich previews (built with Muse Code).

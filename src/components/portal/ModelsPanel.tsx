@@ -1,7 +1,7 @@
 'use client';
 
 /** Where each Meta model is used in Lumina, with its status in this deployment. */
-export type Health = { provider: string; model: string; demo_data?: boolean; datasets?: { id: string; demo: boolean }[] };
+export type Health = { provider: string; model: string; demo_data?: boolean; datasets?: { id: string; demo: boolean; name?: string; as_of?: string; licence?: string }[] };
 
 type Tone = 'ok' | 'warn' | 'muted';
 

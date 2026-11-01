@@ -1,9 +1,12 @@
 'use client';
 
+import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 import { PERSONA_INFO } from '@/lib/personas';
+
+import { AdapterTiles, SCALE_LINE, ScaleMap } from '@/components/ScaleStory';
 
 type Persona = keyof typeof PERSONA_INFO;
 
@@ -71,6 +74,13 @@ export function SignIn() {
               <li key={m.name}><span className="meta-chip">{m.name}</span> {m.role}</li>
             ))}
           </ul>
+        </div>
+        <div className="signin-scale">
+          <p>Built to work for any city</p>
+          <p className="signin-scale-line">{SCALE_LINE}</p>
+          <AdapterTiles tone="dark" />
+          <ScaleMap tone="dark" />
+          <p className="signin-about"><Link href="/about">About Lumina</Link></p>
         </div>
       </section>
 

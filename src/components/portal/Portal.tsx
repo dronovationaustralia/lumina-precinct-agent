@@ -9,9 +9,11 @@ import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { Fact, MapAction } from '@/lib/contracts';
-import { PERSONA_INFO } from '@/lib/personas';
+import { PERSONA_INFO, TOUR_STEP, fillStep, type Playbook } from '@/lib/personas';
 
 import { AnswerCard, type AnswerActions, type Turn } from './AnswerCard';
+import { AskDrawer } from './AskDrawer';
+import { CoachMarks } from './CoachMarks';
 import { answerMarkdown, download, loadSaved, shareLink, slug, storeSaved, type Saved } from './exporting';
 import { PrintReport } from './PrintReport';
 import { SavedPanel } from './SavedPanel';
@@ -61,6 +63,16 @@ export function Portal() {
   const [tourPicker, setTourPicker] = useState(false);
   const [tour, setTour] = useState<TourState | null>(null);
   const [map, setMap] = useState<MapState>({ focus: null, radius_m: 800, compare: null, highlight: [], view: 'overview', flyNonce: 0 });
+  const [playbook, setPlaybook] = useState<{ book: Playbook; index: number } | null>(null);
+  const [showAsk, setShowAsk] = useState(false);
+  const [coachSeen, setCoachSeen] = useState(() => {
+    try {
+      return typeof localStorage !== 'undefined' && localStorage.getItem('lumina-coach') === 'done';
+    } catch {
+      return false;
+    }
+  });
+  const [phIdx, setPhIdx] = useState(0);
   const listRef = useRef<HTMLDivElement>(null);
   const stationsRef = useRef<StationDto[]>([]);
   stationsRef.current = stations;
@@ -97,6 +109,14 @@ export function Portal() {
     listRef.current?.querySelector('.answer-card:last-of-type')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, [turns.length]);
 
+  // The composer's placeholder rotates through the persona's example questions.
+  useEffect(() => { setPhIdx(0); }, [persona]);
+  useEffect(() => {
+    if (draft) return;
+    const t = setInterval(() => setPhIdx((i) => i + 1), 5000);
+    return () => clearInterval(t);
+  }, [draft, persona]);
+
   const resolve = (target: string) => stationsRef.current.find((s) => s.id === target || s.name.toLowerCase() === target.toLowerCase())?.id;
 
   /** Turning on "What SAM 3.1 sees" also switches to the aerial photo and flies in close. */
@@ -116,6 +136,48 @@ export function Portal() {
     if (!id) return;
     setLayers((l) => ({ ...l, sam: true, aerial: true }));
     setMap((m) => ({ ...m, focus: id, compare: null, view: 'close', flyNonce: m.flyNonce + 1 }));
+  };
+
+  /** Start a playbook: ask its first step, then walk the rest as chips under each answer. */
+  const startPlaybook = (book: Playbook) => {
+    const first = book.steps[0];
+    if (!first || first === TOUR_STEP) return;
+    if (first.includes('{station}') && !map.focus) {
+      setToast('Pick a station first, then start the playbook.');
+      return;
+    }
+    const name = stations.find((s) => s.id === map.focus)?.name ?? '';
+    setPlaybook(book.steps.length > 1 ? { book, index: 1 } : null);
+    void submit(fillStep(first, name));
+  };
+
+  const handleNextStep = (_display: string, position: number) => {
+    if (!playbook) return;
+    const at = playbook.index + position;
+    const step = playbook.book.steps[at];
+    if (!step) return;
+    const advance = () => setPlaybook(at + 1 < playbook.book.steps.length ? { book: playbook.book, index: at + 1 } : null);
+    if (step === TOUR_STEP) {
+      setTourPicker(true);
+      advance();
+      return;
+    }
+    if (step.includes('{station}') && !map.focus) {
+      setToast('Pick a station first, then continue the playbook.');
+      return;
+    }
+    const name = stations.find((s) => s.id === map.focus)?.name ?? '';
+    advance();
+    void submit(fillStep(step, name));
+  };
+
+  const dismissCoach = () => {
+    try {
+      localStorage.setItem('lumina-coach', 'done');
+    } catch {
+      // Private mode: the tips just show again next visit.
+    }
+    setCoachSeen(true);
   };
 
   const runActions = useCallback(async (actions: MapAction[]) => {
@@ -377,6 +439,7 @@ export function Portal() {
             <div className="user">
               <span className="avatar" aria-hidden="true">{user.name.slice(0, 1)}</span>
               <span className="user-name">{user.name}</span>
+              <Link className="link-button" href="/about">About</Link>
               <button type="button" className="link-button" onClick={signOut}>Sign out</button>
             </div>
           )}
@@ -396,17 +459,25 @@ export function Portal() {
             )}
             {loadError && <p className="turn-error" role="alert">{loadError}. Reload the page to try again.</p>}
 
+            {!coachSeen && turns.length === 0 && <CoachMarks onDone={dismissCoach} />}
+
             {turns.length === 0 && (
               <section className="hello">
                 <p className="kicker">{info.label}</p>
                 <h1>{user ? `Hello ${user.provider === 'demo' ? 'there' : user.name.split(' ')[0]}.` : 'Hello.'} Which precinct are you looking at?</h1>
                 <p className="hello-lead">{info.blurb} Ask about any of Sydney&apos;s {stations.length || 185} train and metro stations.</p>
-                <div className="starters">
-                  {info.questions.map((q) => (
-                    <button key={q} type="button" className="starter" onClick={() => submit(q)}>
-                      <span>{q}</span>
-                      <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M3 8h9M8.5 4.5 12 8l-3.5 3.5" fill="none" stroke="currentColor" strokeWidth="1.6" /></svg>
-                    </button>
+                <div className="playbooks">
+                  {info.playbooks.map((b) => (
+                    <div key={b.title} className="playbook">
+                      <div>
+                        <h3>{b.title}</h3>
+                        <p>{b.why}</p>
+                      </div>
+                      <button type="button" className="playbook-start" onClick={() => startPlaybook(b)}>
+                        Start
+                        <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M3 8h9M8.5 4.5 12 8l-3.5 3.5" fill="none" stroke="currentColor" strokeWidth="1.6" /></svg>
+                      </button>
+                    </div>
                   ))}
                 </div>
                 {!focus && featured.length > 0 && (
@@ -434,12 +505,25 @@ export function Portal() {
             {focus && <PrecinctSnapshot station={focus} persona={persona} onAsk={submit} />}
 
             {turns.map((t) => (
-              <AnswerCard key={t.id} turn={t} stationName={stations.find((s) => s.id === t.station)?.name} onFollowUp={submit} onFocusFact={focusFact} actions={actionsFor(t)} />
+              <AnswerCard
+                key={t.id} turn={t} stationName={stations.find((s) => s.id === t.station)?.name} onFollowUp={submit} onFocusFact={focusFact} actions={actionsFor(t)}
+                nextSteps={playbook && t.answer ? playbook.book.steps.slice(playbook.index).map((s) => fillStep(s, focus?.name ?? 'a station')) : undefined}
+                onNextStep={handleNextStep}
+              />
             ))}
           </div>
         </div>
 
         <form className="composer" onSubmit={(e) => { e.preventDefault(); submit(draft); }}>
+          {focus && (
+            <div className="quick-chips" role="group" aria-label={`Quick questions about ${focus.name}`}>
+              {info.playbooks.map((b) => (
+                <button key={b.title} type="button" className="quick-chip" title={fillStep(b.steps[0] ?? '', focus.name)} onClick={() => startPlaybook(b)}>
+                  {b.title}
+                </button>
+              ))}
+            </div>
+          )}
           <div className="composer-box">
             {focus && (
               <span className="context-chip">
@@ -452,12 +536,15 @@ export function Portal() {
               id="q"
               value={draft}
               rows={2}
-              placeholder={focus ? `Ask about ${focus.name}, or compare it with another station` : 'Ask about any Sydney station precinct'}
+              placeholder={info.questions[phIdx % info.questions.length]}
               onChange={(e) => setDraft(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submit(draft); } }}
             />
             <div className="composer-foot">
-              <span className="composer-hint"><span className="meta-dot" aria-hidden="true" />{offline ? 'Offline planner' : 'Muse Spark'} · figures checked before display</span>
+              <span className="composer-left">
+                <span className="composer-hint"><span className="meta-dot" aria-hidden="true" />{offline ? 'Offline planner' : 'Muse Spark'} · figures checked before display</span>
+                <button type="button" className="link-button" onClick={() => setShowAsk(true)}>What can I ask?</button>
+              </span>
               <span className="composer-actions">
                 <MicButton onTranscript={setDraft} station={stations.find((st) => st.id === map.focus)?.name} />
                 <button type="submit" className="ask-button" disabled={busy || !draft.trim()}>{busy ? 'Working…' : 'Ask'}</button>
@@ -501,6 +588,7 @@ export function Portal() {
       </section>
 
       {showModels && <ModelsPanel health={health} checking={!checked} onClose={() => setShowModels(false)} onShowSam={showSam} samStationName={(focus?.featured ? focus : featured[0] ?? null)?.name ?? null} />}
+      {showAsk && <AskDrawer datasets={health?.datasets ?? null} onClose={() => setShowAsk(false)} onAsk={submit} />}
       {tourPicker && <TourPicker onPick={(id) => void startTour(id)} onClose={() => setTourPicker(false)} />}
       {showSaved && (
         <SavedPanel

@@ -72,9 +72,9 @@ export function publicOrigin(request: Request): string {
 
 export const microsoftConfigured = () => Boolean(process.env.AUTH_MICROSOFT_CLIENT_ID && process.env.AUTH_MICROSOFT_CLIENT_SECRET);
 
-/** Pages anyone may open without signing in: precinct cards, shared answers and their preview images. */
+/** Pages anyone may open without signing in: the about page, precinct cards, shared answers and their preview images. */
 export function isPublicPath(pathname: string): boolean {
-  return pathname === '/p' || pathname.startsWith('/p/') || pathname === '/a' || pathname.startsWith('/a/');
+  return pathname === '/about' || pathname === '/p' || pathname.startsWith('/p/') || pathname === '/a' || pathname.startsWith('/a/');
 }
 
 /** Machine clients (the Quest app, scripts) may call the API with a key from LUMINA_API_KEYS. */

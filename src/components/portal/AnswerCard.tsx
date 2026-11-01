@@ -66,13 +66,16 @@ function renderLine(template: string, facts: Map<string, Fact>, order: Map<strin
 
 export type AnswerActions = { onSave: () => void; onPdf: () => void; onMarkdown: () => void; onCopy: () => void; onShare: () => void; saved: boolean };
 
-export function AnswerCard({ turn, stationName, onFollowUp, onFocusFact, actions, shared }: {
+export function AnswerCard({ turn, stationName, onFollowUp, onFocusFact, actions, shared, nextSteps, onNextStep }: {
   turn: Turn;
   stationName?: string;
   onFollowUp: (q: string) => void;
   onFocusFact: (f: Fact | null) => void;
   actions?: AnswerActions;
   shared?: boolean;
+  /** Remaining playbook steps, shown as chips that walk the user through. */
+  nextSteps?: string[];
+  onNextStep?: (step: string, position: number) => void;
 }) {
   const anchor = useId().replace(/:/g, '');
   const [hover, setHover] = useState<string | null>(null);
@@ -102,7 +105,7 @@ export function AnswerCard({ turn, stationName, onFollowUp, onFocusFact, actions
         </ol>
       ))}
 
-      {a && <AnswerBody a={a} anchor={anchor} hover={hover} onHot={hot} open={open} setOpen={setOpen} onFollowUp={onFollowUp} shared={shared} />}
+      {a && <AnswerBody a={a} anchor={anchor} hover={hover} onHot={hot} open={open} setOpen={setOpen} onFollowUp={onFollowUp} shared={shared} nextSteps={nextSteps} onNextStep={onNextStep} />}
       {a && actions && (
         <div className="answer-actions" role="group" aria-label="Export or save this answer">
           <button type="button" onClick={actions.onCopy} title="Copy the answer, figures and sources as text">Copy</button>
@@ -118,9 +121,10 @@ export function AnswerCard({ turn, stationName, onFollowUp, onFocusFact, actions
   );
 }
 
-function AnswerBody({ a, anchor, hover, onHot, open, setOpen, onFollowUp, shared }: {
+function AnswerBody({ a, anchor, hover, onHot, open, setOpen, onFollowUp, shared, nextSteps, onNextStep }: {
   a: AskResponse; anchor: string; hover: string | null; onHot: (id: string | null) => void;
   open: boolean; setOpen: (f: (o: boolean) => boolean) => void; onFollowUp: (q: string) => void; shared?: boolean;
+  nextSteps?: string[]; onNextStep?: (step: string, position: number) => void;
 }) {
   const facts = new Map(a.facts.map((f) => [f.id, f]));
   const order = new Map<string, number>();
@@ -207,6 +211,14 @@ function AnswerBody({ a, anchor, hover, onHot, open, setOpen, onFollowUp, shared
           <div className="followups">
             {a.followups.map((f) => (
               <button key={f.label} type="button" className="followup" onClick={() => f.question && onFollowUp(f.question)} disabled={!f.question}>{f.label}</button>
+            ))}
+          </div>
+        )}
+        {nextSteps && nextSteps.length > 0 && (
+          <div className="next-steps">
+            <span className="next-label">Next in this playbook:</span>
+            {nextSteps.map((s, i) => (
+              <button key={`${i}-${s}`} type="button" className="followup" onClick={() => onNextStep?.(s, i)}>{s}</button>
             ))}
           </div>
         )}
