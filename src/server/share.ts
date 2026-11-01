@@ -10,7 +10,7 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 
 import { deflateSync, inflateSync, strFromU8, strToU8 } from 'fflate';
 
-import type { Fact, Source } from '@/lib/contracts';
+import type { AskResponse, Fact, Source } from '@/lib/contracts';
 
 export type SharedAnswer = {
   v: 1;
@@ -65,5 +65,30 @@ export function verifyShare(token: string): SharedAnswer | null {
     return payload;
   } catch {
     return null;
+  }
+}
+
+/**
+ * The share token for an answer the server has just produced. Only the server signs, and only
+ * its own answers: a client never supplies figures to sign. Undefined when it is too large.
+ */
+export function shareTokenFor(question: string, station: string | undefined, answer: AskResponse): string | undefined {
+  const cited = new Set<string>();
+  for (const t of answer.templates) for (const m of t.matchAll(/\{(f\d+)\}/g)) cited.add(m[1]!);
+  const payload: SharedAnswer = {
+    v: 1,
+    question,
+    ...(station ? { station } : {}),
+    templates: answer.templates,
+    facts: answer.facts.filter((f) => cited.has(f.id)),
+    sources: answer.sources,
+    status: answer.verification.status,
+    model: { provider: answer.meta.provider, model: answer.meta.model },
+    created_at: new Date().toISOString(),
+  };
+  try {
+    return signShare(payload);
+  } catch {
+    return undefined;
   }
 }

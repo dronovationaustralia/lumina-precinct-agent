@@ -168,6 +168,8 @@ export const AskResponse = z.object({
   followups: z.array(FollowUp).max(2),
   chart: VegaLiteSpec.nullable(),
   verification: Verification,
+  /** Signed by the server when the answer is made; lets the client create a public /a/ link. */
+  share_token: z.string().optional(),
   meta: z.object({
     request_id: z.string(),
     provider: z.string(),

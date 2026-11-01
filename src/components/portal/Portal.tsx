@@ -270,15 +270,8 @@ export function Portal() {
     onShare: async () => {
       if (!t.answer) return;
       try {
-        const { url } = await shareAnswer({
-          question: t.question,
-          ...(t.station ? { station: t.station } : {}),
-          templates: t.answer.templates,
-          facts: t.answer.facts,
-          sources: t.answer.sources,
-          status: t.answer.verification.status,
-          model: { provider: t.answer.meta.provider, model: t.answer.meta.model },
-        });
+        if (!t.answer.share_token) { setToast('This answer is too long to share as a link. Use Markdown or PDF instead.'); return; }
+        const { url } = await shareAnswer(t.answer.share_token);
         const r = await shareLink(url, t.question);
         if (r === 'shared') setToast('Shared');
         else if (r === 'copied') setToast('Link copied');

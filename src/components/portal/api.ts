@@ -130,13 +130,6 @@ export type TourStopDto = {
 
 export type TourDto = { id: string; title: string; stops: TourStopDto[] };
 
-export type ShareAnswerBody = {
-  question: string; station?: string; templates: string[];
-  facts: AskResponse['facts']; sources: AskResponse['sources'];
-  status: 'verified' | 'verified_after_retry' | 'fallback';
-  model: { provider: string; model: string };
-};
-
 async function postShare(body: unknown): Promise<{ url: string }> {
   const res = await fetch('/api/v1/share', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
   if (!res.ok) {
@@ -146,8 +139,8 @@ async function postShare(body: unknown): Promise<{ url: string }> {
   return res.json();
 }
 
-export function shareAnswer(body: ShareAnswerBody): Promise<{ url: string }> {
-  return postShare({ type: 'answer', ...body });
+export function shareAnswer(token: string): Promise<{ url: string }> {
+  return postShare({ type: 'answer', token });
 }
 
 export function sharePrecinct(station: string): Promise<{ url: string }> {

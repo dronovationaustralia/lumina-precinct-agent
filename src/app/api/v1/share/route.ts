@@ -2,33 +2,26 @@
  * POST /api/v1/share: make a shareable link (signed-in users only; the proxy
  * keeps this route protected).
  *
- * { type: 'answer', question, station?, templates, facts, sources, status, model }
- *   -> { url } for /a/[token]. Facts are trimmed to the cited ones; the chart and
- *   tool call details are never included. Still over 6 KB compressed -> 413.
+ * { type: 'answer', token } -> { url } for /a/[token]. The token is the `share_token` the
+ *   server signed when it produced the answer (/api/v1/ask); figures from a client are
+ *   never signed, so a shared link cannot carry invented numbers.
  * { type: 'precinct', station } -> { url } for /p/[station] (public data, no token).
  */
 import { type NextRequest } from 'next/server';
 import { z } from 'zod';
 
-import { Fact, Source, StationId } from '@/lib/contracts';
+import { StationId } from '@/lib/contracts';
 import { publicOrigin, readSession, SESSION_COOKIE, validApiKey } from '@/server/auth/session';
 import { errorJson, json, preflight, rateLimit } from '@/server/http';
-import { signShare, type SharedAnswer } from '@/server/share';
+import { verifyShare } from '@/server/share';
 
 export function OPTIONS() {
   return preflight();
 }
 
-const ShareAnswerBody = z.object({
-  type: z.literal('answer'),
-  question: z.string().trim().min(3).max(500),
-  station: StationId.optional(),
-  templates: z.array(z.string().max(500)).min(1).max(3),
-  facts: z.array(Fact).max(60),
-  sources: z.array(Source).max(20),
-  status: z.enum(['verified', 'verified_after_retry', 'fallback']),
-  model: z.object({ provider: z.string().max(40), model: z.string().max(80) }),
-});
+// The client sends back the token the server signed when it produced the answer; the server
+// never signs figures a client supplies.
+const ShareAnswerBody = z.object({ type: z.literal('answer'), token: z.string().min(10).max(9000) });
 
 const SharePrecinctBody = z.object({ type: z.literal('precinct'), station: StationId });
 
@@ -44,23 +37,6 @@ export async function POST(request: NextRequest) {
   if (!parsed.success) {
     return errorJson(400, 'bad_share', `invalid share payload: ${parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join(', ')}`);
   }
-  const b = parsed.data;
-  const cited = new Set<string>();
-  for (const t of b.templates) for (const m of t.matchAll(/\{(f\d+)\}/g)) cited.add(m[1]!);
-  const payload: SharedAnswer = {
-    v: 1,
-    question: b.question,
-    ...(b.station ? { station: b.station } : {}),
-    templates: b.templates,
-    facts: b.facts.filter((f) => cited.has(f.id)),
-    sources: b.sources,
-    status: b.status,
-    model: b.model,
-    created_at: new Date().toISOString(),
-  };
-  try {
-    return json({ url: `${publicOrigin(request)}/a/${signShare(payload)}` });
-  } catch (e) {
-    return errorJson(413, 'share_too_large', e instanceof Error ? e.message : 'shared answer too large');
-  }
+  if (!verifyShare(parsed.data.token)) return errorJson(400, 'bad_share', 'This answer cannot be shared: its signature does not match.');
+  return json({ url: `${publicOrigin(request)}/a/${parsed.data.token}` });
 }

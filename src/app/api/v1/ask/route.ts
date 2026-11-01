@@ -7,10 +7,11 @@
  * Send `Accept: text/event-stream` (or ?stream=1) to receive progress events
  * (plan, tool, compose, verify, fallback) followed by an `answer` event.
  */
-import { AskRequest } from '@/lib/contracts';
+import { AskRequest, type AskResponse } from '@/lib/contracts';
 import { runAgent, type AgentEvent } from '@/server/agent/graph';
 import { getDb } from '@/server/db/client';
 import { CORS_HEADERS, errorJson, json, preflight, rateLimit } from '@/server/http';
+import { shareTokenFor } from '@/server/share';
 
 export const maxDuration = 60;
 
@@ -33,10 +34,11 @@ export async function POST(request: Request) {
 
   const wantsStream = new URL(request.url).searchParams.get('stream') === '1' || (request.headers.get('accept') ?? '').includes('text/event-stream');
   const db = await getDb();
+  const withShare = (a: AskResponse): AskResponse => ({ ...a, share_token: shareTokenFor(parsed.data.question, parsed.data.station_context, a) });
 
   if (!wantsStream) {
     try {
-      return json(await runAgent(db, parsed.data));
+      return json(withShare(await runAgent(db, parsed.data)));
     } catch (e) {
       return errorJson(500, 'agent_error', e instanceof Error ? e.message : String(e));
     }
@@ -48,7 +50,7 @@ export async function POST(request: Request) {
       const send = (event: string, data: unknown) => controller.enqueue(encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`));
       try {
         const answer = await runAgent(db, parsed.data, { onEvent: (e: AgentEvent) => send(e.type, e) });
-        send('answer', answer);
+        send('answer', withShare(answer));
       } catch (e) {
         send('error', { message: e instanceof Error ? e.message : String(e) });
       } finally {

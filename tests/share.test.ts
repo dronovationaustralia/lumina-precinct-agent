@@ -62,3 +62,36 @@ describe('public paths', () => {
     }
   });
 });
+
+describe('only the server signs answers', () => {
+  test('shareTokenFor signs the cited facts of a server answer', async () => {
+    const { shareTokenFor } = await import('@/server/share');
+    const answer = {
+      lines: ['x'], templates: payload.templates, disclaimer: 'd', facts: [...payload.facts, { ...payload.facts[0]!, id: 'f9' }],
+      sources: payload.sources, actions: [], followups: [], chart: null,
+      verification: { status: 'verified', checks: [] },
+      meta: { request_id: 'r', provider: 'meta', model: 'muse-spark-1.3', demo_data: true, timings_ms: {}, tokens: { input: 0, output: 0 }, tool_calls: [] },
+    } as unknown as import('@/lib/contracts').AskResponse;
+    const token = shareTokenFor(payload.question, 'chatswood', answer)!;
+    const back = verifyShare(token)!;
+    expect(back.facts.map((f) => f.id)).toEqual(['f1']);
+    expect(back.station).toBe('chatswood');
+  });
+
+  test('the share route accepts only a server-signed token', async () => {
+    const { POST } = await import('@/app/api/v1/share/route');
+    const { signSession, SESSION_COOKIE } = await import('@/server/auth/session');
+    const cookie = `${SESSION_COOKIE}=${await signSession({ sub: 'demo', name: 'Demo user', provider: 'demo', persona: 'developer' }, 1)}`;
+    const { NextRequest } = await import('next/server');
+    const call = (body: unknown) => POST(new NextRequest('http://localhost/api/v1/share', {
+      method: 'POST', headers: { 'content-type': 'application/json', cookie }, body: JSON.stringify(body),
+    }));
+    // A client-built answer with its own figures is refused.
+    const forged = await call({ type: 'answer', question: payload.question, templates: payload.templates, facts: payload.facts, sources: payload.sources, status: 'verified', model: payload.model });
+    expect(forged.status).toBe(400);
+    const tampered = await call({ type: 'answer', token: `${signShare(payload).split('.')[0]}.AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA` });
+    expect(tampered.status).toBe(400);
+    const ok = await call({ type: 'answer', token: signShare(payload) });
+    expect(ok.status).toBe(200);
+  });
+});
