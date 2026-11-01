@@ -205,7 +205,13 @@ export function MapView({
 
         // Boundaries: loaded on first use (about 850 KB), drawn as quiet outlines with names.
         m.addSource('bounds', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
-        m.addLayer({ id: 'bounds-hover', type: 'fill', source: 'bounds', filter: ['==', ['get', 'code'], ''], paint: { 'fill-color': '#1f5fad', 'fill-opacity': 0.08 } }, firstSymbol);
+        // Hovered area: warm fill and a solid outline that stand out against the grey basemap,
+        // the blue station palette and the land-use colours.
+        m.addLayer({ id: 'bounds-hover', type: 'fill', source: 'bounds', filter: ['==', ['get', 'code'], ''], paint: { 'fill-color': '#f2a900', 'fill-opacity': 0.22 } }, firstSymbol);
+        m.addLayer({
+          id: 'bounds-hover-line', type: 'line', source: 'bounds', filter: ['==', ['get', 'code'], ''],
+          paint: { 'line-color': '#c26a00', 'line-width': ['interpolate', ['linear'], ['zoom'], 10, 2, 15, 3.5], 'line-opacity': 0.95 },
+        }, firstSymbol);
         m.addLayer({ id: 'bounds-hit', type: 'fill', source: 'bounds', filter: ['==', ['get', 'kind'], 'none'], paint: { 'fill-color': '#000', 'fill-opacity': 0 } }, firstSymbol);
         m.addLayer({
           id: 'bounds-line', type: 'line', source: 'bounds', filter: ['==', ['get', 'kind'], 'none'],
@@ -217,12 +223,21 @@ export function MapView({
             layout: { 'text-field': ['get', 'name'], 'text-size': 12, 'text-font': ['Noto Sans Bold'], 'text-transform': 'uppercase', 'text-letter-spacing': 0.06, 'symbol-placement': 'point' },
             paint: { 'text-color': '#3d4b47', 'text-halo-color': '#ffffff', 'text-halo-width': 1.6, 'text-opacity': 0.85 },
           });
+          // The hovered area's name, larger and at any zoom.
+          m.addLayer({
+            id: 'bounds-hover-name', type: 'symbol', source: 'bounds', filter: ['==', ['get', 'code'], ''],
+            layout: { 'text-field': ['get', 'name'], 'text-size': 15, 'text-font': ['Noto Sans Bold'], 'text-transform': 'uppercase', 'text-letter-spacing': 0.06, 'symbol-placement': 'point', 'text-allow-overlap': true },
+            paint: { 'text-color': '#7a3f00', 'text-halo-color': '#ffffff', 'text-halo-width': 2.2 },
+          });
         }
         m.on('mousemove', 'bounds-hit', (e) => {
           const p = e.features?.[0]?.properties as { code?: string } | undefined;
-          m.setFilter('bounds-hover', ['==', ['get', 'code'], p?.code ?? '']);
+          const f: FilterSpecification = ['all', ['==', ['get', 'code'], p?.code ?? ''], ['==', ['get', 'kind'], latest.current.layers.bounds]];
+          for (const id of ['bounds-hover', 'bounds-hover-line', 'bounds-hover-name']) if (m.getLayer(id)) m.setFilter(id, f);
         });
-        m.on('mouseleave', 'bounds-hit', () => m.setFilter('bounds-hover', ['==', ['get', 'code'], '']));
+        m.on('mouseleave', 'bounds-hit', () => {
+          for (const id of ['bounds-hover', 'bounds-hover-line', 'bounds-hover-name']) if (m.getLayer(id)) m.setFilter(id, ['==', ['get', 'code'], '']);
+        });
 
         m.addSource('network', { type: 'geojson', data: '/data/network.geojson' });
         // Zoom must be the top-level input of a width expression, so the casing gets its own ramp.

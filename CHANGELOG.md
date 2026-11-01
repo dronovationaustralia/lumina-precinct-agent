@@ -13,6 +13,10 @@ repositories (`LuminaSpatialInsightsXR`, `LuminaSpatial`, `extended-tableau-mcp`
 
 ## 2026-11-02 (Mon)
 
+### Changed
+- Boundaries: the hovered suburb, council or postcode now gets a warm fill, a solid outline and
+  its name in large type, so it stands out on the map.
+
 ### Fixed
 - Voice questions failed with "Malformed request": the browser now converts the recording to
   mono 24 kHz 16-bit WAV (the format Muse Voice Transcribe documents) before uploading, and the
