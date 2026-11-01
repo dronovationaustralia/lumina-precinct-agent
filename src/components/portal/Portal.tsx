@@ -329,7 +329,7 @@ export function Portal() {
             <div className="composer-foot">
               <span className="composer-hint"><span className="meta-dot" aria-hidden="true" />{offline ? 'Offline planner' : 'Muse Spark'} · figures checked before display</span>
               <span className="composer-actions">
-                <MicButton onTranscript={setDraft} />
+                <MicButton onTranscript={setDraft} station={stations.find((st) => st.id === map.focus)?.name} />
                 <button type="submit" className="ask-button" disabled={busy || !draft.trim()}>{busy ? 'Working…' : 'Ask'}</button>
               </span>
             </div>

@@ -21,13 +21,18 @@ function metaBaseUrl(): string {
 }
 
 /** Station names plus the words our questions keep using, for keyword biasing. */
+// Kept short: the Day 1 test that worked used 10 keywords; the full list of 185 station names
+// is a likely cause of "Malformed request". The selected station is added per request.
 export const TRANSCRIBE_KEYWORDS: readonly string[] = [
-  ...STATIONS.map((s) => s.name),
+  ...STATIONS.filter((s) => s.featured).map((s) => s.name),
   'Sydney',
   'metro',
-  'unit',
-  'house',
 ];
+
+export function keywordsFor(station?: string | null): string[] {
+  const extra = station && STATIONS.some((s) => s.name === station) && !TRANSCRIBE_KEYWORDS.includes(station) ? [station] : [];
+  return [...TRANSCRIBE_KEYWORDS, ...extra];
+}
 
 const ACCEPTED_MIME = new Set([
   'audio/webm',
@@ -87,7 +92,7 @@ type TranscribeResponse = {
  * Transcribe one clip. Returns the text, the model latency, and the clip length the
  * model reports (used to enforce the 60 s cap without an audio decoder on the server).
  */
-export async function transcribe(audio: Blob, filename: string): Promise<{ text: string; ms: number; durationMs: number | null }> {
+export async function transcribe(audio: Blob, filename: string, station?: string | null): Promise<{ text: string; ms: number; durationMs: number | null }> {
   const key = process.env.MODEL_API_KEY;
   if (!key) throw new Error('MODEL_API_KEY is not set, so voice transcription is unavailable.');
   const model = transcribeModel();
@@ -95,7 +100,7 @@ export async function transcribe(audio: Blob, filename: string): Promise<{ text:
     model,
     mode: 'PUSH_TO_TALK',
     audioEncoding: audioEncoding(filename, audio.type ?? ''),
-    keywords: [...TRANSCRIBE_KEYWORDS],
+    keywords: keywordsFor(station),
     languageBias: ['english'],
   };
   const form = new FormData();

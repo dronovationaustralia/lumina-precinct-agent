@@ -28,7 +28,8 @@ export async function POST(request: Request) {
 
   const filename = checked.file instanceof File && checked.file.name ? checked.file.name : 'question.webm';
   try {
-    const { text, ms, durationMs } = await transcribe(checked.file, filename);
+    const station = form.get('station');
+    const { text, ms, durationMs } = await transcribe(checked.file, filename, typeof station === 'string' ? station.slice(0, 80) : null);
     if (durationMs !== null && durationMs > MAX_AUDIO_MS) {
       return errorJson(400, 'audio_too_long', 'The audio is over 60 seconds; ask a shorter question.');
     }

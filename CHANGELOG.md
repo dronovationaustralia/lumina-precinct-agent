@@ -11,6 +11,13 @@ repositories (`LuminaSpatialInsightsXR`, `LuminaSpatial`, `extended-tableau-mcp`
 - Opportunity sites: car parks and construction sites found by SAM 3.1 near stations (built with Muse Code).
   Outlines are placed using the imagery's Web Mercator scale (0.5 m ÷ cos latitude per pixel); a first version drew them about 17% too small within each tile.
 
+## 2026-11-02 (Mon)
+
+### Fixed
+- Voice questions failed with "Malformed request": the browser now converts the recording to
+  mono 24 kHz 16-bit WAV (the format Muse Voice Transcribe documents) before uploading, and the
+  keyword hints are the featured stations plus the selected one instead of all 185 names.
+
 ## 2026-10-31 (Sat)
 
 ### Added

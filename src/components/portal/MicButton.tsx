@@ -7,6 +7,8 @@
  */
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 
+import { toWav } from './wav';
+
 const MAX_RECORD_MS = 30_000;
 
 const SUPPORTED_MIME = [
@@ -38,7 +40,7 @@ function subscribeMic(): () => void {
   return () => {};
 }
 
-export function MicButton({ onTranscript }: { onTranscript: (text: string) => void }) {
+export function MicButton({ onTranscript, station }: { onTranscript: (text: string) => void; station?: string }) {
   // External store (not state-in-effect) so server and client agree on the first render.
   const ready = useSyncExternalStore(subscribeMic, micSupported, () => false);
   const [phase, setPhase] = useState<Phase>('idle');
@@ -67,7 +69,11 @@ export function MicButton({ onTranscript }: { onTranscript: (text: string) => vo
     setPhase('sending');
     try {
       const form = new FormData();
-      form.append('audio', blob, `question.${extensionFor(blob.type)}`);
+      // Send WAV (the format Muse Voice Transcribe documents); fall back to the raw recording.
+      const wav = await toWav(blob).catch(() => null);
+      if (wav) form.append('audio', wav, 'question.wav');
+      else form.append('audio', blob, `question.${extensionFor(blob.type)}`);
+      if (station) form.append('station', station);
       const res = await fetch('/api/v1/transcribe', { method: 'POST', body: form });
       if (!res.ok) {
         const body = (await res.json().catch(() => null)) as { error?: { message?: string } } | null;
