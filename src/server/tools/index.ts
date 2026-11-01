@@ -39,6 +39,11 @@ export const landUseArgs = z.object({
   ring: z.enum(['0-400m', '0-800m', '800m-2km']).optional(),
 });
 export const searchPlaceArgs = z.object({ query: z.string().min(2).max(80) });
+export const findSitesArgs = z.object({
+  station: StationId.describe('Station id to search near'),
+  class: z.enum(['car_park', 'construction_site']).optional().describe('Only car parks or only construction sites'),
+  min_area_m2: z.number().positive().max(1_000_000).optional().describe('Only sites at least this big, in square metres'),
+});
 export const rankStationsArgs = z.object({
   metric: z.enum(METRIC_IDS).describe('Catalogued metric id to rank by'),
   ring: RingId.optional().describe('Distance ring; defaults to the metric default (usually 0-800m)'),
@@ -56,6 +61,7 @@ export const TOOL_ARG_SCHEMAS: Record<string, z.ZodTypeAny> = {
   land_use: landUseArgs,
   search_place: searchPlaceArgs,
   rank_stations: rankStationsArgs,
+  find_sites: findSitesArgs,
 };
 
 async function traced<T>(ctx: ToolContext, name: string, args: unknown, fn: () => Promise<{ result: T; fact_ids: string[]; sql?: string }>): Promise<string> {
@@ -242,5 +248,54 @@ export function buildTools(ctx: ToolContext): StructuredToolInterface[] {
     },
   );
 
-  return [queryMetricTool, rankStationsTool, landUseTool, runSqlTool, searchPlaceTool, listDatasetsTool] as StructuredToolInterface[];
+  const findSitesTool = tool(
+    async (args) =>
+      traced(ctx, 'find_sites', args, async () => {
+        const conds = ['station_id = $1'];
+        const params: unknown[] = [args.station];
+        if (args.class) {
+          params.push(args.class);
+          conds.push(`class = $${params.length}`);
+        }
+        if (args.min_area_m2 !== undefined) {
+          params.push(args.min_area_m2);
+          conds.push(`area_m2 >= $${params.length}`);
+        }
+        const sql = `select id, class, area_m2, distance_m, dataset_id, as_of from v_sam_sites where ${conds.join(' and ')} order by area_m2 desc`;
+        const rows = await ctx.db.readOnly<{ id: number; class: string; area_m2: number; distance_m: number; dataset_id: string; as_of: string }>(sql, params);
+        const datasets = await listDatasets(ctx.db);
+        const ds = datasets.find((d) => d.dataset_id === rows[0]?.dataset_id) ?? datasets[0];
+        const name = stationName(args.station);
+        const clsWord = args.class === 'car_park' ? 'car park ' : args.class === 'construction_site' ? 'construction site ' : '';
+        const base = { source: ds?.name ?? 'unknown', dataset_id: rows[0]?.dataset_id ?? ds?.dataset_id ?? 'none', as_of: rows[0]?.as_of ?? ds?.as_of ?? '', station_id: args.station, demo: ds?.is_demo };
+        const total = rows.reduce((a, r) => a + Number(r.area_m2), 0);
+        const out = [];
+        const count = ctx.facts.add({ label: `${clsWord ? `${clsWord[0]!.toUpperCase()}${clsWord.slice(1)}` : 'Candidate '}sites near ${name}`, value: rows.length, unit: 'count', metric: 'site_count', ...base });
+        out.push({ fact_id: count.id, label: count.label, display: count.display });
+        const area = ctx.facts.add({ label: `Total ${clsWord}site area near ${name}`, value: total, unit: 'm2', metric: 'site_total_area', ...base });
+        out.push({ fact_id: area.id, label: area.label, display: area.display });
+        const ord = ['Largest', '2nd largest', '3rd largest'];
+        rows.slice(0, 3).forEach((r, i) => {
+          const word = r.class === 'car_park' ? 'car park ' : r.class === 'construction_site' ? 'construction site ' : '';
+          const a = ctx.facts.add({ label: `${ord[i]} ${word}site near ${name}`, value: Number(r.area_m2), unit: 'm2', metric: 'site_area', ...base });
+          out.push({ fact_id: a.id, label: a.label, display: a.display });
+          const d = ctx.facts.add({ label: `${ord[i]} ${word}site near ${name}: distance`, value: Number(r.distance_m), unit: 'm', metric: 'site_distance', ...base });
+          out.push({ fact_id: d.id, label: d.label, display: d.display });
+        });
+        ctx.notes.push('candidate sites for further investigation; zoning and ownership not checked');
+        const mapAction = { type: 'show_layer', layer: 'places', classes: ['opportunity_sites'], visible: true };
+        return {
+          result: { station: args.station, class: args.class ?? null, count: rows.length, facts: out, map_action: mapAction, note: 'Include the map_action in your answer actions so the map shows these sites. Call them candidate sites for further investigation.' },
+          fact_ids: out.map((o) => o.fact_id),
+          sql,
+        };
+      }),
+    {
+      name: 'find_sites',
+      description: 'Find candidate development sites near a station: car parks and construction sites found by SAM 3.1 within 800 m, as facts (count, total area, three largest) plus a map_action showing them. They are candidates for investigation only; zoning and ownership are not checked.',
+      schema: findSitesArgs,
+    },
+  );
+
+  return [queryMetricTool, rankStationsTool, findSitesTool, landUseTool, runSqlTool, searchPlaceTool, listDatasetsTool] as StructuredToolInterface[];
 }

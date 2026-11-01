@@ -32,7 +32,8 @@
     "fetch:landuse": "tsx --tsconfig tsconfig.json scripts/fetch/landuse.ts",
     "ingest:landuse": "tsx --tsconfig tsconfig.json scripts/ingest/landuse.ts",
     "sam:batch": "tsx --tsconfig tsconfig.json scripts/sam/batch.ts",
-    "sam:check": "tsx --tsconfig tsconfig.json scripts/sam/check.ts"
+    "sam:check": "tsx --tsconfig tsconfig.json scripts/sam/check.ts",
+    "sam:sites": "tsx --tsconfig tsconfig.json scripts/sam/sites.ts"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.12",

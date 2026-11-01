@@ -11,7 +11,7 @@ import { LAND_USE_CATEGORIES } from '@/lib/landuse';
 import { LINE_COLOURS } from '@/lib/lines';
 
 import { MapGuide } from './MapGuide';
-import { HEX_COLOURS, type HexMeta, type LayerState, type MetricMeta, type StationMetricMode } from './MapView';
+import { HEX_COLOURS, SITE_COLOURS, type HexMeta, type LayerState, type MetricMeta, type StationMetricMode } from './MapView';
 
 const LINES = ['T1', 'T2', 'T3', 'T4', 'T8', 'T9', 'M1', 'L4'];
 
@@ -26,7 +26,7 @@ export function LayerPanel({ layers, onChange, hexMeta, metricMeta, canLandUse, 
   // null = not chosen yet: CSS shows the panel on desktop and only the button on phones.
   const [open, setOpen] = useState<boolean | null>(null);
   const [guide, setGuide] = useState(false);
-  const on = [layers.lines && 'lines', layers.hex !== 'off' && (layers.hex === 'unit' ? 'unit prices' : 'house prices'), layers.stationMetric !== 'off' && 'station colours', layers.bounds !== 'off' && `${layers.bounds}s`, layers.landuse && 'land use'].filter(Boolean);
+  const on = [layers.lines && 'lines', layers.hex !== 'off' && (layers.hex === 'unit' ? 'unit prices' : 'house prices'), layers.stationMetric !== 'off' && 'station colours', layers.bounds !== 'off' && `${layers.bounds}s`, layers.landuse && 'land use', layers.sites && 'sites'].filter(Boolean);
   const auto = open === null ? ' is-auto' : '';
   const toggle = (
     <button type="button" className={`layers-toggle${auto}`} aria-expanded="false" onClick={() => setOpen(true)} title="Show the layers panel">
@@ -139,6 +139,20 @@ export function LayerPanel({ layers, onChange, hexMeta, metricMeta, canLandUse, 
                 </button>
               ))}
             </div>
+          </fieldset>
+
+          <fieldset>
+            <legend>Opportunity sites <span className="meta-dot" aria-hidden="true" /> SAM 3.1</legend>
+            <label className="layer-row">
+              <input type="checkbox" checked={layers.sites} onChange={(e) => onChange({ ...layers, sites: e.target.checked })} />
+              <span>Car parks and construction sites near the selected station</span>
+            </label>
+            {layers.sites && (
+              <ul className="lu-keys">
+                <li><span className="swatch" style={{ background: SITE_COLOURS.car_park }} />Car park</li>
+                <li><span className="swatch" style={{ background: SITE_COLOURS.construction_site }} />Construction site</li>
+              </ul>
+            )}
           </fieldset>
 
           <fieldset>

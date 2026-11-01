@@ -20,7 +20,7 @@ import type { StationDto } from './api';
 export type HexMode = 'off' | 'unit' | 'house';
 export type BoundaryMode = 'off' | 'suburb' | 'lga' | 'postcode';
 export type StationMetricMode = 'off' | 'unit_median' | 'unit_change' | 'house_median' | 'trips' | 'trips_change';
-export type LayerState = { lines: boolean; rings: boolean; hex: HexMode; bounds: BoundaryMode; landuse: boolean; stationMetric: StationMetricMode };
+export type LayerState = { lines: boolean; rings: boolean; hex: HexMode; bounds: BoundaryMode; landuse: boolean; stationMetric: StationMetricMode; sites: boolean };
 
 export type MapState = {
   focus: string | null;
@@ -42,6 +42,7 @@ const FALLBACK_STYLE = { version: 8 as const, sources: {}, layers: [{ id: 'groun
 export const HEX_COLOURS = ['#efe9da', '#cddbe6', '#93b6d8', '#5487c2', '#1f5fad'];
 /** Station dots with no value for the selected metric. */
 export const STATION_NO_VALUE = '#9aa5a1';
+export const SITE_COLOURS = { car_park: '#4361ee', construction_site: '#d97706' };
 
 const STATION_METRIC_QUERY: Record<Exclude<StationMetricMode, 'off'>, { metric: string; property_type: string }> = {
   unit_median: { metric: 'median_price', property_type: 'unit' },
@@ -116,6 +117,7 @@ export function MapView({
   const metricData = useRef<{ mode: StationMetricMode; values: Map<string, { value: number; display: string }>; breaks: number[] } | null>(null);
   const boundsLoaded = useRef(false);
   const landuseFor = useRef<string | null>(null);
+  const sitesFor = useRef<string | null>(null);
   const latest = useRef({ stations, state, layers, kpis, onSelect, onHexMeta, onMetricMeta });
   latest.current = { stations, state, layers, kpis, onSelect, onHexMeta, onMetricMeta };
 
@@ -184,6 +186,22 @@ export function MapView({
           popup.current?.setLngLat(e.lngLat).setHTML(`<strong>${label}</strong><br>${(p.tertiary ?? '').replace(/^[\d.]+\s*/, '')}<br><span style="opacity:.7">NSW Landuse 2017</span>`).addTo(m);
         });
         m.on('mouseleave', 'landuse-fill', () => popup.current?.remove());
+
+        // Opportunity sites (SAM 3.1) around the selected station, under the labels.
+        m.addSource('sites', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+        const siteColour: ExpressionSpecification = ['match', ['get', 'class'],
+          'car_park', SITE_COLOURS.car_park, 'construction_site', SITE_COLOURS.construction_site, '#cccccc'] as unknown as ExpressionSpecification;
+        m.addLayer({ id: 'sites-fill', type: 'fill', source: 'sites', paint: { 'fill-color': siteColour, 'fill-opacity': 0.18 } }, firstSymbol);
+        m.addLayer({ id: 'sites-line', type: 'line', source: 'sites', paint: { 'line-color': siteColour, 'line-width': 2 } }, firstSymbol);
+        m.on('mousemove', 'sites-fill', (e) => {
+          const p = e.features?.[0]?.properties as { class?: string; area_m2?: number; distance_m?: number } | undefined;
+          if (!p?.class) return;
+          const label = p.class === 'car_park' ? 'Car park' : p.class === 'construction_site' ? 'Construction site' : p.class;
+          popup.current?.setLngLat(e.lngLat).setHTML(
+            `<strong>${label}</strong><br>${Math.round(Number(p.area_m2)).toLocaleString('en-AU')} m², ${Math.round(Number(p.distance_m))} m from the station<br><span style="opacity:.7">SAM 3.1 candidate site</span>`,
+          ).addTo(m);
+        });
+        m.on('mouseleave', 'sites-fill', () => popup.current?.remove());
 
         // Boundaries: loaded on first use (about 850 KB), drawn as quiet outlines with names.
         m.addSource('bounds', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
@@ -325,6 +343,7 @@ export function MapView({
       metricData.current = null;
       boundsLoaded.current = false;
       landuseFor.current = null;
+      sitesFor.current = null;
     };
   }, []);
 
@@ -394,6 +413,18 @@ export function MapView({
           .catch(() => null);
       }
     }
+    const sitesTarget = ly.sites ? s.focus : null;
+    if (sitesTarget !== sitesFor.current) {
+      sitesFor.current = sitesTarget;
+      const src = m.getSource('sites') as GeoJSONSource | undefined;
+      if (!sitesTarget) src?.setData({ type: 'FeatureCollection', features: [] });
+      else {
+        fetch(`/api/v1/layers/sites?station=${sitesTarget}`)
+          .then((r) => (r.ok ? r.json() : null))
+          .then((fc) => { if (fc && sitesFor.current === sitesTarget) src?.setData(fc); })
+          .catch(() => null);
+      }
+    }
     if (ly.bounds !== 'off' && !boundsLoaded.current) {
       boundsLoaded.current = true;
       (m.getSource('bounds') as GeoJSONSource | undefined)?.setData('/data/boundaries.geojson');
@@ -456,7 +487,7 @@ export function MapView({
 
   useEffect(() => {
     apply();
-  }, [stations, state.focus, state.radius_m, state.compare, state.highlight, layers.lines, layers.rings, layers.hex, layers.bounds, layers.landuse, layers.stationMetric, kpis]);
+  }, [stations, state.focus, state.radius_m, state.compare, state.highlight, layers.lines, layers.rings, layers.hex, layers.bounds, layers.landuse, layers.stationMetric, layers.sites, kpis]);
 
   useEffect(() => {
     const m = map.current;

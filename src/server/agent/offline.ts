@@ -40,6 +40,11 @@ export function planCalls(question: string, contextStation?: string): Call[] {
     return /\b(datasets?|data sources?|sources|licen[cs]e|coverage)\b/i.test(q) ? [{ name: 'list_datasets', args: {} }] : [];
   }
   const ids = stations.map((s) => s.id);
+  if (/\bsites?\b/i.test(q)) {
+    const cls = /construction/i.test(q) ? 'construction_site' : /car[ -]?parks?|parking/i.test(q) ? 'car_park' : undefined;
+    const area = q.match(/(?:larger|over|above|at least|>=?)\s?(?:than\s?)?([\d,]+)\s?(m²|m2|sqm|square metres?)/);
+    return [{ name: 'find_sites', args: { station: ids[0], ...(cls ? { class: cls } : {}), ...(area ? { min_area_m2: Number(area[1]!.replace(/,/g, '')) } : {}) } }];
+  }
   const ring = ringFrom(q);
   const type = typeFrom(q);
   const calls: Call[] = [];
@@ -136,9 +141,26 @@ export function offlineComposeFromFacts(question: string, facts: Fact[]): string
     const parts = fs.slice(0, 4).map((f) => `${f.label.split(' land use,')[0]} {${f.id}}`);
     lines.push(`Land use ${ringPhrase(fs[0]!.ring)} of ${stationName(fs[0]!.station_id!)}, as mapped in NSW Landuse 2017: ${parts.join(', ')}.`);
   }
+  // Opportunity sites: count, total area and the largest, per station.
+  const sites = new Map<string, Fact[]>();
+  for (const f of usable.filter((x) => x.metric?.startsWith('site_'))) {
+    sites.set(f.station_id ?? '', [...(sites.get(f.station_id ?? '') ?? []), f]);
+  }
+  for (const [stationId, fs] of sites) {
+    if (lines.length >= 3) break;
+    const count = fs.find((f) => f.metric === 'site_count');
+    const total = fs.find((f) => f.metric === 'site_total_area');
+    const areas = fs.filter((f) => f.metric === 'site_area');
+    const dists = fs.filter((f) => f.metric === 'site_distance');
+    const parts: string[] = [];
+    if (count && total) parts.push(`{${count.id}} sites covering {${total.id}}`);
+    else if (count) parts.push(`{${count.id}} sites`);
+    if (areas[0]) parts.push(`largest {${areas[0].id}}${dists[0] ? `, {${dists[0].id}} away` : ''}`);
+    if (parts.length) lines.push(`Candidate sites near ${stationName(stationId)}: ${parts.join('; ')}.`);
+  }
   // Group the other facts by metric + ring + property type.
   const groups = new Map<string, Fact[]>();
-  for (const f of facts.filter((x) => x.metric && !x.metric.startsWith('land_use_'))) {
+  for (const f of facts.filter((x) => x.metric && !x.metric.startsWith('land_use_') && !x.metric.startsWith('site_'))) {
     const key = `${f.metric}|${f.ring}|${f.property_type}`;
     groups.set(key, [...(groups.get(key) ?? []), f]);
   }
@@ -184,7 +206,7 @@ export function offlineComposeFromFacts(question: string, facts: Fact[]): string
   let chart: unknown = null;
   // Chart: the first metric with 2+ usable values, across stations or rings.
   const byMetric = new Map<string, Fact[]>();
-  for (const f of usable) byMetric.set(`${f.metric}|${f.property_type}`, [...(byMetric.get(`${f.metric}|${f.property_type}`) ?? []), f]);
+  for (const f of usable.filter((x) => !x.metric?.startsWith('site_'))) byMetric.set(`${f.metric}|${f.property_type}`, [...(byMetric.get(`${f.metric}|${f.property_type}`) ?? []), f]);
   for (const fs of byMetric.values()) {
     const ok = fs;
     const rings = new Set(ok.map((f) => f.ring));

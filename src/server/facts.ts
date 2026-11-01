@@ -7,7 +7,7 @@
  */
 import type { Fact } from '@/lib/contracts';
 
-export type Unit = 'aud' | 'aud_per_m2' | 'pct' | 'pct_change' | 'ratio' | 'count' | 'trips' | 'pct_points';
+export type Unit = 'aud' | 'aud_per_m2' | 'pct' | 'pct_change' | 'ratio' | 'count' | 'trips' | 'pct_points' | 'm2' | 'm';
 
 export function formatValue(value: number | null, unit: Unit | string): string {
   if (value === null || !Number.isFinite(value)) return 'not available';
@@ -30,6 +30,10 @@ export function formatValue(value: number | null, unit: Unit | string): string {
       return value >= 1_000_000 ? `${(value / 1_000_000).toFixed(2)}m` : `${Math.round(value / 1000)}k`;
     case 'count':
       return Math.round(value).toLocaleString('en-AU');
+    case 'm2':
+      return `${Math.round(value).toLocaleString('en-AU')} m²`;
+    case 'm':
+      return `${Math.round(value).toLocaleString('en-AU')} m`;
     default:
       return `${Number.isInteger(value) ? value : value.toFixed(2)}${unit ? ` ${unit}` : ''}`;
   }

@@ -50,7 +50,7 @@ export function Portal() {
   // The first start after a data change rebuilds the local database (a few minutes); say so.
   const [warming, setWarming] = useState(false);
   const [checked, setChecked] = useState(false);
-  const [layers, setLayers] = useState<LayerState>({ lines: true, rings: true, hex: 'off', bounds: 'off', landuse: true, stationMetric: 'off' });
+  const [layers, setLayers] = useState<LayerState>({ lines: true, rings: true, hex: 'off', bounds: 'off', landuse: true, stationMetric: 'off', sites: false });
   const [hexMeta, setHexMeta] = useState<HexMeta | null>(null);
   const [metricMeta, setMetricMeta] = useState<MetricMeta | null>(null);
   const [map, setMap] = useState<MapState>({ focus: null, radius_m: 800, compare: null, highlight: [], view: 'overview', flyNonce: 0 });
@@ -115,7 +115,9 @@ export function Portal() {
           setMap((m) => ({ ...m, compare: [ids[0]!, ids[1]!], focus: ids[0]!, radius_m: a.radius_m ?? m.radius_m, flyNonce: m.flyNonce + 1 }));
         }
       } else if (a.type === 'show_layer') {
-        if (a.layer === 'land_use' && a.visible !== false) {
+        if (a.layer === 'places' && (a.classes ?? []).includes('opportunity_sites')) {
+          setLayers((l) => ({ ...l, sites: a.visible !== false }));
+        } else if (a.layer === 'land_use' && a.visible !== false) {
           setLayers((l) => ({ ...l, landuse: true }));
           if (focus) setLandUse(await fetchLandUse(focus).catch(() => null));
         } else if (a.layer === 'sales') {
@@ -343,6 +345,7 @@ export function Portal() {
             : focus ? `${focus.name} · 400 m and ${map.radius_m} m rings` : `${stations.length || 185} train and metro stations`}
           {layers.hex !== 'off' && <span className="map-status-sub">Hexagons: median {layers.hex} price, last 12 months</span>}
           {layers.stationMetric !== 'off' && <span className="map-status-sub">Stations coloured by {metricMeta?.label ?? 'metric'}</span>}
+          {layers.sites && <span className="map-status-sub">Opportunity sites{focus ? ` near ${focus.name}` : ' (pick a station)'}</span>}
         </div>
         {note && <div className="map-note">{note}</div>}
         <LayerPanel layers={layers} onChange={setLayers} hexMeta={hexMeta} metricMeta={metricMeta} canLandUse={Boolean(map.focus)}

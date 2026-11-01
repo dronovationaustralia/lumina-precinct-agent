@@ -95,6 +95,19 @@ create table if not exists land_use_mix (
   primary key (station_id, ring_id, category)
 );
 
+-- SAM 3.1 opportunity sites (car parks and construction sites) within 800 m of stations.
+create table if not exists sam_sites (
+  id bigserial primary key,
+  dataset_id text not null references datasets(id),
+  station_id text not null references stations(id),
+  class text not null check (class in ('car_park', 'construction_site')),
+  area_m2 numeric not null check (area_m2 > 0),
+  distance_m numeric not null check (distance_m >= 0),
+  geom geometry(Polygon, 4326) not null
+);
+create index if not exists sam_sites_station_idx on sam_sites (station_id);
+create index if not exists sam_sites_geom_idx on sam_sites using gist (geom);
+
 create table if not exists land_use_ring (
   dataset_id text not null references datasets(id),
   station_id text not null references stations(id),
@@ -221,6 +234,11 @@ select id, category, tertiary, dataset_id, geom from land_use_polygons;
 create or replace view v_land_use as
 select station_id, ring_id, class, cover_pct::float8 as cover_pct, to_char(capture_date, 'YYYY-MM-DD') as capture_date, method, dataset_id from land_use_ring;
 
+create or replace view v_sam_sites as
+select s.id, s.station_id, s.class, s.area_m2::float8 as area_m2, s.distance_m::float8 as distance_m,
+       s.dataset_id, st_asgeojson(s.geom, 6) as geojson, to_char(d.as_of, 'YYYY-MM-DD') as as_of
+from sam_sites s join datasets d on d.id = s.dataset_id;
+
 -- Sales binned into hexagons (300 m circumradius, about 520 m across) for the map, last 12 months.
 -- Axial hex coordinates (q, r) on a local metric plane; the API turns them back into polygons.
 -- Only hexes with at least one sale within 5 km of a station; medians below 10 sales are suppressed.
@@ -275,4 +293,4 @@ end $$;
 revoke all on all tables in schema public from agent_ro;
 grant usage on schema public to agent_ro;
 grant select on v_stations, v_datasets, v_sales_period, v_sales_monthly, v_affordable_share,
-  v_patronage_monthly, v_land_use, v_sales_hex, v_land_use_mix, v_land_use_polygons to agent_ro;
+  v_patronage_monthly, v_land_use, v_sales_hex, v_land_use_mix, v_land_use_polygons, v_sam_sites to agent_ro;

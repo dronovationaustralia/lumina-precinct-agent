@@ -4,7 +4,7 @@
 import { LAND_USE_CATEGORIES } from '@/lib/landuse';
 import { LINE_COLOURS } from '@/lib/lines';
 
-import { HEX_COLOURS } from './MapView';
+import { HEX_COLOURS, SITE_COLOURS } from './MapView';
 
 export function MapGuide({ onClose }: { onClose: () => void }) {
   return (
@@ -53,6 +53,13 @@ export function MapGuide({ onClose }: { onClose: () => void }) {
             What each parcel within 2 km of the selected station was used for, from the NSW Government&apos;s land-use map (mapped
             2013 to 2017): residential, commercial, public services, parks, industrial, roads and rail, land in transition and
             more. Hover a shape for its detailed class. &quot;Land in transition&quot; is land between uses, often a development site.
+          </dd>
+
+          <dt><span className="g-lines"><i style={{ background: SITE_COLOURS.car_park }} /><i style={{ background: SITE_COLOURS.construction_site }} /></span> Opportunity sites</dt>
+          <dd>
+            Car parks (blue) and construction sites (amber) found by SAM 3.1 on one aerial capture
+            within 800 m of the selected station. Hover one for its area and distance from the
+            station. Candidates for investigation only, not zoning or ownership advice.
           </dd>
 
           <dt><span className="g-bounds" /> Boundaries</dt>
