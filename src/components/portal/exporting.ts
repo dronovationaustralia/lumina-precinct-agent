@@ -33,6 +33,23 @@ export function reportMarkdown(turns: Turn[], names: (id?: string) => string | u
   return [`# Lumina precinct analysis`, '', `Prepared ${date}${user ? ` by ${user}` : ''} with Lumina Precinct Agent (Dronovation Labs).`, '', ...turns.map((t) => answerMarkdown(t, names(t.station)))].join('\n');
 }
 
+/** Share a link: the Web Share sheet on mobile, the clipboard everywhere else. */
+export async function shareLink(url: string, title: string): Promise<'shared' | 'copied' | 'dismissed' | 'failed'> {
+  try {
+    if (typeof navigator !== 'undefined' && 'share' in navigator && window.matchMedia?.('(pointer: coarse)').matches) {
+      await navigator.share({ title, url });
+      return 'shared';
+    }
+  } catch (e) {
+    if (e instanceof Error && e.name === 'AbortError') return 'dismissed';
+  }
+  try {
+    await navigator.clipboard?.writeText(url);
+    return 'copied';
+  } catch {
+    return 'failed';
+  }
+}
 export function download(filename: string, text: string, type = 'text/markdown') {
   const url = URL.createObjectURL(new Blob([text], { type: `${type};charset=utf-8` }));
   const a = document.createElement('a');

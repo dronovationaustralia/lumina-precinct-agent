@@ -64,14 +64,15 @@ function renderLine(template: string, facts: Map<string, Fact>, order: Map<strin
   });
 }
 
-export type AnswerActions = { onSave: () => void; onPdf: () => void; onMarkdown: () => void; onCopy: () => void; saved: boolean };
+export type AnswerActions = { onSave: () => void; onPdf: () => void; onMarkdown: () => void; onCopy: () => void; onShare: () => void; saved: boolean };
 
-export function AnswerCard({ turn, stationName, onFollowUp, onFocusFact, actions }: {
+export function AnswerCard({ turn, stationName, onFollowUp, onFocusFact, actions, shared }: {
   turn: Turn;
   stationName?: string;
   onFollowUp: (q: string) => void;
   onFocusFact: (f: Fact | null) => void;
   actions?: AnswerActions;
+  shared?: boolean;
 }) {
   const anchor = useId().replace(/:/g, '');
   const [hover, setHover] = useState<string | null>(null);
@@ -101,12 +102,13 @@ export function AnswerCard({ turn, stationName, onFollowUp, onFocusFact, actions
         </ol>
       ))}
 
-      {a && <AnswerBody a={a} anchor={anchor} hover={hover} onHot={hot} open={open} setOpen={setOpen} onFollowUp={onFollowUp} />}
+      {a && <AnswerBody a={a} anchor={anchor} hover={hover} onHot={hot} open={open} setOpen={setOpen} onFollowUp={onFollowUp} shared={shared} />}
       {a && actions && (
         <div className="answer-actions" role="group" aria-label="Export or save this answer">
           <button type="button" onClick={actions.onCopy} title="Copy the answer, figures and sources as text">Copy</button>
           <button type="button" onClick={actions.onMarkdown} title="Download as a Markdown file">Markdown</button>
           <button type="button" onClick={actions.onPdf} title="Opens the print dialog: choose Save as PDF">Export PDF</button>
+          <button type="button" onClick={actions.onShare} title="Copy a public link to this answer">Share</button>
           <button type="button" className={actions.saved ? 'is-on' : ''} onClick={actions.onSave} aria-pressed={actions.saved} title="Keep this analysis in Saved (this browser)">
             {actions.saved ? 'Saved' : 'Save'}
           </button>
@@ -116,9 +118,9 @@ export function AnswerCard({ turn, stationName, onFollowUp, onFocusFact, actions
   );
 }
 
-function AnswerBody({ a, anchor, hover, onHot, open, setOpen, onFollowUp }: {
+function AnswerBody({ a, anchor, hover, onHot, open, setOpen, onFollowUp, shared }: {
   a: AskResponse; anchor: string; hover: string | null; onHot: (id: string | null) => void;
-  open: boolean; setOpen: (f: (o: boolean) => boolean) => void; onFollowUp: (q: string) => void;
+  open: boolean; setOpen: (f: (o: boolean) => boolean) => void; onFollowUp: (q: string) => void; shared?: boolean;
 }) {
   const facts = new Map(a.facts.map((f) => [f.id, f]));
   const order = new Map<string, number>();
@@ -158,11 +160,15 @@ function AnswerBody({ a, anchor, hover, onHot, open, setOpen, onFollowUp }: {
           <h3>How this answer was made</h3>
           <span className={`badge ${ok ? 'badge-ok' : 'badge-warn'}`}>{ok ? 'Verified' : 'Template answer'}</span>
         </div>
-        <ModelTrail answer={a} />
-        <button type="button" className="link-button" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
+        {shared ? (
+          <p className="meta-line">{model.name} via {model.host}. Shared answers carry the verified figures and sources; the full query trail is not included.</p>
+        ) : (
+          <ModelTrail answer={a} />
+        )}
+        {!shared && (<button type="button" className="link-button" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
           {open ? 'Hide checks and queries' : 'Show checks and queries'}
-        </button>
-        {open && (
+        </button>)}
+        {!shared && open && (
           <div className="details">
             <ul className="checks">
               {a.verification.checks.map((c) => (

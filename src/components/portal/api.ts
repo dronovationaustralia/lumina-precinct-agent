@@ -118,6 +118,39 @@ export async function fetchBriefing(station: string): Promise<BriefingDto> {
   if (res.status !== 200 && res.status !== 503) throw new Error(`Briefing failed to load (HTTP ${res.status})`);
   return res.json();
 }
+export type TourFigureDto = {
+  label: string; display: string; value: number | null; unit: string;
+  source: string; dataset_id: string; as_of: string; demo?: boolean;
+};
+
+export type TourStopDto = {
+  station_id: string; name: string; lines: string[]; lat: number; lon: number;
+  figures: TourFigureDto[]; headline: string; headline_model: boolean;
+};
+
+export type TourDto = { id: string; title: string; stops: TourStopDto[] };
+
+async function postShare(body: unknown): Promise<{ url: string }> {
+  const res = await fetch('/api/v1/share', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  if (!res.ok) {
+    const data = await res.json().catch(() => null);
+    throw new Error(data?.error?.message ?? `Share failed (HTTP ${res.status})`);
+  }
+  return res.json();
+}
+
+export function shareAnswer(token: string): Promise<{ url: string }> {
+  return postShare({ type: 'answer', token });
+}
+
+export function sharePrecinct(station: string): Promise<{ url: string }> {
+  return postShare({ type: 'precinct', station });
+}
+export async function fetchTour(tour: string): Promise<TourDto> {
+  const res = await fetch(`/api/v1/tour/${tour}`);
+  if (!res.ok) throw new Error(`Tour failed to load (HTTP ${res.status})`);
+  return res.json();
+}
 export async function fetchUser(): Promise<User | null> {
   const res = await fetch('/api/auth/session');
   return res.ok ? (await res.json()).user : null;

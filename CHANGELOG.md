@@ -4,6 +4,13 @@ All work in this repository was built during the Meta Global AI Developer Hackat
 (27 Oct – 4 Nov 2026). Dates are Sydney time. No code is copied from earlier Lumina
 repositories (`LuminaSpatialInsightsXR`, `LuminaSpatial`, `extended-tableau-mcp`).
 
+## 2026-11-02 (Mon)
+
+### Added
+- Corridor tours: a guided, verified station-by-station briefing on the map (built with Muse Code).
+- Share links: public precinct cards and verified answers with rich previews (built with Muse Code).
+  Answer links are signed by the server when it produces the answer (`share_token` in the /ask response); the share endpoint only accepts that token, so a client cannot get invented figures signed.
+
 ## 2026-11-01 (Sun)
 
 ### Added
