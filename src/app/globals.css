@@ -375,6 +375,17 @@ body {
 .layer-select { width: 100%; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--rule); background: var(--panel); color: var(--ink); font: inherit; font-size: 12.5px; cursor: pointer; }
 .layer-button { width: 100%; padding: 7px 8px; border-radius: 8px; border: 1px solid var(--harbour); background: transparent; color: var(--harbour); font: inherit; font-size: 12.5px; font-weight: 650; cursor: pointer; }
 .layer-button:disabled { border-color: var(--rule); color: var(--ink-muted); cursor: default; font-weight: 400; }
+.layer-hint { margin: 4px 0 0; font-size: 11px; color: var(--ink-muted); }
+.sam-keys { grid-template-columns: 1fr; margin: 6px 0; }
+.sam-opacity span { font-size: 12px; color: var(--ink-muted); white-space: nowrap; }
+.sam-opacity input[type="range"] { flex: 1; accent-color: var(--harbour); }
+.sam-hold { margin-top: 8px; touch-action: none; user-select: none; -webkit-user-select: none; }
+.sam-caption {
+  position: absolute; left: 50%; transform: translateX(-50%); bottom: 28px; z-index: 1; max-width: min(560px, calc(100% - 24px));
+  margin: 0; padding: 8px 14px; border-radius: 8px; background: var(--panel); color: var(--ink);
+  font-size: 13px; font-weight: 650; box-shadow: 0 0 0 1px var(--rule), 0 8px 24px rgb(30 45 43 / 0.2); pointer-events: none;
+}
+.landuse .layer-button, .model-row .layer-button { margin-top: 10px; }
 .layers-toggle { position: absolute; right: 12px; top: 12px; padding: 7px 12px; border-radius: 8px; border: 0; cursor: pointer; background: var(--panel); color: var(--ink); font: inherit; font-size: 13px; font-weight: 650; box-shadow: 0 0 0 1px var(--rule), var(--shadow); }
 @media (min-width: 961px) { .layers-toggle.is-auto { display: none; } }
 @media (max-width: 960px) {

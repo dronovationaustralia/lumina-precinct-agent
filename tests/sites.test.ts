@@ -14,7 +14,7 @@ import { loadRealSites } from '@/server/db/real-sites';
 import { FactStore } from '@/server/facts';
 import { buildTools, type ToolContext } from '@/server/tools';
 
-import { douglasPeucker, labelComponents, lonLatFromMerc, mercFromLonLat, ringArea, traceOutline } from '../scripts/sam/polygons';
+import { createStationProjection, douglasPeucker, labelComponents, lonLatFromMerc, mercFromLonLat, ringArea, traceOutline } from '../scripts/sam/polygons';
 
 describe('site polygons', () => {
   test('labels 8-connected components', () => {
@@ -50,6 +50,19 @@ describe('site polygons', () => {
     const { lat, lon } = lonLatFromMerc(x, y);
     expect(lat).toBeCloseTo(-33.86, 8);
     expect(lon).toBeCloseTo(151.2, 8);
+  });
+
+  test("a pixel at a chip's edge lands 256 m from the chip centre", () => {
+    // At the equator (cos = 1) with 0.5 m per pixel over 512 px, the outer edge of
+    // an edge pixel is exactly half a chip (256 m) from the chip centre on the ground.
+    const { toMetres } = createStationProjection({ lat: 0, lon: 0 }, 1, 1024, 0.5);
+    const [ex, ey] = toMetres(-0.5, 511.5);
+    expect(Math.hypot(ex, ey)).toBeCloseTo(256, 8);
+    expect(ex).toBeCloseTo(-256, 8);
+    expect(ey).toBeCloseTo(0, 8);
+    // The edge pixel's centre is within half a pixel of that.
+    const [cx, cy] = toMetres(0, 511.5);
+    expect(Math.abs(Math.hypot(cx, cy) - 256)).toBeLessThanOrEqual(0.25);
   });
 });
 

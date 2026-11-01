@@ -7,9 +7,10 @@
  *   npm run db:setup -- --load-sales        # replace demo sales with real sales from data/derived
  *   npm run db:setup -- --load-patronage    # replace demo patronage with TfNSW entries and exits
  *   npm run db:setup -- --load-landuse      # NSW Landuse 2017 polygons and ring shares
- *   npm run db:setup -- --load-real         # sales, patronage, land use, SAM cover and SAM sites
+ *   npm run db:setup -- --load-real         # sales, patronage, land use, SAM cover, SAM sites and SAM polygons
  *   npm run db:setup -- --load-cover        # only SAM 3.1 aerial cover (after a new sam:batch)
  *   npm run db:setup -- --load-sites        # only SAM 3.1 opportunity sites (after sam:sites)
+ *   npm run db:setup -- --load-sam-polygons # only SAM 3.1 segmentation polygons (after sam:polygons)
  *
  * Reads DATABASE_URL (the admin connection string) from .env.local or the environment.
  * For --agent-login, set AGENT_DB_PASSWORD; the login is `lumina_agent`, a member of agent_ro.
@@ -92,6 +93,13 @@ try {
       const r = await loadRealSites(db);
       console.log(`Loaded ${r.sites} SAM 3.1 opportunity sites near ${r.stations} stations.`);
     } else console.log('No data/derived/sam_sites.geojson: no opportunity sites (run npm run sam:sites).');
+  }
+  if (flags.has('--load-sam-polygons') || flags.has('--load-real')) {
+    const { loadRealCoverPolygons, realCoverPolygonsAvailable } = await import('@/server/db/real-cover-polygons');
+    if (realCoverPolygonsAvailable()) {
+      const r = await loadRealCoverPolygons(db);
+      console.log(`Loaded ${r.polygons} SAM 3.1 segmentation polygons near ${r.stations} stations.`);
+    } else console.log('No data/derived/sam_cover_polygons.geojson: no segmentation polygons (run npm run sam:polygons).');
   }
   if ([...flags].some((f) => f.startsWith('--load-') || f === '--seed-demo')) {
     const { refreshAggregates } = await import('@/server/db/aggregates');

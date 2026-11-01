@@ -129,3 +129,49 @@ export function mercFromLonLat(lat: number, lon: number): { x: number; y: number
 export function lonLatFromMerc(x: number, y: number): { lat: number; lon: number } {
   return { lon: ((x / MERCATOR_R) * 180) / Math.PI, lat: (Math.atan(Math.sinh(y / MERCATOR_R)) * 180) / Math.PI };
 }
+
+/**
+ * Georeferencing for one station's chip grid, shared by the SAM polygon exports
+ * (sites.ts, cover-polygons.ts).
+ *
+ * Each chip was fetched as a Web Mercator box of RES / cos(lat) map units per pixel
+ * around its centre (see fetchChip in batch.ts), so grid-pixel offsets are scaled by
+ * that before converting back to ground metres. `toMetres` gives ground metres
+ * (east, north) from the station for a grid pixel; `toLonLat` turns those back into
+ * WGS84. Pixel coordinates may be fractional (pixel centres sit at half-integers
+ * after the +0.5 convention below; pass -0.5 for a chip's outer edge).
+ */
+export function createStationProjection(
+  station: { lat: number; lon: number },
+  gridN: number,
+  chipPx: number,
+  resM: number,
+): {
+  chipCentre: (gx: number, gy: number) => { lat: number; lon: number };
+  toMetres: (px: number, py: number) => Point;
+  toLonLat: (e: number, m: number) => Point;
+} {
+  const chipM = chipPx * resM;
+  const mPerDegLat = 111_320, mPerDegLon = 111_320 * Math.cos((station.lat * Math.PI) / 180);
+  const chipCentre = (gx: number, gy: number) => {
+    const ex = (gx - (gridN - 1) / 2) * chipM, ny = ((gridN - 1) / 2 - gy) * chipM;
+    return { lat: station.lat + ny / mPerDegLat, lon: station.lon + ex / mPerDegLon };
+  };
+  const stationMerc = mercFromLonLat(station.lat, station.lon);
+  const cosStation = Math.cos((station.lat * Math.PI) / 180);
+  const toMetres = (px: number, py: number): Point => {
+    const gx = Math.min(gridN - 1, Math.max(0, Math.floor(px / chipPx)));
+    const gy = Math.min(gridN - 1, Math.max(0, Math.floor(py / chipPx)));
+    const { lat, lon } = chipCentre(gx, gy);
+    const c = mercFromLonLat(lat, lon);
+    const unit = resM / Math.cos((lat * Math.PI) / 180);
+    const mx = c.x + (px - gx * chipPx + 0.5 - chipPx / 2) * unit;
+    const my = c.y + (gy * chipPx + chipPx / 2 - (py + 0.5)) * unit;
+    return [(mx - stationMerc.x) * cosStation, (my - stationMerc.y) * cosStation];
+  };
+  const toLonLat = (e: number, m: number): Point => {
+    const { lat, lon } = lonLatFromMerc(stationMerc.x + e / cosStation, stationMerc.y + m / cosStation);
+    return [Number(lon.toFixed(7)), Number(lat.toFixed(7))];
+  };
+  return { chipCentre, toMetres, toLonLat };
+}

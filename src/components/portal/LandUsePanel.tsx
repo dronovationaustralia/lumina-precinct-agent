@@ -15,7 +15,7 @@ const RING_NAMES: Record<string, string> = { '0-400m': 'Within 400 m', '0-800m':
 const COVER_NAMES: Record<string, string> = { building: 'Building', tree_canopy: 'Tree canopy', car_park: 'Car park', construction_site: 'Construction site' };
 const ORDER = Object.keys(LAND_USE_CATEGORIES) as LandUseCategory[];
 
-export function LandUsePanel({ data, stationName, onClose }: { data: LandUseDto; stationName: string; onClose: () => void }) {
+export function LandUsePanel({ data, stationName, onClose, onShowSam }: { data: LandUseDto; stationName: string; onClose: () => void; onShowSam: () => void }) {
   const mix = data.mix ?? {};
   const rings = ['0-400m', '0-800m', '800m-2km'].filter((r) => mix[r]);
   const present = ORDER.filter((c) => rings.some((r) => (mix[r]?.[c] ?? 0) >= 0.5));
@@ -93,6 +93,11 @@ export function LandUsePanel({ data, stationName, onClose }: { data: LandUseDto;
         </div>
       ))}
       {data.rings['0-800m'] && <p className="landuse-foot">Within 800 m, one capture date{data.capture_date ? ` (${data.capture_date})` : ''}. Classes can overlap.</p>}
+      {FEATURED_STATIONS.some((s) => s.id === data.station) ? (
+        <button type="button" className="layer-button" onClick={onShowSam}>Show what SAM 3.1 saw</button>
+      ) : (
+        <button type="button" className="layer-button" disabled title={`SAM 3.1 has segmented the featured stations so far: ${FEATURED_STATIONS.map((s) => s.name).join(', ')}.`}>Show what SAM 3.1 saw</button>
+      )}
     </aside>
   );
 }

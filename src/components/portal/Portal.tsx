@@ -19,7 +19,7 @@ import { ask, fetchLandUse, fetchStations, fetchSummary, fetchTour, fetchUser, s
 import { LandUsePanel } from './LandUsePanel';
 import { LayerPanel } from './LayerPanel';
 import { LineBadges } from './LineBadges';
-import { MapView, type HexMeta, type LayerState, type MapState, type MetricMeta, type StationMetricMode } from './MapView';
+import { MapView, type HexMeta, type LayerState, type MapState, type MetricMeta, type SamMeta, type StationMetricMode } from './MapView';
 import { MicButton } from './MicButton';
 import { ModelsPanel, type Health } from './ModelsPanel';
 import { PrecinctSnapshot } from './PrecinctSnapshot';
@@ -53,9 +53,11 @@ export function Portal() {
   // The first start after a data change rebuilds the local database (a few minutes); say so.
   const [warming, setWarming] = useState(false);
   const [checked, setChecked] = useState(false);
-  const [layers, setLayers] = useState<LayerState>({ lines: true, rings: true, hex: 'off', bounds: 'off', landuse: true, stationMetric: 'off', sites: false });
+  const [layers, setLayers] = useState<LayerState>({ lines: true, rings: true, hex: 'off', bounds: 'off', landuse: true, stationMetric: 'off', sites: false, sam: false, samOpacity: 0.45, aerial: false });
   const [hexMeta, setHexMeta] = useState<HexMeta | null>(null);
   const [metricMeta, setMetricMeta] = useState<MetricMeta | null>(null);
+  const [samMeta, setSamMeta] = useState<SamMeta | null>(null);
+  const [samPeek, setSamPeek] = useState(false);
   const [tourPicker, setTourPicker] = useState(false);
   const [tour, setTour] = useState<TourState | null>(null);
   const [map, setMap] = useState<MapState>({ focus: null, radius_m: 800, compare: null, highlight: [], view: 'overview', flyNonce: 0 });
@@ -97,6 +99,25 @@ export function Portal() {
 
   const resolve = (target: string) => stationsRef.current.find((s) => s.id === target || s.name.toLowerCase() === target.toLowerCase())?.id;
 
+  /** Turning on "What SAM 3.1 sees" also switches to the aerial photo and flies in close. */
+  const changeLayers = (l: LayerState) => {
+    if (l.sam && !layers.sam) {
+      l = { ...l, aerial: true };
+      if (map.focus) setMap((m) => ({ ...m, view: 'close', flyNonce: m.flyNonce + 1 }));
+    }
+    setLayers(l);
+  };
+
+  /** Turn on the SAM reveal for the selected station, or the first featured one. */
+  const showSam = () => {
+    const id = stations.find((s) => s.id === map.focus)?.featured
+      ? map.focus!
+      : stations.find((s) => s.featured)?.id;
+    if (!id) return;
+    setLayers((l) => ({ ...l, sam: true, aerial: true }));
+    setMap((m) => ({ ...m, focus: id, compare: null, view: 'close', flyNonce: m.flyNonce + 1 }));
+  };
+
   const runActions = useCallback(async (actions: MapAction[]) => {
     setNote(null);
     let focus: string | null | undefined;
@@ -122,6 +143,19 @@ export function Portal() {
       } else if (a.type === 'show_layer') {
         if (a.layer === 'places' && (a.classes ?? []).includes('opportunity_sites')) {
           setLayers((l) => ({ ...l, sites: a.visible !== false }));
+        } else if (a.layer === 'land_use' && (a.classes ?? []).includes('sam')) {
+          // "Turn on What SAM 3.1 sees" for a featured station; otherwise the plain land use.
+          const id = focus ?? undefined;
+          const featured = id ? stationsRef.current.find((s) => s.id === id)?.featured : false;
+          if (a.visible !== false && featured) {
+            setLayers((l) => ({ ...l, sam: true, aerial: true }));
+            setMap((m) => ({ ...m, view: 'close', flyNonce: m.flyNonce + 1 }));
+          } else if (a.visible !== false) {
+            setLayers((l) => ({ ...l, landuse: true }));
+            if (focus) setLandUse(await fetchLandUse(focus).catch(() => null));
+          } else {
+            setLayers((l) => ({ ...l, sam: false }));
+          }
         } else if (a.layer === 'land_use' && a.visible !== false) {
           setLayers((l) => ({ ...l, landuse: true }));
           if (focus) setLandUse(await fetchLandUse(focus).catch(() => null));
@@ -434,7 +468,7 @@ export function Portal() {
       </main>
 
       <section className="map-pane" aria-label="Map">
-        <MapView stations={stations} state={map} layers={layers} kpis={kpis} onSelect={select} onHexMeta={setHexMeta} onMetricMeta={setMetricMeta} />
+        <MapView stations={stations} state={map} layers={layers} kpis={kpis} onSelect={select} onHexMeta={setHexMeta} onMetricMeta={setMetricMeta} onSamMeta={setSamMeta} samPeek={samPeek} />
         <div className="map-status" aria-live="polite">
           {map.compare
             ? `Comparing ${stations.find((s) => s.id === map.compare![0])?.name} and ${stations.find((s) => s.id === map.compare![1])?.name}`
@@ -442,6 +476,7 @@ export function Portal() {
           {layers.hex !== 'off' && <span className="map-status-sub">Hexagons: median {layers.hex} price, last 12 months</span>}
           {layers.stationMetric !== 'off' && <span className="map-status-sub">Stations coloured by {metricMeta?.label ?? 'metric'}</span>}
           {layers.sites && <span className="map-status-sub">Opportunity sites{focus ? ` near ${focus.name}` : ' (pick a station)'}</span>}
+          {layers.sam && <span className="map-status-sub">What SAM 3.1 sees{focus ? ` near ${focus.name}` : ''}</span>}
         </div>
         {note && <div className="map-note">{note}</div>}
         {tour && (
@@ -452,7 +487,8 @@ export function Portal() {
             onExit={exitTour}
           />
         )}
-        <LayerPanel layers={layers} onChange={setLayers} hexMeta={hexMeta} metricMeta={metricMeta} canLandUse={Boolean(map.focus)}
+        <LayerPanel layers={layers} onChange={changeLayers} hexMeta={hexMeta} metricMeta={metricMeta} canLandUse={Boolean(map.focus)}
+          samMeta={samMeta} samPeek={samPeek} onSamPeek={setSamPeek} focusName={focus?.name ?? null} samAvailable={focus?.featured ?? false}
           onLandUse={async () => {
             if (!map.focus) return;
             setToast('Loading land use…');
@@ -460,11 +496,11 @@ export function Portal() {
             if (lu) { setLandUse(lu); setToast(null); } else setToast(warming ? 'Still loading the data. Try again in a minute.' : 'Land use is not available for this station.');
           }} />
         {landUse && (
-          <LandUsePanel data={landUse} stationName={stations.find((st) => st.id === landUse.station)?.name ?? landUse.station} onClose={() => setLandUse(null)} />
+          <LandUsePanel data={landUse} stationName={stations.find((st) => st.id === landUse.station)?.name ?? landUse.station} onClose={() => setLandUse(null)} onShowSam={showSam} />
         )}
       </section>
 
-      {showModels && <ModelsPanel health={health} checking={!checked} onClose={() => setShowModels(false)} />}
+      {showModels && <ModelsPanel health={health} checking={!checked} onClose={() => setShowModels(false)} onShowSam={showSam} samStationName={(focus?.featured ? focus : featured[0] ?? null)?.name ?? null} />}
       {tourPicker && <TourPicker onPick={(id) => void startTour(id)} onClose={() => setTourPicker(false)} />}
       {showSaved && (
         <SavedPanel

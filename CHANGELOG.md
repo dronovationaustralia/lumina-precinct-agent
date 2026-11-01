@@ -7,6 +7,7 @@ repositories (`LuminaSpatialInsightsXR`, `LuminaSpatial`, `extended-tableau-mcp`
 ## 2026-11-02 (Mon)
 
 ### Added
+- What SAM 3.1 sees: aerial photo with SAM segmentation revealed on the map (built with Muse Code).
 - Corridor tours: a guided, verified station-by-station briefing on the map (built with Muse Code).
 - Share links: public precinct cards and verified answers with rich previews (built with Muse Code).
   Answer links are signed by the server when it produces the answer (`share_token` in the /ask response); the share endpoint only accepts that token, so a client cannot get invented figures signed.

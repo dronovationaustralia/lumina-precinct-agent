@@ -50,6 +50,8 @@ MapAction (station ids as above, snake_case names):
   {"type":"highlight","kind":"station","ids":["<station id>"],"style":"pulse"|"outline"}
   {"type":"compare","station_ids":["<id>","<id>"],"metrics":["<metric id>"],"radius_m":800}
   {"type":"show_layer","layer":"land_use"|"esg"|"sales"|"patronage"|"news"|"places"|"lines","visible":true}
+  For a land-use or aerial-cover question about a featured station (${FEATURED}), add "classes":["sam"]
+  to the land_use show_layer so the map reveals what SAM 3.1 saw there.
 FollowUp: {"label":"<max 32 chars>","question":"<a natural next question>"}
 ChartRequest: {"kind":"bar"|"grouped_bar","title":"<short title>","fact_ids":["f1","f2",...]}  // 2 to 12 facts, same unit
 

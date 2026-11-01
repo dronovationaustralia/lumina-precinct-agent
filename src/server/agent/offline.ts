@@ -194,8 +194,11 @@ export function offlineComposeFromFacts(question: string, facts: Fact[]): string
     actions.push({ type: 'fly_to', target: top, view: 'overview' });
     actions.push({ type: 'highlight', kind: 'station', ids: [top], style: 'pulse' });
   } else if (stations.length >= 1) actions.push({ type: 'fly_to', target: stations[0], view: 'close' });
-  if (metrics.some((m) => m.startsWith('land_use_') || ['canopy_pct', 'carpark_pct', 'building_pct', 'construction_pct'].includes(m))) actions.push({ type: 'show_layer', layer: 'land_use', visible: true });
-  else if (stations.length === 1) actions.push({ type: 'set_radius', radius_m: 800 });
+  if (metrics.some((m) => m.startsWith('land_use_') || ['canopy_pct', 'carpark_pct', 'building_pct', 'construction_pct'].includes(m))) {
+    // One featured station: reveal what SAM 3.1 saw instead of the plain land use.
+    const sam = stations.length === 1 && STATIONS.find((s) => s.id === stations[0])?.featured;
+    actions.push(sam ? { type: 'show_layer', layer: 'land_use', classes: ['sam'], visible: true } : { type: 'show_layer', layer: 'land_use', visible: true });
+  } else if (stations.length === 1) actions.push({ type: 'set_radius', radius_m: 800 });
 
   const first = stations[0] ? stationName(stations[0]) : 'Chatswood';
   const followups = [

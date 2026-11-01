@@ -9,24 +9,32 @@ import { useState } from 'react';
 import { money } from '@/lib/format';
 import { LAND_USE_CATEGORIES } from '@/lib/landuse';
 import { LINE_COLOURS } from '@/lib/lines';
+import { FEATURED_STATIONS } from '@/lib/stations';
 
 import { MapGuide } from './MapGuide';
-import { HEX_COLOURS, SITE_COLOURS, type HexMeta, type LayerState, type MetricMeta, type StationMetricMode } from './MapView';
+import { HEX_COLOURS, SAM_CLASSES, SAM_CLASS_PLURALS, SAM_COLOURS, SITE_COLOURS, type HexMeta, type LayerState, type MetricMeta, type SamMeta, type StationMetricMode } from './MapView';
 
 const LINES = ['T1', 'T2', 'T3', 'T4', 'T8', 'T9', 'M1', 'L4'];
+const FEATURED_NAMES = FEATURED_STATIONS.map((s) => s.name).join(', ');
 
-export function LayerPanel({ layers, onChange, hexMeta, metricMeta, canLandUse, onLandUse }: {
+export function LayerPanel({ layers, onChange, hexMeta, metricMeta, canLandUse, onLandUse, samMeta, samPeek, onSamPeek, focusName, samAvailable }: {
   layers: LayerState;
   onChange: (l: LayerState) => void;
   hexMeta: HexMeta | null;
   metricMeta: MetricMeta | null;
   canLandUse: boolean;
   onLandUse: () => void;
+  samMeta: SamMeta | null;
+  samPeek: boolean;
+  onSamPeek: (v: boolean) => void;
+  focusName: string | null;
+  samAvailable: boolean;
 }) {
   // null = not chosen yet: CSS shows the panel on desktop and only the button on phones.
   const [open, setOpen] = useState<boolean | null>(null);
   const [guide, setGuide] = useState(false);
-  const on = [layers.lines && 'lines', layers.hex !== 'off' && (layers.hex === 'unit' ? 'unit prices' : 'house prices'), layers.stationMetric !== 'off' && 'station colours', layers.bounds !== 'off' && `${layers.bounds}s`, layers.landuse && 'land use', layers.sites && 'sites'].filter(Boolean);
+  const on = [layers.aerial && 'aerial photo', layers.lines && 'lines', layers.hex !== 'off' && (layers.hex === 'unit' ? 'unit prices' : 'house prices'), layers.stationMetric !== 'off' && 'station colours', layers.bounds !== 'off' && `${layers.bounds}s`, layers.landuse && 'land use', layers.sites && 'sites', layers.sam && 'SAM 3.1'].filter(Boolean);
+  const samTip = samAvailable ? undefined : `SAM 3.1 has segmented the featured stations so far: ${FEATURED_NAMES}.`;
   const auto = open === null ? ' is-auto' : '';
   const toggle = (
     <button type="button" className={`layers-toggle${auto}`} aria-expanded="false" onClick={() => setOpen(true)} title="Show the layers panel">
@@ -53,6 +61,15 @@ export function LayerPanel({ layers, onChange, hexMeta, metricMeta, canLandUse, 
             <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><circle cx="8" cy="8" r="6.5" fill="none" stroke="currentColor" strokeWidth="1.3" /><path d="M8 7.2V11M8 5v.2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" /></svg>
             How to read the map
           </button>
+
+          <fieldset>
+            <legend>Basemap</legend>
+            <label className="layer-row">
+              <input type="checkbox" checked={layers.aerial} onChange={(e) => onChange({ ...layers, aerial: e.target.checked })} />
+              <span>Aerial photo (NSW)</span>
+            </label>
+            {layers.aerial && <p className="layer-hint">Imagery © Spatial Services NSW (CC BY 4.0).</p>}
+          </fieldset>
 
           <fieldset>
             <legend>Transport</legend>
@@ -152,6 +169,39 @@ export function LayerPanel({ layers, onChange, hexMeta, metricMeta, canLandUse, 
                 <li><span className="swatch" style={{ background: SITE_COLOURS.car_park }} />Car park</li>
                 <li><span className="swatch" style={{ background: SITE_COLOURS.construction_site }} />Construction site</li>
               </ul>
+            )}
+          </fieldset>
+
+          <fieldset>
+            <legend>What SAM 3.1 sees <span className="meta-dot" aria-hidden="true" /></legend>
+            <label className="layer-row" title={samTip}>
+              <input type="checkbox" checked={layers.sam} disabled={!samAvailable} onChange={(e) => onChange({ ...layers, sam: e.target.checked })} />
+              <span>Segmentation over the aerial photo{focusName ? ` near ${focusName}` : ''}</span>
+            </label>
+            {!samAvailable && <p className="layer-hint">Available for the 10 featured stations only.</p>}
+            {layers.sam && !samMeta && <p className="layer-hint">Loading the segmentation…</p>}
+            {layers.sam && samMeta && samMeta.count === 0 && <p className="layer-hint">No SAM data for this station yet.</p>}
+            {layers.sam && samMeta && samMeta.count > 0 && (
+              <>
+                <ul className="lu-keys sam-keys">
+                  {SAM_CLASSES.map((c) => (
+                    <li key={c}><span className="swatch" style={{ background: SAM_COLOURS[c] }} />{(samMeta.counts[c] ?? 0).toLocaleString('en-AU')} {SAM_CLASS_PLURALS[c]}</li>
+                  ))}
+                </ul>
+                {samMeta.capture_date && <p className="layer-hint">One aerial capture ({samMeta.capture_date}). Masks can overlap.</p>}
+                <label className="layer-row sam-opacity">
+                  <span>Masks opacity</span>
+                  <input type="range" min={0.1} max={1} step={0.05} value={layers.samOpacity} onChange={(e) => onChange({ ...layers, samOpacity: Number(e.target.value) })} aria-label="Segmentation masks opacity" />
+                </label>
+                <button
+                  type="button" className="layer-button sam-hold"
+                  onPointerDown={() => onSamPeek(true)} onPointerUp={() => onSamPeek(false)} onPointerLeave={() => onSamPeek(false)} onPointerCancel={() => onSamPeek(false)}
+                  onKeyDown={(e) => { if (e.key === ' ' || e.key === 'Enter') onSamPeek(true); }} onKeyUp={() => onSamPeek(false)} onBlur={() => onSamPeek(false)}
+                  onContextMenu={(e) => e.preventDefault()}
+                >
+                  {samPeek ? 'Showing the photo alone…' : 'Hold to see the photo alone'}
+                </button>
+              </>
             )}
           </fieldset>
 

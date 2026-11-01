@@ -116,6 +116,19 @@ create table if not exists sam_sites (
 create index if not exists sam_sites_station_idx on sam_sites (station_id);
 create index if not exists sam_sites_geom_idx on sam_sites using gist (geom);
 
+-- SAM 3.1 segmentation polygons for every class (building, tree canopy, car park,
+-- construction site) around the featured stations: what the model saw, drawn on the map.
+create table if not exists sam_cover_polygons (
+  id bigserial primary key,
+  dataset_id text not null references datasets(id),
+  station_id text not null references stations(id),
+  class text not null check (class in ('building', 'tree_canopy', 'car_park', 'construction_site')),
+  area_m2 numeric not null check (area_m2 > 0),
+  geom geometry(MultiPolygon, 4326) not null
+);
+create index if not exists sam_cover_polygons_station_idx on sam_cover_polygons (station_id);
+create index if not exists sam_cover_polygons_geom_idx on sam_cover_polygons using gist (geom);
+
 create table if not exists land_use_ring (
   dataset_id text not null references datasets(id),
   station_id text not null references stations(id),
@@ -247,6 +260,11 @@ select s.id, s.station_id, s.class, s.area_m2::float8 as area_m2, s.distance_m::
        s.dataset_id, st_asgeojson(s.geom, 6) as geojson, to_char(d.as_of, 'YYYY-MM-DD') as as_of
 from sam_sites s join datasets d on d.id = s.dataset_id;
 
+create or replace view v_sam_cover_polygons as
+select s.id, s.station_id, s.class, s.area_m2::float8 as area_m2,
+       s.dataset_id, st_asgeojson(s.geom, 6) as geojson, to_char(d.as_of, 'YYYY-MM-DD') as as_of
+from sam_cover_polygons s join datasets d on d.id = s.dataset_id;
+
 -- Sales binned into hexagons (300 m circumradius, about 520 m across) for the map, last 12 months.
 -- Axial hex coordinates (q, r) on a local metric plane; the API turns them back into polygons.
 -- Only hexes with at least one sale within 5 km of a station; medians below 10 sales are suppressed.
@@ -301,4 +319,4 @@ end $$;
 revoke all on all tables in schema public from agent_ro;
 grant usage on schema public to agent_ro;
 grant select on v_stations, v_datasets, v_sales_period, v_sales_monthly, v_affordable_share,
-  v_patronage_monthly, v_land_use, v_sales_hex, v_land_use_mix, v_land_use_polygons, v_sam_sites to agent_ro;
+  v_patronage_monthly, v_land_use, v_sales_hex, v_land_use_mix, v_land_use_polygons, v_sam_sites, v_sam_cover_polygons to agent_ro;

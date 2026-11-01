@@ -9,7 +9,7 @@
  * every train and metro station as a dot in its line colour, then the selected station(s) as an
  * HTML roundel with a KPI.
  */
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { ExpressionSpecification, FilterSpecification, GeoJSONSource, Map as MlMap, Marker, Popup } from 'maplibre-gl';
 
 import { LAND_USE_CATEGORIES, type LandUseCategory } from '@/lib/landuse';
@@ -20,7 +20,7 @@ import type { StationDto } from './api';
 export type HexMode = 'off' | 'unit' | 'house';
 export type BoundaryMode = 'off' | 'suburb' | 'lga' | 'postcode';
 export type StationMetricMode = 'off' | 'unit_median' | 'unit_change' | 'house_median' | 'trips' | 'trips_change';
-export type LayerState = { lines: boolean; rings: boolean; hex: HexMode; bounds: BoundaryMode; landuse: boolean; stationMetric: StationMetricMode; sites: boolean };
+export type LayerState = { lines: boolean; rings: boolean; hex: HexMode; bounds: BoundaryMode; landuse: boolean; stationMetric: StationMetricMode; sites: boolean; sam: boolean; samOpacity: number; aerial: boolean };
 
 export type MapState = {
   focus: string | null;
@@ -34,6 +34,7 @@ export type MapState = {
 
 export type HexMeta = { breaks: number[]; as_of: string | null; demo_data: boolean; source: string | null; property_type: string };
 export type MetricMeta = { breaks: number[]; breakLabels: string[]; as_of: string | null; unit: string; label: string };
+export type SamMeta = { counts: Record<string, number>; capture_date: string | null; count: number; source: string | null };
 
 const STYLE_URL = process.env.NEXT_PUBLIC_MAP_STYLE ?? 'https://tiles.openfreemap.org/styles/positron';
 const SYDNEY: [number, number] = [151.1, -33.83];
@@ -43,6 +44,13 @@ export const HEX_COLOURS = ['#efe9da', '#cddbe6', '#93b6d8', '#5487c2', '#1f5fad
 /** Station dots with no value for the selected metric. */
 export const STATION_NO_VALUE = '#9aa5a1';
 export const SITE_COLOURS = { car_park: '#4361ee', construction_site: '#d97706' };
+/** What SAM 3.1 sees: one colour per class, matching the batch review overlays. */
+export const SAM_COLOURS: Record<string, string> = { building: '#e4572e', tree_canopy: '#29bf12', car_park: '#4361ee', construction_site: '#ffc914' };
+export const SAM_CLASSES = ['building', 'tree_canopy', 'car_park', 'construction_site'] as const;
+export const SAM_CLASS_NAMES: Record<string, string> = { building: 'buildings', tree_canopy: 'tree canopy', car_park: 'car parks', construction_site: 'construction sites' };
+export const SAM_CLASS_PLURALS: Record<string, string> = { building: 'buildings', tree_canopy: 'tree crowns', car_park: 'car parks', construction_site: 'construction sites' };
+/** NSW Spatial Services imagery tiles (note the {z}/{y}/{x} order). Verified 2026-11-02. */
+const NSW_AERIAL_TILES = 'https://maps.six.nsw.gov.au/arcgis/rest/services/public/NSW_Imagery/MapServer/tile/{z}/{y}/{x}';
 
 const STATION_METRIC_QUERY: Record<Exclude<StationMetricMode, 'off'>, { metric: string; property_type: string }> = {
   unit_median: { metric: 'median_price', property_type: 'unit' },
@@ -96,6 +104,8 @@ export function MapView({
   onSelect,
   onHexMeta,
   onMetricMeta,
+  onSamMeta,
+  samPeek,
 }: {
   stations: StationDto[];
   state: MapState;
@@ -104,6 +114,9 @@ export function MapView({
   onSelect: (id: string) => void;
   onMetricMeta: (meta: MetricMeta | null) => void;
   onHexMeta: (meta: HexMeta | null) => void;
+  onSamMeta: (meta: SamMeta | null) => void;
+  /** While true (press and hold), the SAM masks hide so the aerial photo shows alone. */
+  samPeek: boolean;
 }) {
   const el = useRef<HTMLDivElement>(null);
   const map = useRef<MlMap | null>(null);
@@ -118,8 +131,12 @@ export function MapView({
   const boundsLoaded = useRef(false);
   const landuseFor = useRef<string | null>(null);
   const sitesFor = useRef<string | null>(null);
-  const latest = useRef({ stations, state, layers, kpis, onSelect, onHexMeta, onMetricMeta });
-  latest.current = { stations, state, layers, kpis, onSelect, onHexMeta, onMetricMeta };
+  const samFor = useRef<string | null>(null);
+  const baseLayers = useRef<{ id: string; type: string }[]>([]);
+  const revealTimers = useRef<number[]>([]);
+  const [samCaption, setSamCaption] = useState<string | null>(null);
+  const latest = useRef({ stations, state, layers, kpis, onSelect, onHexMeta, onMetricMeta, onSamMeta, samPeek });
+  latest.current = { stations, state, layers, kpis, onSelect, onHexMeta, onMetricMeta, onSamMeta, samPeek };
 
   // Create the map once.
   useEffect(() => {
@@ -157,6 +174,11 @@ export function MapView({
         const harbour = css.getPropertyValue('--harbour').trim() || '#1f5fad';
         // Put data under the basemap's labels so street and suburb names stay readable.
         const firstSymbol = m.getStyle().layers.find((l) => l.type === 'symbol')?.id;
+        baseLayers.current = m.getStyle().layers.map((l) => ({ id: l.id, type: l.type }));
+
+        // Aerial photo basemap (NSW Spatial Services imagery), hidden until toggled on.
+        m.addSource('aerial', { type: 'raster', tiles: [NSW_AERIAL_TILES], tileSize: 256, maxzoom: 19, attribution: 'Imagery © Spatial Services NSW (CC BY 4.0)' });
+        m.addLayer({ id: 'aerial', type: 'raster', source: 'aerial', layout: { visibility: 'none' }, paint: { 'raster-opacity': 1 } }, m.getStyle().layers[0]?.id);
 
         m.addSource('hex', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
         m.addLayer({
@@ -202,6 +224,20 @@ export function MapView({
           ).addTo(m);
         });
         m.on('mouseleave', 'sites-fill', () => popup.current?.remove());
+
+        // What SAM 3.1 sees: one fill + outline layer per class so the reveal can fade
+        // them in one after another. Opacities start at 0 and are set when data loads.
+        m.addSource('sam', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+        for (const cls of SAM_CLASSES) {
+          m.addLayer({
+            id: `sam-fill-${cls}`, type: 'fill', source: 'sam', filter: ['==', ['get', 'class'], cls],
+            paint: { 'fill-color': SAM_COLOURS[cls], 'fill-opacity': 0, 'fill-opacity-transition': { duration: 600, delay: 0 } },
+          }, firstSymbol);
+          m.addLayer({
+            id: `sam-line-${cls}`, type: 'line', source: 'sam', filter: ['==', ['get', 'class'], cls],
+            paint: { 'line-color': SAM_COLOURS[cls], 'line-width': 1, 'line-opacity': 0, 'line-opacity-transition': { duration: 600, delay: 0 } },
+          }, firstSymbol);
+        }
 
         // Boundaries: loaded on first use (about 850 KB), drawn as quiet outlines with names.
         m.addSource('bounds', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
@@ -359,6 +395,10 @@ export function MapView({
       boundsLoaded.current = false;
       landuseFor.current = null;
       sitesFor.current = null;
+      samFor.current = null;
+      baseLayers.current = [];
+      for (const t of revealTimers.current) clearTimeout(t);
+      revealTimers.current = [];
     };
   }, []);
 
@@ -406,6 +446,57 @@ export function MapView({
     apply();
   }
 
+  function clearReveal() {
+    for (const t of revealTimers.current) clearTimeout(t);
+    revealTimers.current = [];
+  }
+
+  /** Set every SAM class layer's opacity at once (slider moves, peek, reduced motion). */
+  function setSamPaint(fill: number, instant: boolean) {
+    const m = map.current;
+    if (!m) return;
+    for (const cls of SAM_CLASSES) {
+      const f = `sam-fill-${cls}`, l = `sam-line-${cls}`;
+      if (m.getLayer(f)) {
+        m.setPaintProperty(f, 'fill-opacity-transition', { duration: instant ? 0 : 600, delay: 0 });
+        m.setPaintProperty(f, 'fill-opacity', fill);
+      }
+      if (m.getLayer(l)) {
+        m.setPaintProperty(l, 'line-opacity-transition', { duration: instant ? 0 : 600, delay: 0 });
+        m.setPaintProperty(l, 'line-opacity', Math.min(1, fill + 0.35));
+      }
+    }
+  }
+
+  /** Fade the classes in one after another with a caption, unless reduced motion is set. */
+  function revealSam(station: string) {
+    clearReveal();
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      setSamPaint(latest.current.samPeek ? 0 : latest.current.layers.samOpacity, true);
+      return;
+    }
+    const lead = 'Meta SAM 3.1 is segmenting NSW aerial imagery';
+    SAM_CLASSES.forEach((cls, i) => {
+      revealTimers.current.push(window.setTimeout(() => {
+        const m = map.current;
+        if (samFor.current !== station || !latest.current.layers.sam || !m) return;
+        const t = latest.current.samPeek ? 0 : latest.current.layers.samOpacity;
+        const f = `sam-fill-${cls}`, l = `sam-line-${cls}`;
+        if (m.getLayer(f)) {
+          m.setPaintProperty(f, 'fill-opacity-transition', { duration: 600, delay: 0 });
+          m.setPaintProperty(f, 'fill-opacity', t);
+        }
+        if (m.getLayer(l)) {
+          m.setPaintProperty(l, 'line-opacity-transition', { duration: 600, delay: 0 });
+          m.setPaintProperty(l, 'line-opacity', Math.min(1, t + 0.35));
+        }
+        const parts = SAM_CLASSES.slice(0, i + 1).map((c) => SAM_CLASS_NAMES[c]);
+        setSamCaption(`${lead}: ${parts.join('… ')}${i === SAM_CLASSES.length - 1 ? '' : '…'}`);
+        if (i === SAM_CLASSES.length - 1) revealTimers.current.push(window.setTimeout(() => setSamCaption(null), 1800));
+      }, i * 600));
+    });
+  }
+
   function apply() {
     const m = map.current;
     if (!m || !ready.current) return;
@@ -439,6 +530,38 @@ export function MapView({
           .then((fc) => { if (fc && sitesFor.current === sitesTarget) src?.setData(fc); })
           .catch(() => null);
       }
+    }
+    // Aerial basemap: the photo underneath, street labels kept, everything else hidden.
+    if (m.getLayer('aerial')) {
+      m.setLayoutProperty('aerial', 'visibility', ly.aerial ? 'visible' : 'none');
+      for (const b of baseLayers.current) {
+        if (b.type === 'symbol' || !m.getLayer(b.id)) continue;
+        m.setLayoutProperty(b.id, 'visibility', ly.aerial ? 'none' : 'visible');
+      }
+    }
+    const samTarget = ly.sam ? s.focus : null;
+    if (samTarget !== samFor.current) {
+      samFor.current = samTarget;
+      clearReveal();
+      const src = m.getSource('sam') as GeoJSONSource | undefined;
+      if (!samTarget) {
+        src?.setData({ type: 'FeatureCollection', features: [] });
+        latest.current.onSamMeta(null);
+        setSamCaption(null);
+      } else {
+        setSamPaint(0, true);
+        fetch(`/api/v1/layers/sam?station=${samTarget}`)
+          .then((r) => (r.ok ? r.json() : null))
+          .then((fc) => {
+            if (!fc || samFor.current !== samTarget || !latest.current.layers.sam) return;
+            src?.setData(fc);
+            latest.current.onSamMeta({ counts: fc.meta?.counts ?? {}, capture_date: fc.meta?.capture_date ?? null, count: fc.meta?.count ?? 0, source: fc.meta?.source ?? null });
+            revealSam(samTarget);
+          })
+          .catch(() => null);
+      }
+    } else if (samTarget) {
+      setSamPaint(latest.current.samPeek ? 0 : ly.samOpacity, true);
     }
     if (ly.bounds !== 'off' && !boundsLoaded.current) {
       boundsLoaded.current = true;
@@ -502,7 +625,7 @@ export function MapView({
 
   useEffect(() => {
     apply();
-  }, [stations, state.focus, state.radius_m, state.compare, state.highlight, layers.lines, layers.rings, layers.hex, layers.bounds, layers.landuse, layers.stationMetric, layers.sites, kpis]);
+  }, [stations, state.focus, state.radius_m, state.compare, state.highlight, layers.lines, layers.rings, layers.hex, layers.bounds, layers.landuse, layers.stationMetric, layers.sites, layers.sam, layers.samOpacity, layers.aerial, samPeek, kpis]);
 
   useEffect(() => {
     const m = map.current;
@@ -524,5 +647,9 @@ export function MapView({
     if (s) m.flyTo({ center: [s.lon, s.lat], zoom: state.view === 'close' ? 14.6 : 13.6, padding: pad, duration: reduce ? 0 : 1800, essential: true });
   }, [state.flyNonce, state.compare, state.focus, state.view, stations]);
 
-  return <div ref={el} className="map-canvas" role="region" aria-label="Map of station precincts" />;
+  return (
+    <div ref={el} className="map-canvas" role="region" aria-label="Map of station precincts">
+      {samCaption && <p className="sam-caption" aria-hidden="true"><span className="meta-dot" aria-hidden="true" />{samCaption}</p>}
+    </div>
+  );
 }

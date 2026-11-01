@@ -20,7 +20,7 @@ function featureStatus(health: Health | null, checking: boolean, liveText: strin
   return { text: 'Offline: no API key set', tone: 'warn' };
 }
 
-export function ModelsPanel({ health, checking, onClose }: { health: Health | null; checking: boolean; onClose: () => void }) {
+export function ModelsPanel({ health, checking, onClose, onShowSam, samStationName }: { health: Health | null; checking: boolean; onClose: () => void; onShowSam: () => void; samStationName: string | null }) {
   const spark = sparkStatus(health, checking);
   const voice = featureStatus(health, checking, 'Live: microphone in the question box');
   const image = featureStatus(health, checking, 'Live: “Brief me” on the precinct snapshot');
@@ -66,6 +66,11 @@ export function ModelsPanel({ health, checking, onClose }: { health: Health | nu
               <code className="model-id">{r.id}</code>
               <p>{r.role}</p>
               <p className="model-where">{r.where}</p>
+              {r.name === 'SAM 3.1' && (
+                samStationName
+                  ? <button type="button" className="layer-button" onClick={() => { onShowSam(); onClose(); }} title={`Turn on the reveal near ${samStationName}`}>Show what SAM 3.1 saw</button>
+                  : <button type="button" className="layer-button" disabled>Show what SAM 3.1 saw</button>
+              )}
             </li>
           ))}
         </ul>

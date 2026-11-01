@@ -17,7 +17,7 @@ import path from 'node:path';
 
 import { STATIONS } from '../../src/lib/stations';
 import { CHIP_PX } from './concepts';
-import { douglasPeucker, labelComponents, lonLatFromMerc, mercFromLonLat, ringArea, traceOutline, type Point } from './polygons';
+import { createStationProjection, douglasPeucker, labelComponents, ringArea, traceOutline } from './polygons';
 
 for (const f of ['.env.local', '.env']) if (existsSync(f)) process.loadEnvFile(f);
 const arg = (name: string) => { const i = process.argv.indexOf(`--${name}`); return i > 0 ? process.argv[i + 1] : undefined; };
@@ -66,31 +66,7 @@ for (const s of stations) {
   const n = Math.max(...chips.flatMap((c) => [c.gx, c.gy])) + 1;
   if (chips.length !== n * n) console.log(`${s.name}: warning: ${chips.length} chips for a ${n}x${n} grid; gaps have no masks`);
   const size = n * CHIP_PX;
-  const chipM = CHIP_PX * RES;
-  const mPerDegLat = 111_320, mPerDegLon = 111_320 * Math.cos((s.lat * Math.PI) / 180);
-  const chipCentre = (gx: number, gy: number) => {
-    const ex = (gx - (n - 1) / 2) * chipM, ny = ((n - 1) / 2 - gy) * chipM;
-    return { lat: s.lat + ny / mPerDegLat, lon: s.lon + ex / mPerDegLon };
-  };
-  const stationMerc = mercFromLonLat(s.lat, s.lon);
-  const cosStation = Math.cos((s.lat * Math.PI) / 180);
-  // Grid pixel to ground metres (east, north) from the station. Each chip was fetched as a Web
-  // Mercator box of RES / cos(lat) map units per pixel around its centre (see fetchChip in
-  // batch.ts), so pixel offsets are scaled by that before converting back to ground metres.
-  const toMetres = (px: number, py: number): Point => {
-    const gx = Math.min(n - 1, Math.max(0, Math.floor(px / CHIP_PX)));
-    const gy = Math.min(n - 1, Math.max(0, Math.floor(py / CHIP_PX)));
-    const { lat, lon } = chipCentre(gx, gy);
-    const c = mercFromLonLat(lat, lon);
-    const unit = RES / Math.cos((lat * Math.PI) / 180);
-    const mx = c.x + (px - gx * CHIP_PX + 0.5 - CHIP_PX / 2) * unit;
-    const my = c.y + (gy * CHIP_PX + CHIP_PX / 2 - (py + 0.5)) * unit;
-    return [(mx - stationMerc.x) * cosStation, (my - stationMerc.y) * cosStation];
-  };
-  const toLonLat = (e: number, m: number): Point => {
-    const { lat, lon } = lonLatFromMerc(stationMerc.x + e / cosStation, stationMerc.y + m / cosStation);
-    return [Number(lon.toFixed(7)), Number(lat.toFixed(7))];
-  };
+  const { toMetres, toLonLat } = createStationProjection(s, n, CHIP_PX, RES);
 
   const found = { car_park: 0, construction_site: 0 };
   for (const { cls, prompt } of CLASSES) {

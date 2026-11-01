@@ -4,7 +4,7 @@
 import { LAND_USE_CATEGORIES } from '@/lib/landuse';
 import { LINE_COLOURS } from '@/lib/lines';
 
-import { HEX_COLOURS, SITE_COLOURS } from './MapView';
+import { HEX_COLOURS, SAM_COLOURS, SITE_COLOURS } from './MapView';
 
 export function MapGuide({ onClose }: { onClose: () => void }) {
   return (
@@ -60,6 +60,15 @@ export function MapGuide({ onClose }: { onClose: () => void }) {
             Car parks (blue) and construction sites (amber) found by SAM 3.1 on one aerial capture
             within 800 m of the selected station. Hover one for its area and distance from the
             station. Candidates for investigation only, not zoning or ownership advice.
+          </dd>
+
+          <dt><span className="g-lines"><i style={{ background: SAM_COLOURS.building }} /><i style={{ background: SAM_COLOURS.tree_canopy }} /><i style={{ background: SAM_COLOURS.car_park }} /><i style={{ background: SAM_COLOURS.construction_site }} /></span> What SAM 3.1 sees</dt>
+          <dd>
+            Everything SAM 3.1 segmented on one aerial capture (the date is shown in the Layers
+            panel) around the selected featured station: buildings in red, tree canopy in green,
+            car parks in blue and construction sites in amber, revealed one class at a time over
+            the aerial photo. Masks can overlap, and shaded canopy is often missed. The same
+            pipeline runs on any city&apos;s imagery or Dronovation drone surveys.
           </dd>
 
           <dt><span className="g-bounds" /> Boundaries</dt>

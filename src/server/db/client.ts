@@ -39,7 +39,7 @@ export async function schemaSql(): Promise<string> {
 function buildSignature(): string {
   const h = createHash('sha256');
   const root = process.cwd();
-  for (const f of ['db/schema.sql', 'src/server/db/seed-demo.ts', 'src/server/db/real-sales.ts', 'src/server/db/real-patronage.ts', 'src/server/db/real-landuse.ts', 'src/server/db/real-cover.ts', 'src/server/db/real-sites.ts', 'src/lib/landuse.ts', 'src/lib/station-registry.json']) {
+  for (const f of ['db/schema.sql', 'src/server/db/seed-demo.ts', 'src/server/db/real-sales.ts', 'src/server/db/real-patronage.ts', 'src/server/db/real-landuse.ts', 'src/server/db/real-cover.ts', 'src/server/db/real-sites.ts', 'src/server/db/real-cover-polygons.ts', 'src/lib/landuse.ts', 'src/lib/station-registry.json']) {
     const p = path.join(/*turbopackIgnore: true*/ root, f);
     if (existsSync(/*turbopackIgnore: true*/ p)) h.update(readFileSync(/*turbopackIgnore: true*/ p));
   }
@@ -96,6 +96,8 @@ async function createPglite(opts: { realSales?: boolean } = {}): Promise<Db> {
     if (realCoverAvailable()) await loadRealCover(db);
     const { loadRealSites, realSitesAvailable } = await import('./real-sites');
     if (realSitesAvailable()) await loadRealSites(db);
+    const { loadRealCoverPolygons, realCoverPolygonsAvailable } = await import('./real-cover-polygons');
+    if (realCoverPolygonsAvailable()) await loadRealCoverPolygons(db);
   }
   if (snapshotting) {
     try {
