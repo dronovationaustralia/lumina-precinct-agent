@@ -9,6 +9,7 @@ repositories (`LuminaSpatialInsightsXR`, `LuminaSpatial`, `extended-tableau-mcp`
 ### Added
 - Station screener: rank and colour all 185 stations by a governed metric (built with Muse Code).
 - Opportunity sites: car parks and construction sites found by SAM 3.1 near stations (built with Muse Code).
+  Outlines are placed using the imagery's Web Mercator scale (0.5 m ÷ cos latitude per pixel); a first version drew them about 17% too small within each tile.
 
 ## 2026-10-31 (Sat)
 

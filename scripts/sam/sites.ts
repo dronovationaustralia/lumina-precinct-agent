@@ -73,18 +73,22 @@ for (const s of stations) {
     return { lat: s.lat + ny / mPerDegLat, lon: s.lon + ex / mPerDegLon };
   };
   const stationMerc = mercFromLonLat(s.lat, s.lon);
-  // Grid pixel to Web Mercator via its chip's centre, then to metre offsets from the station.
+  const cosStation = Math.cos((s.lat * Math.PI) / 180);
+  // Grid pixel to ground metres (east, north) from the station. Each chip was fetched as a Web
+  // Mercator box of RES / cos(lat) map units per pixel around its centre (see fetchChip in
+  // batch.ts), so pixel offsets are scaled by that before converting back to ground metres.
   const toMetres = (px: number, py: number): Point => {
     const gx = Math.min(n - 1, Math.max(0, Math.floor(px / CHIP_PX)));
     const gy = Math.min(n - 1, Math.max(0, Math.floor(py / CHIP_PX)));
     const { lat, lon } = chipCentre(gx, gy);
     const c = mercFromLonLat(lat, lon);
-    const mx = c.x + (px - gx * CHIP_PX + 0.5 - CHIP_PX / 2) * RES;
-    const my = c.y + (gy * CHIP_PX + CHIP_PX / 2 - (py + 0.5)) * RES;
-    return [mx - stationMerc.x, my - stationMerc.y];
+    const unit = RES / Math.cos((lat * Math.PI) / 180);
+    const mx = c.x + (px - gx * CHIP_PX + 0.5 - CHIP_PX / 2) * unit;
+    const my = c.y + (gy * CHIP_PX + CHIP_PX / 2 - (py + 0.5)) * unit;
+    return [(mx - stationMerc.x) * cosStation, (my - stationMerc.y) * cosStation];
   };
   const toLonLat = (e: number, m: number): Point => {
-    const { lat, lon } = lonLatFromMerc(stationMerc.x + e, stationMerc.y + m);
+    const { lat, lon } = lonLatFromMerc(stationMerc.x + e / cosStation, stationMerc.y + m / cosStation);
     return [Number(lon.toFixed(7)), Number(lat.toFixed(7))];
   };
 
