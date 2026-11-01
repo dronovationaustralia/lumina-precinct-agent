@@ -57,7 +57,7 @@ export async function loadRealSites(db: Db, dir = DERIVED_DIR): Promise<{ sites:
   );
   for (let i = 0; i < rows.length; i += 200) {
     const batch = rows.slice(i, i + 200);
-    const values = batch.map((_, j) => `('${SAM_SITES_DATASET}', $${j * 5 + 1}, $${j * 5 + 2}, $${j * 5 + 3}, $${j * 5 + 4}, st_setsrid(st_makevalid(st_geomfromgeojson($${j * 5 + 5})), 4326))`);
+    const values = batch.map((_, j) => `('${SAM_SITES_DATASET}', $${j * 5 + 1}, $${j * 5 + 2}, $${j * 5 + 3}, $${j * 5 + 4}, st_multi(st_collectionextract(st_makevalid(st_setsrid(st_geomfromgeojson($${j * 5 + 5}), 4326)), 3)))`);
     await db.admin(
       `insert into sam_sites (dataset_id, station_id, class, area_m2, distance_m, geom) values ${values.join(',')}`,
       batch.flatMap((r) => [r.properties.station_id, r.properties.class, r.properties.area_m2, r.properties.distance_m, JSON.stringify(r.geometry)]),

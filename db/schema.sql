@@ -96,6 +96,14 @@ create table if not exists land_use_mix (
 );
 
 -- SAM 3.1 opportunity sites (car parks and construction sites) within 800 m of stations.
+-- MultiPolygon: repairing a traced outline (st_makevalid) can split it into parts. A first
+-- version used Polygon; drop that table (it is reloaded from data/derived) so it is recreated.
+do $$ begin
+  if exists (select 1 from geometry_columns where f_table_name = 'sam_sites' and f_geometry_column = 'geom' and type = 'POLYGON') then
+    drop view if exists v_sam_sites;
+    drop table sam_sites;
+  end if;
+end $$;
 create table if not exists sam_sites (
   id bigserial primary key,
   dataset_id text not null references datasets(id),
@@ -103,7 +111,7 @@ create table if not exists sam_sites (
   class text not null check (class in ('car_park', 'construction_site')),
   area_m2 numeric not null check (area_m2 > 0),
   distance_m numeric not null check (distance_m >= 0),
-  geom geometry(Polygon, 4326) not null
+  geom geometry(MultiPolygon, 4326) not null
 );
 create index if not exists sam_sites_station_idx on sam_sites (station_id);
 create index if not exists sam_sites_geom_idx on sam_sites using gist (geom);

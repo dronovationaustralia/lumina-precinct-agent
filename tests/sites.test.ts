@@ -77,7 +77,7 @@ describe('SAM opportunity sites load', () => {
       "select station_id, class, area_m2, distance_m, dataset_id, geojson from v_sam_sites where station_id = 'chatswood' order by area_m2 desc");
     expect(rows).toHaveLength(2);
     expect(rows[0]).toMatchObject({ station_id: 'chatswood', class: 'car_park', area_m2: 1200, distance_m: 250, dataset_id: 'sam_sites' });
-    expect(JSON.parse(rows[0]!.geojson).type).toBe('Polygon');
+    expect(JSON.parse(rows[0]!.geojson).type).toBe('MultiPolygon');
     expect(rows[1]!.class).toBe('construction_site');
   });
 
