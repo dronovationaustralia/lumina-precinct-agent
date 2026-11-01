@@ -7,6 +7,7 @@
 import { useState } from 'react';
 
 import { LAND_USE_CATEGORIES, type LandUseCategory } from '@/lib/landuse';
+import { FEATURED_STATIONS } from '@/lib/stations';
 
 import type { LandUseDto } from './api';
 
@@ -74,6 +75,12 @@ export function LandUsePanel({ data, stationName, onClose }: { data: LandUseDto;
       )}
 
       <h3 className="cover-head">Aerial land cover{data.demo_data ? <span className="badge badge-warn">Demo until SAM 3.1 run</span> : <span className="meta-chip">SAM 3.1</span>}</h3>
+      {!data.rings['0-800m'] && (
+        <p className="landuse-foot">
+          Not measured here yet. Meta SAM 3.1 has segmented the aerial imagery around the 10 featured stations so far
+          ({FEATURED_STATIONS.map((s) => s.name).join(', ')}). The same batch runs on any station or on your own drone imagery.
+        </p>
+      )}
       {Object.entries(data.rings).filter(([r]) => r === '0-800m').map(([ring, classes]) => (
         <div key={ring} className="landuse-ring">
           {Object.entries(classes).sort((a, b) => b[1] - a[1]).map(([cls, pct]) => (
@@ -85,7 +92,7 @@ export function LandUsePanel({ data, stationName, onClose }: { data: LandUseDto;
           ))}
         </div>
       ))}
-      <p className="landuse-foot">Within 800 m, one capture date{data.capture_date ? ` (${data.capture_date})` : ''}. Classes can overlap.</p>
+      {data.rings['0-800m'] && <p className="landuse-foot">Within 800 m, one capture date{data.capture_date ? ` (${data.capture_date})` : ''}. Classes can overlap.</p>}
     </aside>
   );
 }
