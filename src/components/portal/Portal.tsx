@@ -15,7 +15,7 @@ import { AnswerCard, type AnswerActions, type Turn } from './AnswerCard';
 import { answerMarkdown, download, loadSaved, slug, storeSaved, type Saved } from './exporting';
 import { PrintReport } from './PrintReport';
 import { SavedPanel } from './SavedPanel';
-import { ask, fetchLandUse, fetchStations, fetchSummary, fetchUser, type LandUseDto, type StationDto, type StationSummary, type User } from './api';
+import { ask, fetchLandUse, fetchStations, fetchSummary, fetchTour, fetchUser, type LandUseDto, type StationDto, type StationSummary, type TourDto, type User } from './api';
 import { LandUsePanel } from './LandUsePanel';
 import { LayerPanel } from './LayerPanel';
 import { LineBadges } from './LineBadges';
@@ -24,9 +24,12 @@ import { MicButton } from './MicButton';
 import { ModelsPanel, type Health } from './ModelsPanel';
 import { PrecinctSnapshot } from './PrecinctSnapshot';
 import { StationSearch } from './StationSearch';
+import { TourCard } from './TourCard';
+import { TourPicker } from './TourPicker';
 import 'maplibre-gl/dist/maplibre-gl.css';
 
 type Persona = keyof typeof PERSONA_INFO;
+type TourState = { data: TourDto; index: number; playing: boolean };
 const money = (v: number) => (v >= 1_000_000 ? `$${(v / 1_000_000).toFixed(2)}m` : `$${Math.round(v / 1000)}k`);
 
 export function Portal() {
@@ -53,6 +56,8 @@ export function Portal() {
   const [layers, setLayers] = useState<LayerState>({ lines: true, rings: true, hex: 'off', bounds: 'off', landuse: true, stationMetric: 'off', sites: false });
   const [hexMeta, setHexMeta] = useState<HexMeta | null>(null);
   const [metricMeta, setMetricMeta] = useState<MetricMeta | null>(null);
+  const [tourPicker, setTourPicker] = useState(false);
+  const [tour, setTour] = useState<TourState | null>(null);
   const [map, setMap] = useState<MapState>({ focus: null, radius_m: 800, compare: null, highlight: [], view: 'overview', flyNonce: 0 });
   const listRef = useRef<HTMLDivElement>(null);
   const stationsRef = useRef<StationDto[]>([]);
@@ -166,6 +171,81 @@ export function Portal() {
     }
   }, [busy, map.focus, persona, runActions]);
 
+  const tourRef = useRef<TourState | null>(null);
+  tourRef.current = tour;
+
+  const goToStop = useCallback((i: number) => {
+    const t = tourRef.current;
+    const stop = t?.data.stops[i];
+    if (!t || !stop) return;
+    setTour({ ...t, index: i });
+    setMap((m) => ({ ...m, focus: stop.station_id, compare: null, highlight: [], radius_m: 800, view: 'close', flyNonce: m.flyNonce + 1 }));
+  }, []);
+
+  const toggleTour = useCallback(() => {
+    const t = tourRef.current;
+    if (!t) return;
+    if (!t.playing && t.index >= t.data.stops.length - 1) {
+      goToStop(0);
+      setTour({ ...t, index: 0, playing: true });
+    } else {
+      setTour({ ...t, playing: !t.playing });
+    }
+  }, [goToStop]);
+
+  const exitTour = useCallback(() => setTour(null), []);
+
+  const startTour = useCallback(async (tourId: string) => {
+    setTourPicker(false);
+    setToast('Loading tour…');
+    try {
+      const data = await fetchTour(tourId);
+      if (!data.stops.length) {
+        setToast('This tour has no stations with data yet.');
+        return;
+      }
+      setToast(null);
+      setTour({ data, index: 0, playing: true });
+      const s = data.stops[0]!;
+      setMap((m) => ({ ...m, focus: s.station_id, compare: null, highlight: [], radius_m: 800, view: 'close', flyNonce: m.flyNonce + 1 }));
+    } catch {
+      setToast('The tour could not be loaded.');
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!tour?.playing) return;
+    if (tour.index >= tour.data.stops.length - 1) {
+      setTour((t) => (t ? { ...t, playing: false } : t));
+      return;
+    }
+    const id = setTimeout(() => goToStop(tour.index + 1), 7000);
+    return () => clearTimeout(id);
+  }, [tour, goToStop]);
+
+  useEffect(() => {
+    if (!tour) return;
+    const onKey = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement | null)?.tagName;
+      if (tag === 'TEXTAREA' || tag === 'INPUT' || tag === 'SELECT') return;
+      if (e.key === ' ') {
+        e.preventDefault();
+        toggleTour();
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        const t = tourRef.current!;
+        goToStop(Math.min(t.data.stops.length - 1, t.index + 1));
+      } else if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        goToStop(Math.max(0, tourRef.current!.index - 1));
+      } else if (e.key === 'Escape') {
+        exitTour();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [tour, goToStop, toggleTour, exitTour]);
+
   const select = (id: string) => {
     setLandUse(null);
     setMap((m) => ({ ...m, focus: id, compare: null, highlight: [], view: 'overview', flyNonce: m.flyNonce + 1 }));
@@ -233,6 +313,9 @@ export function Portal() {
               {(Object.keys(PERSONA_INFO) as Persona[]).map((p) => <option key={p} value={p}>{PERSONA_INFO[p].short}</option>)}
             </select>
           </label>
+          <button type="button" className="head-button" onClick={() => setTourPicker(true)} title="Fly the map station by station with verified briefings">
+            Tour
+          </button>
           <button type="button" className="head-button" onClick={() => setShowSaved(true)} title="Saved analyses and the session report">
             Saved{saved.length ? ` (${saved.length})` : ''}
           </button>
@@ -348,6 +431,14 @@ export function Portal() {
           {layers.sites && <span className="map-status-sub">Opportunity sites{focus ? ` near ${focus.name}` : ' (pick a station)'}</span>}
         </div>
         {note && <div className="map-note">{note}</div>}
+        {tour && (
+          <TourCard
+            tour={tour.data} index={tour.index} playing={tour.playing} onPause={toggleTour}
+            onPrev={() => goToStop(Math.max(0, tour.index - 1))}
+            onNext={() => goToStop(Math.min(tour.data.stops.length - 1, tour.index + 1))}
+            onExit={exitTour}
+          />
+        )}
         <LayerPanel layers={layers} onChange={setLayers} hexMeta={hexMeta} metricMeta={metricMeta} canLandUse={Boolean(map.focus)}
           onLandUse={async () => {
             if (!map.focus) return;
@@ -361,6 +452,7 @@ export function Portal() {
       </section>
 
       {showModels && <ModelsPanel health={health} checking={!checked} onClose={() => setShowModels(false)} />}
+      {tourPicker && <TourPicker onPick={(id) => void startTour(id)} onClose={() => setTourPicker(false)} />}
       {showSaved && (
         <SavedPanel
           items={saved}

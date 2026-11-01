@@ -314,6 +314,30 @@ body {
 }
 .map-status-sub { font-weight: 400; color: var(--ink-muted); font-size: 12px; }
 .map-note { position: absolute; left: 12px; bottom: 28px; padding: 6px 12px; border-radius: 6px; font-size: 13px; background: var(--amber-wash); color: var(--amber); }
+.tour-card { position: absolute; left: 50%; transform: translateX(-50%); bottom: 28px; width: min(560px, calc(100% - 24px)); max-height: calc(100% - 140px); overflow-y: auto; padding: 14px 16px; background: var(--panel); border-radius: 12px; box-shadow: 0 0 0 1px var(--rule), 0 8px 24px rgb(30 45 43 / 0.14); }
+.tour-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.tour-stop { font-size: 12px; color: var(--ink-muted); }
+.tour-exit { padding: 4px 10px; border-radius: 6px; border: 1px solid var(--rule); background: transparent; color: var(--ink); font: inherit; font-size: 12px; font-weight: 650; cursor: pointer; }
+.tour-title { display: flex; align-items: center; gap: 8px; margin: 4px 0 0; font-size: 18px; font-weight: 750; }
+.tour-headline { margin: 6px 0 0; font-size: 13.5px; }
+.tour-tiles { list-style: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; margin: 10px 0 0; padding: 0; }
+.tour-tile { display: flex; flex-direction: column; gap: 1px; padding: 8px 10px; border-radius: 8px; background: var(--raised); border: 1px solid var(--rule-soft); }
+.tour-value { font-size: 16px; font-weight: 750; }
+.tour-label { font-size: 11.5px; color: var(--ink-muted); }
+.tour-source { font-size: 10.5px; color: var(--ink-faint); }
+.tour-controls { display: flex; align-items: center; gap: 6px; margin-top: 12px; }
+.tour-controls button { padding: 6px 12px; border-radius: 8px; border: 1px solid var(--rule); background: transparent; color: var(--ink); font: inherit; font-size: 12.5px; font-weight: 650; cursor: pointer; }
+.tour-controls button:disabled { opacity: 0.4; cursor: default; }
+.tour-progress { flex: 1; height: 6px; border-radius: 3px; background: var(--rule); overflow: hidden; }
+.tour-progress i { display: block; height: 100%; background: var(--harbour); }
+.tour-pick { display: grid; gap: 10px; }
+.tour-option { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--rule); background: transparent; color: var(--ink); font: inherit; cursor: pointer; text-align: left; }
+.tour-option:hover { border-color: var(--harbour); }
+.tour-option-title { font-size: 14px; font-weight: 700; }
+.tour-option-sub { font-size: 12px; color: var(--ink-muted); }
+.tour-line-pick { display: flex; align-items: flex-end; gap: 10px; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--rule); }
+.tour-line-pick label { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+.tour-line-pick select { padding: 7px 8px; border-radius: 8px; border: 1px solid var(--rule); background: var(--panel); color: var(--ink); font: inherit; font-size: 13px; }
 
 .layers {
   position: absolute; right: 12px; top: 12px; width: 268px; max-height: calc(100% - 80px); overflow-y: auto; padding: 12px 14px;
