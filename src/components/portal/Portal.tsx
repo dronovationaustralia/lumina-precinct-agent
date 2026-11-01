@@ -12,10 +12,10 @@ import type { Fact, MapAction } from '@/lib/contracts';
 import { PERSONA_INFO } from '@/lib/personas';
 
 import { AnswerCard, type AnswerActions, type Turn } from './AnswerCard';
-import { answerMarkdown, download, loadSaved, slug, storeSaved, type Saved } from './exporting';
+import { answerMarkdown, download, loadSaved, shareLink, slug, storeSaved, type Saved } from './exporting';
 import { PrintReport } from './PrintReport';
 import { SavedPanel } from './SavedPanel';
-import { ask, fetchLandUse, fetchStations, fetchSummary, fetchTour, fetchUser, type LandUseDto, type StationDto, type StationSummary, type TourDto, type User } from './api';
+import { ask, fetchLandUse, fetchStations, fetchSummary, fetchTour, fetchUser, shareAnswer, type LandUseDto, type StationDto, type StationSummary, type TourDto, type User } from './api';
 import { LandUsePanel } from './LandUsePanel';
 import { LayerPanel } from './LayerPanel';
 import { LineBadges } from './LineBadges';
@@ -267,6 +267,26 @@ export function Portal() {
 
   const nameOf = (id?: string) => stations.find((x) => x.id === id)?.name;
   const actionsFor = (t: Turn): AnswerActions => ({
+    onShare: async () => {
+      if (!t.answer) return;
+      try {
+        const { url } = await shareAnswer({
+          question: t.question,
+          ...(t.station ? { station: t.station } : {}),
+          templates: t.answer.templates,
+          facts: t.answer.facts,
+          sources: t.answer.sources,
+          status: t.answer.verification.status,
+          model: { provider: t.answer.meta.provider, model: t.answer.meta.model },
+        });
+        const r = await shareLink(url, t.question);
+        if (r === 'shared') setToast('Shared');
+        else if (r === 'copied') setToast('Link copied');
+        else if (r === 'failed') setToast('Sharing failed in this browser');
+      } catch {
+        setToast('The share link could not be made.');
+      }
+    },
     saved: saved.some((x) => x.id === t.id),
     onCopy: () => {
       void navigator.clipboard?.writeText(answerMarkdown(t, nameOf(t.station))).then(() => setToast('Copied'), () => setToast('Copy is blocked in this browser'));

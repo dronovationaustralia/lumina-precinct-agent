@@ -10,7 +10,8 @@ import { useEffect, useRef, useState } from 'react';
 import { LINE_COLOURS } from '@/lib/lines';
 
 import { LineBadges } from './LineBadges';
-import { fetchBriefing, type BriefingDto, type StationDto } from './api';
+import { fetchBriefing, sharePrecinct, type BriefingDto, type StationDto } from './api';
+import { shareLink } from './exporting';
 
 /** Shorten text with an ellipsis until it fits the width. */
 function fitText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string {
@@ -44,6 +45,7 @@ export function BriefingCard({ station, onClose }: { station: StationDto; onClos
   const [error, setError] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState<string | null>(null);
+  const [shareState, setShareState] = useState<'idle' | 'shared' | 'copied'>('idle');
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -55,6 +57,18 @@ export function BriefingCard({ station, onClose }: { station: StationDto; onClos
       live = false;
     };
   }, [station.id]);
+
+  const share = async () => {
+    setDownloadError(null);
+    try {
+      const { url } = await sharePrecinct(station.id);
+      const r = await shareLink(url, `${station.name} precinct`);
+      if (r === 'failed') setDownloadError('Sharing failed in this browser');
+      else if (r === 'shared' || r === 'copied') setShareState(r);
+    } catch {
+      setDownloadError('The share link could not be made.');
+    }
+  };
 
   const download = async () => {
     const canvas = canvasRef.current;
@@ -214,6 +228,9 @@ export function BriefingCard({ station, onClose }: { station: StationDto; onClos
             <div className="brief-actions">
               <button type="button" className="ask-button" disabled={downloading || !data.image} onClick={() => void download()}>
                 {downloading ? 'Drawing…' : 'Download card'}
+              </button>
+              <button type="button" className="head-button" disabled={!data} title="Copy a public link to this precinct" onClick={() => void share()}>
+                {shareState === 'idle' ? 'Share' : shareState === 'copied' ? 'Link copied' : 'Shared'}
               </button>
               <button type="button" className="head-button" onClick={onClose}>
                 Close

@@ -8,6 +8,7 @@ repositories (`LuminaSpatialInsightsXR`, `LuminaSpatial`, `extended-tableau-mcp`
 
 ### Added
 - Corridor tours: a guided, verified station-by-station briefing on the map (built with Muse Code).
+- Share links: public precinct cards and verified answers with rich previews (built with Muse Code).
 
 ## 2026-11-01 (Sun)
 

@@ -4,7 +4,7 @@
  */
 import { NextResponse, type NextRequest } from 'next/server';
 
-import { readSession, SESSION_COOKIE, validApiKey } from '@/server/auth/session';
+import { isPublicPath, readSession, SESSION_COOKIE, validApiKey } from '@/server/auth/session';
 
 /**
  * One public address: when AUTH_URL names a custom domain, visits to the default
@@ -27,6 +27,7 @@ export async function proxy(request: NextRequest) {
   if (moved) return moved;
   const { pathname, search } = request.nextUrl;
   if (pathname === '/signin' || pathname.startsWith('/api/auth')) return NextResponse.next();
+  if (isPublicPath(pathname)) return NextResponse.next();
   const session = await readSession(request.cookies.get(SESSION_COOKIE)?.value);
   if (session) return NextResponse.next();
   if (pathname.startsWith('/api/')) {
