@@ -50,5 +50,6 @@ Tell Claude the branch name to review it before merging.
 | 12 | [Public schools within walking distance](12-schools.md) | Impact | Medium (needs the schools file) |
 | 13 | [Share links with rich previews](13-share-links.md) | Most Viral on X, Demo | Medium |
 | 14 | [Guided playbooks per user, and the any-city story](14-guidance-and-scale.md) | Impact, Demo | Medium (run after 8, 9, 10, 13) |
+| 15 | [What SAM 3.1 sees: aerial photo with segmentation on the map](15-sam-vision-layer.md) | Use of Meta AI tooling, Demo | Medium |
 
 Run 1 before 2. Each finished task: note it in the write-up as "built with Muse Code".
