@@ -16,6 +16,7 @@ import type { Db } from '../db/client';
 import type { FactStore } from '../facts';
 import { METRIC_IDS, METRICS } from '../metrics/catalogue';
 import { computeMetric, listDatasets, metricFact, resolveMetricArgs } from '../metrics/query';
+import { rankStations } from '../screener';
 import { guardSql, VIEW_DATASET } from './sql-guard';
 
 export const MAX_TOOL_CALLS = 5;
@@ -38,6 +39,20 @@ export const landUseArgs = z.object({
   ring: z.enum(['0-400m', '0-800m', '800m-2km']).optional(),
 });
 export const searchPlaceArgs = z.object({ query: z.string().min(2).max(80) });
+export const findSitesArgs = z.object({
+  station: StationId.describe('Station id to search near'),
+  class: z.enum(['car_park', 'construction_site']).optional().describe('Only car parks or only construction sites'),
+  min_area_m2: z.number().positive().max(1_000_000).optional().describe('Only sites at least this big, in square metres'),
+});
+export const rankStationsArgs = z.object({
+  metric: z.enum(METRIC_IDS).describe('Catalogued metric id to rank by'),
+  ring: RingId.optional().describe('Distance ring; defaults to the metric default (usually 0-800m)'),
+  property_type: PropertyType.optional().describe('house, unit or all; defaults to the metric default'),
+  max_median_price: z.number().positive().max(100_000_000).optional().describe('Only stations whose median price (same ring and type) is below this, in dollars'),
+  min_sales: z.number().int().min(10).max(100_000).optional().describe('Only stations with at least this many sales'),
+  order: z.enum(['desc', 'asc']).optional().describe('desc = highest first (default); asc = lowest first'),
+  limit: z.number().int().min(1).max(20).optional().describe('How many top stations to return as facts (default 10, max 20)'),
+});
 
 export const TOOL_ARG_SCHEMAS: Record<string, z.ZodTypeAny> = {
   list_datasets: z.object({}),
@@ -45,6 +60,8 @@ export const TOOL_ARG_SCHEMAS: Record<string, z.ZodTypeAny> = {
   run_sql: runSqlArgs,
   land_use: landUseArgs,
   search_place: searchPlaceArgs,
+  rank_stations: rankStationsArgs,
+  find_sites: findSitesArgs,
 };
 
 async function traced<T>(ctx: ToolContext, name: string, args: unknown, fn: () => Promise<{ result: T; fact_ids: string[]; sql?: string }>): Promise<string> {
@@ -193,5 +210,92 @@ export function buildTools(ctx: ToolContext): StructuredToolInterface[] {
     { name: 'search_place', description: 'Resolve a place or station name to a covered station id.', schema: searchPlaceArgs },
   );
 
-  return [queryMetricTool, landUseTool, runSqlTool, searchPlaceTool, listDatasetsTool] as StructuredToolInterface[];
+  const rankStationsTool = tool(
+    async (args) =>
+      traced(ctx, 'rank_stations', args, async () => {
+        const ranked = await rankStations(ctx.db, {
+          metric: args.metric,
+          ring: args.ring,
+          property_type: args.property_type,
+          filters: { ...(args.max_median_price !== undefined ? { max_median_price: args.max_median_price } : {}), ...(args.min_sales !== undefined ? { min_sales: args.min_sales } : {}) },
+          order: args.order ?? 'desc',
+          limit: args.limit ?? 10,
+        });
+        const datasets = await listDatasets(ctx.db);
+        const out = ranked.rows.map((r) => {
+          const fact = metricFact(
+            ctx.facts,
+            { metric: ranked.metric, station: r.station_id, ring: ranked.ring, property_type: ranked.property_type, row: { value: r.value, suppressed: false, sales_count: r.n_sales, dataset_id: r.dataset_id, as_of: r.as_of }, sql: ranked.sql },
+            datasets,
+          );
+          return { fact_id: fact.id, label: fact.label, display: fact.display, station_id: r.station_id };
+        });
+        const mapAction = { type: 'highlight', kind: 'station', ids: ranked.rows.map((r) => r.station_id), style: 'pulse' };
+        return {
+          result: {
+            metric: ranked.metric.id, ring: ranked.ring, property_type: ranked.property_type, order: args.order ?? 'desc',
+            facts: out, map_action: mapAction,
+            note: 'Facts are in ranked order. Include the map_action in your answer actions so the map highlights these stations.',
+          },
+          fact_ids: out.map((o) => o.fact_id),
+          sql: ranked.sql,
+        };
+      }),
+    {
+      name: 'rank_stations',
+      description: `Screen all 185 stations by one catalogued metric, highest (or lowest) first, with optional filters. Prefer this over query_metric for "which stations", "rank", "top" or "strongest" questions. Returns numbered facts in ranked order plus a map_action to highlight them. Metrics:\n${METRIC_HELP}`,
+      schema: rankStationsArgs,
+    },
+  );
+
+  const findSitesTool = tool(
+    async (args) =>
+      traced(ctx, 'find_sites', args, async () => {
+        const conds = ['station_id = $1'];
+        const params: unknown[] = [args.station];
+        if (args.class) {
+          params.push(args.class);
+          conds.push(`class = $${params.length}`);
+        }
+        if (args.min_area_m2 !== undefined) {
+          params.push(args.min_area_m2);
+          conds.push(`area_m2 >= $${params.length}`);
+        }
+        const sql = `select id, class, area_m2, distance_m, dataset_id, as_of from v_sam_sites where ${conds.join(' and ')} order by area_m2 desc`;
+        const rows = await ctx.db.readOnly<{ id: number; class: string; area_m2: number; distance_m: number; dataset_id: string; as_of: string }>(sql, params);
+        const datasets = await listDatasets(ctx.db);
+        const ds = datasets.find((d) => d.dataset_id === rows[0]?.dataset_id) ?? datasets[0];
+        const name = stationName(args.station);
+        const clsWord = args.class === 'car_park' ? 'car park ' : args.class === 'construction_site' ? 'construction site ' : '';
+        const base = { source: ds?.name ?? 'unknown', dataset_id: rows[0]?.dataset_id ?? ds?.dataset_id ?? 'none', as_of: rows[0]?.as_of ?? ds?.as_of ?? '', station_id: args.station, demo: ds?.is_demo };
+        const total = rows.reduce((a, r) => a + Number(r.area_m2), 0);
+        const out = [];
+        const count = ctx.facts.add({ label: `${clsWord ? `${clsWord[0]!.toUpperCase()}${clsWord.slice(1)}` : 'Candidate '}sites near ${name}`, value: rows.length, unit: 'count', metric: 'site_count', ...base });
+        out.push({ fact_id: count.id, label: count.label, display: count.display });
+        const area = ctx.facts.add({ label: `Total ${clsWord}site area near ${name}`, value: total, unit: 'm2', metric: 'site_total_area', ...base });
+        out.push({ fact_id: area.id, label: area.label, display: area.display });
+        const ord = ['Largest', '2nd largest', '3rd largest'];
+        rows.slice(0, 3).forEach((r, i) => {
+          const word = r.class === 'car_park' ? 'car park ' : r.class === 'construction_site' ? 'construction site ' : '';
+          const a = ctx.facts.add({ label: `${ord[i]} ${word}site near ${name}`, value: Number(r.area_m2), unit: 'm2', metric: 'site_area', ...base });
+          out.push({ fact_id: a.id, label: a.label, display: a.display });
+          const d = ctx.facts.add({ label: `${ord[i]} ${word}site near ${name}: distance`, value: Number(r.distance_m), unit: 'm', metric: 'site_distance', ...base });
+          out.push({ fact_id: d.id, label: d.label, display: d.display });
+        });
+        ctx.notes.push('candidate sites for further investigation; zoning and ownership not checked');
+        const mapAction = { type: 'show_layer', layer: 'places', classes: ['opportunity_sites'], visible: true };
+        return {
+          result: { station: args.station, class: args.class ?? null, count: rows.length, facts: out, map_action: mapAction, note: 'Include the map_action in your answer actions so the map shows these sites. Call them candidate sites for further investigation.' },
+          fact_ids: out.map((o) => o.fact_id),
+          sql,
+        };
+      }),
+    {
+      name: 'find_sites',
+      description: 'Find candidate development sites near a station: car parks and construction sites found by SAM 3.1 within 800 m, as facts (count, total area, three largest) plus a map_action showing them. They are candidates for investigation only; zoning and ownership are not checked.',
+      schema: findSitesArgs,
+    },
+  );
+
+  return [queryMetricTool, rankStationsTool, findSitesTool, landUseTool, runSqlTool, searchPlaceTool, listDatasetsTool] as StructuredToolInterface[];
 }

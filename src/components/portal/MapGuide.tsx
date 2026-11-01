@@ -4,7 +4,7 @@
 import { LAND_USE_CATEGORIES } from '@/lib/landuse';
 import { LINE_COLOURS } from '@/lib/lines';
 
-import { HEX_COLOURS } from './MapView';
+import { HEX_COLOURS, SITE_COLOURS } from './MapView';
 
 export function MapGuide({ onClose }: { onClose: () => void }) {
   return (
@@ -39,11 +39,27 @@ export function MapGuide({ onClose }: { onClose: () => void }) {
             few sales make a misleading median and could identify a property.
           </dd>
 
+          <dt><span className="g-ramp">{HEX_COLOURS.map((c) => <i key={c} style={{ background: c }} />)}</span> Station colours</dt>
+          <dd>
+            &quot;Colour stations by&quot; fills every station dot by one figure: unit or house median price,
+            unit price change, station trips or trips change. Stations are split into five equal-sized
+            groups: pale is lower, dark blue is higher. Hover a dot for its figure. A grey dot has no
+            figure (too few sales, or missing months). Asking a screening question, such as which
+            stations had the strongest price growth, switches this on for that figure.
+          </dd>
+
           <dt><span className="g-ramp">{Object.values(LAND_USE_CATEGORIES).slice(0, 5).map((c) => <i key={c.label} style={{ background: c.colour }} />)}</span> Land use</dt>
           <dd>
             What each parcel within 2 km of the selected station was used for, from the NSW Government&apos;s land-use map (mapped
             2013 to 2017): residential, commercial, public services, parks, industrial, roads and rail, land in transition and
             more. Hover a shape for its detailed class. &quot;Land in transition&quot; is land between uses, often a development site.
+          </dd>
+
+          <dt><span className="g-lines"><i style={{ background: SITE_COLOURS.car_park }} /><i style={{ background: SITE_COLOURS.construction_site }} /></span> Opportunity sites</dt>
+          <dd>
+            Car parks (blue) and construction sites (amber) found by SAM 3.1 on one aerial capture
+            within 800 m of the selected station. Hover one for its area and distance from the
+            station. Candidates for investigation only, not zoning or ownership advice.
           </dd>
 
           <dt><span className="g-bounds" /> Boundaries</dt>

@@ -4,6 +4,13 @@ All work in this repository was built during the Meta Global AI Developer Hackat
 (27 Oct – 4 Nov 2026). Dates are Sydney time. No code is copied from earlier Lumina
 repositories (`LuminaSpatialInsightsXR`, `LuminaSpatial`, `extended-tableau-mcp`).
 
+## 2026-11-01 (Sun)
+
+### Added
+- Station screener: rank and colour all 185 stations by a governed metric (built with Muse Code).
+- Opportunity sites: car parks and construction sites found by SAM 3.1 near stations (built with Muse Code).
+  Outlines are placed using the imagery's Web Mercator scale (0.5 m ÷ cos latitude per pixel); a first version drew them about 17% too small within each tile.
+
 ## 2026-10-31 (Sat)
 
 ### Added
