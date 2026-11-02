@@ -110,7 +110,13 @@ await step('home', async () => {
 // 3. Screener across all 185 stations.
 await step('screener', async () => {
   await ask('Which stations under $900k unit median had the strongest unit price growth?');
-  await pause(7000);
+  await pause(6000); // the map recolours and the leaders pulse
+  // Linger on the figures, then "How this answer was made": the Meta model trail and checks.
+  await moveTo(answers().last().locator('ol.tiles'));
+  await pause(3500);
+  await moveTo(answers().last().locator('section.made'));
+  mark('screener:made');
+  await pause(5000);
 });
 
 // 4. Chatswood and what SAM 3.1 saw.
