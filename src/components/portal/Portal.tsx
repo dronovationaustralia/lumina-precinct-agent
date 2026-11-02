@@ -158,9 +158,18 @@ export function Portal() {
     setMap((m) => ({ ...m, focus: id, compare: null, view: 'close', flyNonce: m.flyNonce + 1 }));
   };
 
-  /** Put a pre-built question in the box (not asked yet); a {station} slot follows the selection. */
+  /**
+   * A pre-built question: asked at once when it is complete (a station is selected, or it needs
+   * none). When it needs a station and none is selected, it waits in the box with
+   * "[pick a station]", and picking a station completes it.
+   */
   const prefill = (template: string) => {
     const hasSlot = template.includes('{station}');
+    const name = stations.find((s) => s.id === map.focus)?.name;
+    if (!hasSlot || name) {
+      void submit(hasSlot ? fillStep(template, name!) : template);
+      return;
+    }
     setDraftTemplate(hasSlot ? template : null);
     setDraft(hasSlot ? '' : template);
     const box = document.querySelector<HTMLTextAreaElement>('#q');
@@ -577,7 +586,7 @@ export function Portal() {
               </span>
               <span className="composer-actions">
                  <MicButton onTranscript={(t) => { setDraftTemplate(null); setDraft(t); }} station={stations.find((st) => st.id === map.focus)?.name} />
-                <button type="submit" className="ask-button" disabled={busy || !draft.trim()}>{busy ? 'Working…' : 'Ask'}</button>
+                <button type="submit" className="ask-button" disabled={busy || !composerText.trim()}>{busy ? 'Working…' : 'Ask'}</button>
               </span>
             </div>
           </div>

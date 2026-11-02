@@ -4,6 +4,12 @@ All work in this repository was built during the Meta Global AI Developer Hackat
 (27 Oct – 4 Nov 2026). Dates are Sydney time. No code is copied from earlier Lumina
 repositories (`LuminaSpatialInsightsXR`, `LuminaSpatial`, `extended-tableau-mcp`).
 
+## 2026-11-03 (Tue)
+
+### Changed
+- "What can I ask?": a complete question is asked straight away; a question that needs a station waits in the box and fills in when you pick one. The Ask button now enables as soon as the box holds a question.
+- Land-use and SAM map layers: cached per station on the server (6 hours), featured stations warmed at start-up, and gzipped (land use 345 KB to 55 KB). Repeat loads take milliseconds instead of seconds.
+
 ## 2026-11-02 (Mon)
 
 ### Added

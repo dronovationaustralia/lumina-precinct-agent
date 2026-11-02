@@ -1,5 +1,7 @@
 /** Shared HTTP helpers for /api/v1 route handlers. */
 
+import { gzipSync } from 'node:zlib';
+
 export const CORS_HEADERS: Record<string, string> = {
   'Access-Control-Allow-Origin': process.env.CORS_ALLOW_ORIGIN ?? '*',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
@@ -36,4 +38,20 @@ export function rateLimit(request: Request, limit = Number(process.env.RATE_LIMI
     return json({ error: { code: 'rate_limited', message: `Too many requests; try again in ${retry} s` } }, { status: 429, headers: { 'Retry-After': String(retry) } });
   }
   return null;
+}
+
+/**
+ * JSON gzipped when the client accepts it, for the large map layers (route handlers are not
+ * compressed by the standalone server). GeoJSON shrinks to about a fifth.
+ */
+export function jsonGzip(request: Request, body: unknown, init: ResponseInit = {}): Response {
+  const text = JSON.stringify(body);
+  const headers = new Headers({ ...CORS_HEADERS, ...((init.headers as Record<string, string> | undefined) ?? {}) });
+  headers.set('Content-Type', 'application/json');
+  headers.set('Vary', 'Accept-Encoding');
+  if (text.length < 2048 || !/\bgzip\b/.test(request.headers.get('accept-encoding') ?? '')) {
+    return new Response(text, { ...init, headers });
+  }
+  headers.set('Content-Encoding', 'gzip');
+  return new Response(new Uint8Array(gzipSync(text)), { ...init, headers });
 }
