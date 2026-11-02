@@ -90,11 +90,11 @@ screening, opportunity sites, out-of-scope and advice traps), scored on schema, 
 wording and tool choice. Latest results: [`evals/results-meta.md`](evals/results-meta.md); every run
 is archived in `evals/runs/`.
 
-| Run | Data | Pass | p50 | p95 |
-| --- | --- | --- | --- | --- |
-| Muse Spark 1.3, 2 Nov | Real NSW data, 185 stations | **26 / 26, all verified** | 9.2 s | 15.5 s |
-| Muse Spark 1.3, reasoning effort low, 29 Oct | Demo data, 10 stations | 22 / 22 | 7.2 s | 12.0 s |
-| Offline rules baseline (no model) | Demo data | 19 / 22 | 0.3 s | 1.3 s |
+| Run | Data | Pass | p50 | p95 | Cost per answer |
+| --- | --- | --- | --- | --- | --- |
+| Muse Spark 1.3, reasoning effort low, 2 Nov | Real NSW data, 185 stations, Azure Postgres | **26 / 26, all verified** | 9.2 s | 15.5 s | US$0.024 |
+| Muse Spark 1.3, reasoning effort low, 29 Oct | Demo data, 10 stations | 22 / 22 | 7.2 s | 12.0 s | US$0.016 |
+| Offline rules baseline (no model) | Demo data | 19 / 22 | 0.3 s | 1.3 s | none |
 
 ```bash
 npm run eval -- --provider meta       # Muse Spark (needs MODEL_API_KEY)
