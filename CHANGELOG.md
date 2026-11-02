@@ -30,6 +30,8 @@ repositories (`LuminaSpatialInsightsXR`, `LuminaSpatial`, `extended-tableau-mcp`
   `/api/v1/health` (`demo_quota`).
 
 ### Changed
+- "What SAM 3.1 sees" is now a view you enter and leave: it shows the aerial photo with the land-use
+  colours hidden (they covered the photo), and "Back to the normal map" restores the map as it was.
 - Boundaries: the hovered suburb, council or postcode now gets a warm fill, a solid outline and
   its name in large type, so it stands out on the map.
 

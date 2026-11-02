@@ -119,13 +119,28 @@ export function Portal() {
 
   const resolve = (target: string) => stationsRef.current.find((s) => s.id === target || s.name.toLowerCase() === target.toLowerCase())?.id;
 
-  /** Turning on "What SAM 3.1 sees" also switches to the aerial photo and flies in close. */
-  const changeLayers = (l: LayerState) => {
-    if (l.sam && !layers.sam) {
-      l = { ...l, aerial: true };
-      if (map.focus) setMap((m) => ({ ...m, view: 'close', flyNonce: m.flyNonce + 1 }));
+  /**
+   * "What SAM 3.1 sees" is a mode: entering it shows the aerial photo and hides the land-use
+   * colours (which would cover the photo), remembering what was on; leaving it puts them back.
+   */
+  const beforeSam = useRef<{ aerial: boolean; landuse: boolean } | null>(null);
+  const withSamMode = useCallback((prev: LayerState, next: LayerState): LayerState => {
+    if (next.sam && !prev.sam) {
+      beforeSam.current = { aerial: prev.aerial, landuse: prev.landuse };
+      return { ...next, aerial: true, landuse: false };
     }
-    setLayers(l);
+    if (!next.sam && prev.sam) {
+      const back = beforeSam.current ?? { aerial: false, landuse: true };
+      beforeSam.current = null;
+      return { ...next, aerial: back.aerial, landuse: back.landuse };
+    }
+    return next;
+  }, []);
+  const setSam = useCallback((on: boolean) => setLayers((l) => withSamMode(l, { ...l, sam: on })), [withSamMode]);
+
+  const changeLayers = (l: LayerState) => {
+    if (l.sam && !layers.sam && map.focus) setMap((m) => ({ ...m, view: 'close', flyNonce: m.flyNonce + 1 }));
+    setLayers((prev) => withSamMode(prev, l));
   };
 
   /** Turn on the SAM reveal for the selected station, or the first featured one. */
@@ -134,7 +149,7 @@ export function Portal() {
       ? map.focus!
       : stations.find((s) => s.featured)?.id;
     if (!id) return;
-    setLayers((l) => ({ ...l, sam: true, aerial: true }));
+    setSam(true);
     setMap((m) => ({ ...m, focus: id, compare: null, view: 'close', flyNonce: m.flyNonce + 1 }));
   };
 
@@ -210,13 +225,13 @@ export function Portal() {
           const id = focus ?? undefined;
           const featured = id ? stationsRef.current.find((s) => s.id === id)?.featured : false;
           if (a.visible !== false && featured) {
-            setLayers((l) => ({ ...l, sam: true, aerial: true }));
+            setSam(true);
             setMap((m) => ({ ...m, view: 'close', flyNonce: m.flyNonce + 1 }));
           } else if (a.visible !== false) {
             setLayers((l) => ({ ...l, landuse: true }));
             if (focus) setLandUse(await fetchLandUse(focus).catch(() => null));
           } else {
-            setLayers((l) => ({ ...l, sam: false }));
+            setSam(false);
           }
         } else if (a.layer === 'land_use' && a.visible !== false) {
           setLayers((l) => ({ ...l, landuse: true }));
@@ -230,7 +245,7 @@ export function Portal() {
         }
       }
     }
-  }, []);
+  }, [setSam]);
 
   const submit = useCallback(async (question: string) => {
     const q = question.trim();
@@ -565,6 +580,11 @@ export function Portal() {
           {layers.sites && <span className="map-status-sub">Opportunity sites{focus ? ` near ${focus.name}` : ' (pick a station)'}</span>}
           {layers.sam && <span className="map-status-sub">What SAM 3.1 sees{focus ? ` near ${focus.name}` : ''}</span>}
         </div>
+        {layers.sam && (
+          <button type="button" className="sam-exit" onClick={() => setSam(false)} title="Turn off the SAM 3.1 view and go back to the street map">
+            Back to the normal map
+          </button>
+        )}
         {note && <div className="map-note">{note}</div>}
         {tour && (
           <TourCard

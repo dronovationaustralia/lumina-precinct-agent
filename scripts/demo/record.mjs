@@ -128,6 +128,8 @@ await step('sam', async () => {
   await pause(2500);
   await click(page.getByRole('button', { name: 'Show what SAM 3.1 saw' }).first());
   await pause(11_000);
+  await click(page.getByRole('button', { name: 'Back to the normal map' }));
+  await pause(1500);
 });
 
 // 5. Opportunity sites near Parramatta, and how the answer was made.
