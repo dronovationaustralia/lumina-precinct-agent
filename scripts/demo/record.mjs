@@ -1,50 +1,128 @@
 /**
- * Films the demo-video walkthrough of Lumina in a real browser and logs when each step happens,
- * so the footage can be cut and captioned afterwards. Run it on a machine that can reach the
- * site, Meta's models and the map tiles (your laptop):
+ * Films the demo video of Lumina as one story, in a real browser, and logs every step so the
+ * footage can be cut and sped up afterwards. Run it where the site, Meta's models and the map
+ * tiles are reachable (your laptop):
  *
  *   npx playwright install chromium          # once
  *   npm run demo:record                      # live site
  *   npm run demo:record -- --base http://localhost:3000 --headed
  *
- * Output (gitignored): data/derived/demo/walkthrough.webm and data/derived/demo/events.json.
- * Each step is wrapped so one failure (for example a slow model call) is logged and the
- * recording carries on.
+ * The story: a site-acquisition analyst screens all 185 stations, the screener points to one
+ * featured precinct, and everything after (what SAM 3.1 saw, opportunity sites, a voice question,
+ * the Muse Image briefing, sharing it, a corridor tour) stays on that precinct. The precinct is
+ * chosen from the live data before filming, so the story follows what the data actually shows.
+ *
+ * Highlights (red boxes with labels), captions, the title and end cards and the "Built 27 Oct –
+ * 4 Nov" label are drawn in the page, so they line up with what is on screen.
+ *
+ * Voice: put a WAV of yourself asking "How busy is this station, and is patronage growing?" at
+ * data/derived/demo/voice.wav (mono, 16 or 24 kHz) and the browser's microphone plays it; without
+ * it the voice scene is skipped.
+ *
+ * Output (gitignored): data/derived/demo/walkthrough.webm, events.json, story.json.
  */
-import { mkdirSync, renameSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
-import { chromium } from 'playwright';
+import { chromium, request as apiRequest } from 'playwright';
 
 const arg = (name, fallback) => { const i = process.argv.indexOf(`--${name}`); return i > 0 ? process.argv[i + 1] : fallback; };
 const BASE = arg('base', 'https://lumina.dronovation.com.au').replace(/\/$/, '');
 const HEADED = process.argv.includes('--headed');
 const OUT = path.join('data', 'derived', 'demo');
 mkdirSync(OUT, { recursive: true });
+const VOICE = path.resolve(OUT, 'voice.wav');
+const hasVoice = existsSync(VOICE);
 
-// The page is laid out at 1536×864 and filmed at 1920×1080 (1.25×), so text stays readable in the video.
+// Laid out at 1536×864 and filmed at 1920×1080 (1.25×), so text stays readable.
 const W = 1536, H = 864;
 const VW = 1920, VH = 1080;
-const browser = await chromium.launch({ headless: !HEADED, args: ['--window-size=1920,1080', '--force-device-scale-factor=1'] });
+
+// ---------------------------------------------------------------------------------------------
+// 1. Choose the story precinct from the live data (not filmed).
+// ---------------------------------------------------------------------------------------------
+const money = (v) => (v >= 1_000_000 ? `$${(v / 1_000_000).toFixed(v % 1_000_000 === 0 ? 0 : 1)}m` : `$${Math.round(v / 1000)}k`);
+
+async function chooseStory() {
+  const api = await apiRequest.newContext({ baseURL: BASE });
+  try {
+    const demo = await api.post('/api/auth/demo', { data: { persona: 'developer' } });
+    if (!demo.ok()) throw new Error(`demo sign-in failed (HTTP ${demo.status()})`);
+    const get = async (p) => { const r = await api.get(p); if (!r.ok()) throw new Error(`${p}: HTTP ${r.status()}`); return r.json(); };
+    const [stations, median, change] = await Promise.all([
+      get('/api/v1/stations'),
+      get('/api/v1/layers/station-metric?metric=median_price&property_type=unit&ring=0-800m'),
+      get('/api/v1/layers/station-metric?metric=price_change_12m&property_type=unit&ring=0-800m'),
+    ]);
+    const list = Array.isArray(stations) ? stations : stations.stations;
+    const med = new Map(median.stations.map((s) => [s.id, s.value]));
+    const chg = new Map(change.stations.map((s) => [s.id, s.value]));
+    const both = [...med.keys()].filter((id) => chg.has(id));
+    const candidates = list.filter((s) => s.featured && med.has(s.id) && chg.has(s.id)).map((s) => {
+      const cap = Math.ceil(med.get(s.id) / 50_000) * 50_000;
+      const rank = 1 + both.filter((id) => med.get(id) <= cap && chg.get(id) > chg.get(s.id)).length;
+      const pool = both.filter((id) => med.get(id) <= cap).length;
+      return { id: s.id, name: s.name, cap, rank, pool, median: med.get(s.id), change: chg.get(s.id) };
+    });
+    candidates.sort((a, b) => a.rank - b.rank || b.change - a.change);
+    const best = candidates[0];
+    if (!best) throw new Error('no featured station has both a unit median and a 12-month change');
+    const northShore = ['wynyard', 'milsons_point', 'north_sydney', 'st_leonards', 'chatswood'];
+    return {
+      ...best,
+      question: `Which stations under ${money(best.cap)} unit median had the strongest unit price growth?`,
+      tour: northShore.includes(best.id) ? 'North Shore' : 'Parramatta corridor',
+      others: candidates.slice(1, 4),
+    };
+  } finally {
+    await api.dispose();
+  }
+}
+
+const story = await chooseStory();
+writeFileSync(path.join(OUT, 'story.json'), JSON.stringify(story, null, 2));
+console.log(`Story precinct: ${story.name} (#${story.rank} of ${story.pool} stations under ${money(story.cap)} by unit price growth)`);
+console.log(`Question: ${story.question}${hasVoice ? '' : '\n(No data/derived/demo/voice.wav: the voice scene will be skipped.)'}\n`);
+
+// ---------------------------------------------------------------------------------------------
+// 2. Browser, overlays and helpers.
+// ---------------------------------------------------------------------------------------------
+const browser = await chromium.launch({
+  headless: !HEADED,
+  args: [
+    `--window-size=${W},${H}`, '--force-device-scale-factor=1',
+    ...(hasVoice ? ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream', `--use-file-for-fake-audio-capture=${VOICE}`] : []),
+  ],
+});
 const context = await browser.newContext({
   viewport: { width: W, height: H },
   deviceScaleFactor: 1,
   recordVideo: { dir: OUT, size: { width: VW, height: VH } },
-  permissions: ['clipboard-read', 'clipboard-write'],
+  permissions: ['clipboard-read', 'clipboard-write', ...(hasVoice ? ['microphone'] : [])],
   colorScheme: 'dark',
 });
 
-// A visible cursor (recordings do not show the real one) and a soft click ripple.
+// Cursor, overlay layer and the hackathon label, injected into every page.
 await context.addInitScript(() => {
+  const css = `
+    #__demo_cursor{position:fixed;left:-40px;top:-40px;width:22px;height:22px;border-radius:50%;z-index:2147483647;background:rgba(255,255,255,.92);border:2px solid #1f5fad;box-shadow:0 1px 6px rgba(0,0,0,.45);transform:translate(-50%,-50%);pointer-events:none;transition:width .12s,height .12s}
+    #__demo_layer{position:fixed;inset:0;z-index:2147483646;pointer-events:none;font-family:Inter,"Segoe UI",system-ui,sans-serif}
+    #__demo_label{position:fixed;right:14px;top:10px;z-index:2147483646;pointer-events:none;padding:4px 10px;border-radius:999px;background:rgba(10,22,20,.78);color:#dfe9e4;font:600 12px/1.4 Inter,"Segoe UI",system-ui,sans-serif;letter-spacing:.02em;box-shadow:0 0 0 1px rgba(255,255,255,.12)}
+    .__spot{position:fixed;border:3px solid #ff3b3b;border-radius:10px;box-shadow:0 0 0 9999px rgba(0,0,0,.42),0 0 18px rgba(255,59,59,.55);transition:all .35s ease;opacity:0}
+    .__spot.on{opacity:1}
+    .__spot-tag{position:absolute;left:-3px;bottom:calc(100% + 8px);white-space:nowrap;padding:6px 12px;border-radius:8px;background:#ff3b3b;color:#fff;font-weight:700;font-size:15px;box-shadow:0 4px 14px rgba(0,0,0,.35)}
+    .__spot-tag.below{bottom:auto;top:calc(100% + 8px)}
+    .__cap{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);max-width:min(1100px,calc(100% - 60px));padding:12px 20px;border-radius:12px;background:rgba(8,18,17,.88);color:#fff;box-shadow:0 8px 30px rgba(0,0,0,.45),0 0 0 1px rgba(255,255,255,.1);display:flex;gap:14px;align-items:center;opacity:0;transition:opacity .35s}
+    .__cap.on{opacity:1}
+    .__cap b{display:block;font-size:20px;line-height:1.3}
+    .__cap span{display:block;font-size:14px;color:#c7d6d0;margin-top:2px}
+    .__chip{flex:none;display:inline-flex;align-items:center;gap:7px;padding:6px 11px;border-radius:999px;background:#1f5fad;color:#fff;font-weight:700;font-size:14px}
+    .__chip i{width:9px;height:9px;border-radius:50%;background:#7fd0ff;box-shadow:0 0 8px #7fd0ff}`;
   addEventListener('DOMContentLoaded', () => {
-    const c = document.createElement('div');
-    c.id = '__demo_cursor';
-    Object.assign(c.style, {
-      position: 'fixed', left: '-40px', top: '-40px', width: '22px', height: '22px', borderRadius: '50%', zIndex: 2147483647,
-      background: 'rgba(255,255,255,0.92)', border: '2px solid #1f5fad', boxShadow: '0 1px 6px rgba(0,0,0,0.45)',
-      transform: 'translate(-50%,-50%)', pointerEvents: 'none', transition: 'width .12s, height .12s',
-    });
-    document.body.appendChild(c);
+    const style = document.createElement('style'); style.textContent = css; document.head.appendChild(style);
+    const c = document.createElement('div'); c.id = '__demo_cursor'; document.body.appendChild(c);
+    const layer = document.createElement('div'); layer.id = '__demo_layer'; document.body.appendChild(layer);
+    const label = document.createElement('div'); label.id = '__demo_label'; label.textContent = 'Built 27 Oct – 4 Nov 2026 · Meta Global AI Developer Hackathon'; document.body.appendChild(label);
     addEventListener('mousemove', (e) => { c.style.left = `${e.clientX}px`; c.style.top = `${e.clientY}px`; }, true);
     addEventListener('mousedown', () => { c.style.width = '14px'; c.style.height = '14px'; }, true);
     addEventListener('mouseup', () => { c.style.width = '22px'; c.style.height = '22px'; }, true);
@@ -62,114 +140,230 @@ async function moveTo(locator) {
   await locator.scrollIntoViewIfNeeded({ timeout: 10_000 }).catch(() => {});
   const box = await locator.boundingBox({ timeout: 10_000 });
   if (!box) throw new Error('element not visible');
-  const x = box.x + box.width / 2, y = box.y + box.height / 2;
-  await page.mouse.move(x, y, { steps: Math.max(12, Math.round(Math.hypot(x - mouse.x, y - mouse.y) / 25)) });
+  const x = box.x + box.width / 2, y = box.y + Math.min(box.height / 2, 40);
+  await page.mouse.move(x, y, { steps: Math.max(10, Math.round(Math.hypot(x - mouse.x, y - mouse.y) / 30)) });
   mouse = { x, y };
+  await pause(200);
+}
+async function click(locator) { await moveTo(locator); await locator.click({ timeout: 10_000 }); await pause(350); }
+async function type(locator, text) {
+  await click(locator);
+  mark('type:start');
+  await locator.pressSequentially(text, { delay: 18 });
+  mark('type:end');
   await pause(250);
 }
-async function click(locator) { await moveTo(locator); await locator.click({ timeout: 10_000 }); await pause(400); }
-async function type(locator, text) { await click(locator); await locator.pressSequentially(text, { delay: 38 }); await pause(300); }
+
+/** A caption at the bottom: a title, a line of detail and, optionally, the Meta model at work. */
+async function caption(title, sub = '', model = '') {
+  await page.evaluate(({ title, sub, model }) => {
+    const layer = document.getElementById('__demo_layer'); if (!layer) return;
+    layer.querySelector('.__cap')?.remove();
+    if (!title) return;
+    const el = document.createElement('div'); el.className = '__cap';
+    if (model) { const chip = document.createElement('div'); chip.className = '__chip'; chip.innerHTML = '<i></i>'; chip.append(model); el.append(chip); }
+    const txt = document.createElement('div');
+    const b = document.createElement('b'); b.textContent = title; txt.append(b);
+    if (sub) { const s = document.createElement('span'); s.textContent = sub; txt.append(s); }
+    el.append(txt); layer.append(el);
+    requestAnimationFrame(() => el.classList.add('on'));
+  }, { title, sub, model }).catch(() => {});
+}
+
+/** A red box around an element, with a label, held for `ms` (then removed). */
+async function spotlight(locator, label, ms = 3500, { below = false, pad = 8 } = {}) {
+  await locator.scrollIntoViewIfNeeded({ timeout: 10_000 }).catch(() => {});
+  const box = await locator.boundingBox({ timeout: 10_000 }).catch(() => null);
+  if (!box) { mark('spotlight:missed', { label }); return; }
+  mark('spotlight', { label });
+  await page.evaluate(({ box, label, below, pad }) => {
+    const layer = document.getElementById('__demo_layer'); if (!layer) return;
+    const s = document.createElement('div'); s.className = '__spot';
+    const x = Math.max(4, box.x - pad), y = Math.max(4, box.y - pad);
+    Object.assign(s.style, { left: `${x}px`, top: `${y}px`, width: `${Math.min(innerWidth - x - 4, box.width + pad * 2)}px`, height: `${Math.min(innerHeight - y - 4, box.height + pad * 2)}px` });
+    const tag = document.createElement('div'); tag.className = `__spot-tag${below || y < 60 ? ' below' : ''}`; tag.textContent = label;
+    s.append(tag); layer.append(s);
+    requestAnimationFrame(() => s.classList.add('on'));
+  }, { box, label, below, pad });
+  await pause(ms);
+  await page.evaluate(() => document.querySelectorAll('#__demo_layer .__spot').forEach((n) => n.remove())).catch(() => {});
+}
+
 async function step(name, fn) {
   mark(`${name}:start`);
   try { await fn(); mark(`${name}:end`); } catch (e) { mark(`${name}:failed`, { error: String(e?.message ?? e).slice(0, 200) }); }
 }
 const answers = () => page.locator('article.answer-card');
-async function ask(question) {
-  const before = await answers().count();
-  await type(page.locator('#q'), question);
-  await page.keyboard.press('Enter');
-  mark('asked', { question });
-  // An answer card is done when it shows "How this answer was made" (or an error).
+async function waitForAnswer(before) {
+  mark('wait:start');
   await page.waitForFunction((n) => {
     const cards = document.querySelectorAll('article.answer-card');
     if (cards.length <= n) return false;
     const last = cards[cards.length - 1];
     return Boolean(last.querySelector('section.made') || last.querySelector('.turn-error'));
-  }, before, { timeout: 90_000 });
-  mark('answered');
+  }, before, { timeout: 120_000 });
+  mark('wait:end');
+}
+async function ask(question, { spotProgress = true } = {}) {
+  const before = await answers().count();
+  await type(page.locator('#q'), question);
+  await page.keyboard.press('Enter');
+  mark('asked', { question });
+  if (spotProgress) {
+    await page.locator('article.answer-card ol.progress').last().waitFor({ timeout: 10_000 }).catch(() => {});
+    await spotlight(page.locator('article.answer-card ol.progress').last(), 'Muse Spark plans the data calls, live', 3000);
+  }
+  await waitForAnswer(before);
+}
+async function selectStation(name) {
+  await type(page.locator('.station-search input'), name);
+  await page.keyboard.press('Enter');
+  await pause(2500);
+}
+async function card(html, ms) {
+  await page.setContent(`<!doctype html><html><head><meta charset="utf-8"><style>
+    body{margin:0;height:100vh;display:grid;place-items:center;background:radial-gradient(circle at 30% 20%,#173a5c,#0b1716 60%);color:#fff;font-family:Inter,"Segoe UI",system-ui,sans-serif}
+    .w{max-width:1100px;padding:0 60px} .k{color:#8fb8f5;font-weight:700;letter-spacing:.14em;font-size:16px;text-transform:uppercase}
+    h1{font-size:58px;line-height:1.1;margin:14px 0 18px} p{font-size:24px;line-height:1.45;color:#c7d6d0;margin:0 0 14px}
+    .row{display:flex;flex-wrap:wrap;gap:10px;margin-top:22px} .c{display:inline-flex;gap:8px;align-items:center;padding:8px 14px;border-radius:999px;background:#1f5fad;font-weight:700;font-size:17px}
+    .c i{width:9px;height:9px;border-radius:50%;background:#7fd0ff;box-shadow:0 0 8px #7fd0ff} ul{font-size:22px;color:#dfe9e4;line-height:1.6;padding-left:22px;margin:8px 0}
+    a{color:#8fb8f5;text-decoration:none;font-weight:700}</style></head><body><div class="w">${html}</div></body></html>`);
+  await pause(ms);
 }
 
-// 1. Sign-in page: the pitch, the Meta models, the any-city story.
+// ---------------------------------------------------------------------------------------------
+// 3. The story.
+// ---------------------------------------------------------------------------------------------
+const S = story.name;
+
+await step('title', async () => {
+  await card(`<div class="k">Dronovation Labs · Lumina Precinct Agent</div>
+    <h1>Where near Sydney's stations is the next site worth a feasibility study?</h1>
+    <p>NSW is putting new homes near train stations. Site teams still answer that question with spreadsheets and days of digging.</p>
+    <p>Lumina answers it in seconds, for all 185 stations, with every figure checked.</p>`, 7000);
+});
+
 await step('signin', async () => {
   await page.goto(`${BASE}/signin`, { waitUntil: 'networkidle', timeout: 60_000 });
-  await pause(3500);
-  await page.mouse.wheel(0, 700); await pause(2500);
-  await page.mouse.wheel(0, -700); await pause(1000);
+  await caption('Built for the people who decide where homes go', 'Developers and site analysts first; lenders and planners too', '');
+  await pause(2500);
+  await spotlight(page.locator('.signin-models'), 'Meta models behind every answer', 3000);
+  await caption('Live for Sydney, built to work for any city', 'Transit, map and imagery adapters: GTFS, OpenStreetMap, SAM 3.1 on any aerial or drone imagery');
+  await page.mouse.wheel(0, 600); await pause(3000); await page.mouse.wheel(0, -600); await pause(600);
+  await caption('');
   await click(page.getByRole('button', { name: /Try the demo/ }));
   await page.waitForURL(`${BASE}/`, { timeout: 30_000 });
 });
 
-// 2. Home: playbooks for the developer persona.
-await step('home', async () => {
-  await pause(3000);
+await step('models', async () => {
+  await pause(1500);
   const gotIt = page.getByRole('button', { name: 'Got it' });
   if (await gotIt.isVisible().catch(() => false)) await click(gotIt);
-  await pause(2500);
-});
-
-// 3. Screener across all 185 stations.
-await step('screener', async () => {
-  await ask('Which stations under $900k unit median had the strongest unit price growth?');
-  await pause(6000); // the map recolours and the leaders pulse
-  // Linger on the figures, then "How this answer was made": the Meta model trail and checks.
-  await moveTo(answers().last().locator('ol.tiles'));
-  await pause(3500);
-  await moveTo(answers().last().locator('section.made'));
-  mark('screener:made');
-  await pause(5000);
-});
-
-// 4. Chatswood and what SAM 3.1 saw.
-await step('sam', async () => {
-  await type(page.locator('.station-search input'), 'Chatswood');
-  await page.keyboard.press('Enter');
-  await pause(4500);
-  await click(page.getByRole('button', { name: 'Open the land-use breakdown' }));
-  await pause(2500);
-  await click(page.getByRole('button', { name: 'Show what SAM 3.1 saw' }).first());
-  await pause(11_000);
-  await click(page.getByRole('button', { name: 'Back to the normal map' }));
-  await pause(1500);
-});
-
-// 5. Opportunity sites near Parramatta, and how the answer was made.
-await step('sites', async () => {
-  await ask('Show me large car parks near Parramatta');
-  await pause(5000);
-  const show = answers().last().getByRole('button', { name: 'Show checks and queries' });
-  await click(show);
-  await pause(4500);
-});
-
-// 6. Brief me: Muse Image precinct card.
-await step('briefme', async () => {
-  await type(page.locator('.station-search input'), 'Parramatta');
-  await page.keyboard.press('Enter');
-  await pause(3000);
-  await click(page.getByRole('button', { name: /Brief me/ }).first());
-  await page.locator('.drawer img').first().waitFor({ state: 'visible', timeout: 90_000 }).catch(() => {});
-  mark('briefme:image');
-  await pause(5000);
+  await click(page.getByRole('button', { name: /^Meta AI/ }));
+  await pause(800);
+  await spotlight(page.locator('.model-list'), 'Where each Meta model is used, with its live status', 4500, { pad: 4 });
   await click(page.getByRole('button', { name: 'Close' }).last());
 });
 
-// 7. Corridor tour: three stops on the North Shore.
-await step('tour', async () => {
-  await click(page.getByRole('button', { name: 'Tour', exact: true }));
+await step('screen', async () => {
+  await caption('Step 1 · Screen every station at once', story.question, 'Muse Spark');
+  await ask(story.question);
+  await caption('All 185 stations recoloured by unit price growth', 'The leaders pulse on the map; every figure links to its source and date', 'Muse Spark');
+  await pause(3500);
+  await spotlight(answers().last().locator('ol.tiles'), 'Every figure: governed NSW data, with source and date', 3500);
+  await spotlight(answers().last().locator('section.made'), 'How this answer was made: Muse Spark planned and wrote; a checker verified every number', 5000);
+  await caption(`${S} stands out`, `#${story.rank} of ${story.pool} stations under ${money(story.cap)} for unit price growth, and SAM 3.1 has mapped it`, '');
+  await pause(3500);
+});
+
+await step('sam', async () => {
+  await selectStation(S);
+  await caption(`Step 2 · What is actually on the ground at ${S}?`, 'SAM 3.1 segmented NSW aerial imagery around the station', 'SAM 3.1');
+  await click(page.getByRole('button', { name: 'Open the land-use breakdown' }));
   await pause(1500);
-  await click(page.getByRole('button', { name: /North Shore/ }));
-  await pause(23_000);
+  await click(page.getByRole('button', { name: 'Show what SAM 3.1 saw' }).first());
+  await pause(6500);
+  await spotlight(page.locator('.sam-keys'), 'SAM 3.1: every building, tree, car park and construction site it found', 4500);
+  await click(page.getByRole('button', { name: 'Back to the normal map' }));
+  await pause(800);
+  const closeLanduse = page.getByRole('button', { name: 'Close land use' });
+  if (await closeLanduse.isVisible().catch(() => false)) await click(closeLanduse);
+  await pause(600);
+});
+
+await step('sites', async () => {
+  await caption(`Step 3 · Where is the land near ${S}?`, 'Car parks and construction sites found by SAM 3.1, ranked by size', 'SAM 3.1 + Muse Spark');
+  await ask(`Show me the largest car parks near ${S}`);
+  await pause(3500);
+  await click(answers().last().getByRole('button', { name: 'Show checks and queries' }));
+  await pause(800);
+  await spotlight(answers().last().locator('.details'), 'Every check passed; the exact data calls are shown', 4500);
+});
+
+if (hasVoice) {
+  await step('voice', async () => {
+    await caption(`Step 4 · Ask by voice`, 'Muse Voice Transcribe, hinted with station names', 'Muse Voice');
+    const mic = page.getByRole('button', { name: 'Ask by voice' });
+    await click(mic);
+    const buf = readFileSync(VOICE);
+    const seconds = buf.readUInt32LE(40) / buf.readUInt32LE(28); // data bytes / byte rate
+    await pause(Math.min(20_000, Math.round(seconds * 1000) + 600));
+    await click(mic);
+    await page.waitForFunction(() => (document.querySelector('#q')?.value ?? '').trim().length > 5, null, { timeout: 30_000 });
+    await spotlight(page.locator('#q'), 'Transcribed by Muse Voice', 2500);
+    const before = await answers().count();
+    await page.keyboard.press('Enter');
+    await waitForAnswer(before);
+    await pause(3000);
+  });
+}
+
+await step('brief', async () => {
+  await caption(`Step ${hasVoice ? 5 : 4} · Brief me on ${S}`, 'An illustration by Muse Image, with the verified figures drawn by our code', 'Muse Image');
+  await click(page.getByRole('button', { name: /Brief me/ }).first());
+  mark('wait:start');
+  await page.locator('.brief-figure img').first().waitFor({ state: 'visible', timeout: 120_000 }).catch(() => {});
+  mark('wait:end');
+  await pause(1500);
+  await spotlight(page.locator('.brief-figure'), 'Muse Image: no text or numbers in the picture, labelled AI-generated', 4000);
+  await spotlight(page.locator('.brief-tiles'), 'Figures come from governed data, never from the image model', 3500);
+});
+
+await step('share', async () => {
+  await caption('Share it', 'A public link anyone can open; the figures are signed by the server', '');
+  await click(page.locator('.brief-drawer').getByRole('button', { name: 'Share' }));
+  await pause(1200);
+  const url = await page.evaluate(() => navigator.clipboard.readText()).catch(() => '');
+  if (!/\/p\//.test(url)) throw new Error(`no precinct link on the clipboard (${url.slice(0, 60)})`);
+  await page.goto(url, { waitUntil: 'networkidle', timeout: 60_000 });
+  await caption(`The shared ${S} briefing`, 'No sign-in needed; rich preview on X and LinkedIn', '');
+  await pause(4500);
+  await page.goBack({ waitUntil: 'networkidle' });
+  await pause(2000);
+});
+
+await step('tour', async () => {
+  await caption(`Step ${hasVoice ? 6 : 5} · Tour the corridor`, `Station by station, with verified figures and Muse Spark headlines`, 'Muse Spark');
+  await click(page.getByRole('button', { name: 'Tour', exact: true }));
+  await pause(1000);
+  await click(page.getByRole('button', { name: new RegExp(story.tour) }));
+  await pause(2500);
+  await spotlight(page.locator('.tour-card'), 'Headline by Muse Spark; every number checked', 3500);
+  await pause(9000);
   await click(page.getByRole('button', { name: 'Exit tour' }));
 });
 
-// 8. Share an answer and open the public link.
-await step('share', async () => {
-  await click(answers().last().getByRole('button', { name: 'Share' }));
-  await pause(1500);
-  const url = await page.evaluate(() => navigator.clipboard.readText()).catch(() => '');
-  if (!/\/a\//.test(url)) throw new Error(`no share link on the clipboard (${url.slice(0, 60)})`);
-  await page.goto(url, { waitUntil: 'networkidle', timeout: 60_000 });
-  await pause(6000);
+await step('end', async () => {
+  await caption('');
+  await card(`<div class="k">Lumina Precinct Agent · Dronovation Labs</div>
+    <h1>From question to verified, mapped answer in seconds</h1>
+    <ul>
+      <li>26 of 26 evaluation questions answered and verified on real NSW data</li>
+      <li>Muse Code built 10 of the features you just saw, each reviewed before merge</li>
+      <li>Live for Sydney; ready for any city with open transit, map and imagery data</li>
+    </ul>
+    <div class="row"><span class="c"><i></i>Muse Spark</span><span class="c"><i></i>SAM 3.1</span><span class="c"><i></i>Muse Voice</span><span class="c"><i></i>Muse Image</span><span class="c"><i></i>Muse Code</span></div>
+    <p style="margin-top:26px"><a>lumina.dronovation.com.au</a> · Try the demo, no account needed</p>`, 8000);
 });
 
 mark('end');
@@ -178,5 +372,6 @@ const video = await page.video()?.path();
 await context.close();
 await browser.close();
 if (video) renameSync(video, path.join(OUT, 'walkthrough.webm'));
-writeFileSync(path.join(OUT, 'events.json'), JSON.stringify({ base: BASE, recorded_at: new Date().toISOString(), size: [VW, VH], viewport: [W, H], events }, null, 2));
-console.log(`\nSaved ${path.join(OUT, 'walkthrough.webm')} and events.json (${events.filter((e) => e.name.endsWith(':failed')).length} failed steps).`);
+writeFileSync(path.join(OUT, 'events.json'), JSON.stringify({ base: BASE, recorded_at: new Date().toISOString(), size: [VW, VH], viewport: [W, H], story, events }, null, 2));
+const failed = events.filter((e) => e.name.endsWith(':failed'));
+console.log(`\nSaved ${path.join(OUT, 'walkthrough.webm')} (${failed.length} failed steps${failed.length ? `: ${failed.map((f) => f.name).join(', ')}` : ''}).`);

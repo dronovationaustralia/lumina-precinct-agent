@@ -349,7 +349,7 @@ body {
 }
 .map-status-sub { font-weight: 400; color: var(--ink-muted); font-size: 12px; }
 .map-note { position: absolute; left: 12px; bottom: 28px; padding: 6px 12px; border-radius: 6px; font-size: 13px; background: var(--amber-wash); color: var(--amber); }
-.tour-card { position: absolute; left: 50%; transform: translateX(-50%); bottom: 28px; width: min(560px, calc(100% - 24px)); max-height: calc(100% - 140px); overflow-y: auto; padding: 14px 16px; background: var(--panel); border-radius: 12px; box-shadow: 0 0 0 1px var(--rule), 0 8px 24px rgb(30 45 43 / 0.14); }
+.tour-card { position: absolute; z-index: 6; left: 50%; transform: translateX(-50%); bottom: 28px; width: min(560px, calc(100% - 24px)); max-height: calc(100% - 140px); overflow-y: auto; padding: 14px 16px; background: var(--panel); border-radius: 12px; box-shadow: 0 0 0 1px var(--rule), 0 8px 24px rgb(30 45 43 / 0.14); }
 .tour-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .tour-stop { font-size: 12px; color: var(--ink-muted); }
 .tour-exit { padding: 4px 10px; border-radius: 6px; border: 1px solid var(--rule); background: transparent; color: var(--ink); font: inherit; font-size: 12px; font-weight: 650; cursor: pointer; }
@@ -613,5 +613,5 @@ body {
 .status-key dd { margin: 0; }
 
 /* Leaving the "What SAM 3.1 sees" view */
-.sam-exit { position: absolute; left: 12px; top: 84px; padding: 7px 12px; border-radius: 8px; border: 0; cursor: pointer; font: inherit; font-size: 13px; font-weight: 650; background: var(--harbour); color: #fff; box-shadow: var(--shadow); }
+.sam-exit { position: absolute; z-index: 6; left: 12px; top: 84px; padding: 7px 12px; border-radius: 8px; border: 0; cursor: pointer; font: inherit; font-size: 13px; font-weight: 650; background: var(--harbour); color: #fff; box-shadow: var(--shadow); }
 .sam-exit:hover { filter: brightness(1.1); }
