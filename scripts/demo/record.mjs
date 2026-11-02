@@ -15,9 +15,9 @@
  * Highlights (red boxes with labels), captions, the title and end cards and the "Built 27 Oct –
  * 4 Nov" label are drawn in the page, so they line up with what is on screen.
  *
- * Voice: put a WAV of yourself asking "How busy is this station, and is patronage growing?" at
- * data/derived/demo/voice.wav (mono, 16 or 24 kHz) and the browser's microphone plays it; without
- * it the voice scene is skipped.
+ * Voice: `npm run demo:voice` (Windows) speaks "How busy is this station, and is patronage
+ * growing?" into data/derived/demo/voice.wav with the built-in speech synthesiser; the browser's
+ * microphone plays it, so Muse Voice transcribes it live. Without the file the scene is skipped.
  *
  * Output (gitignored): data/derived/demo/walkthrough.webm, events.json, story.json.
  */
@@ -189,6 +189,18 @@ async function spotlight(locator, label, ms = 3500, { below = false, pad = 8 } =
   await page.evaluate(() => document.querySelectorAll('#__demo_layer .__spot').forEach((n) => n.remove())).catch(() => {});
 }
 
+/** Length of a PCM WAV in seconds, reading the chunks (the fmt chunk is 16 or 18 bytes). */
+function wavSeconds(buf) {
+  let byteRate = 0;
+  for (let o = 12; o + 8 <= buf.length; ) {
+    const id = buf.toString('ascii', o, o + 4), size = buf.readUInt32LE(o + 4);
+    if (id === 'fmt ') byteRate = buf.readUInt32LE(o + 16);
+    if (id === 'data' && byteRate) return size / byteRate;
+    o += 8 + size + (size % 2);
+  }
+  return 5;
+}
+
 async function step(name, fn) {
   mark(`${name}:start`);
   try { await fn(); mark(`${name}:end`); } catch (e) { mark(`${name}:failed`, { error: String(e?.message ?? e).slice(0, 200) }); }
@@ -236,17 +248,12 @@ async function card(html, ms) {
 // ---------------------------------------------------------------------------------------------
 const S = story.name;
 
-await step('title', async () => {
-  await card(`<div class="k">Dronovation Labs · Lumina Precinct Agent</div>
-    <h1>Where near Sydney's stations is the next site worth a feasibility study?</h1>
-    <p>NSW is putting new homes near train stations. Site teams still answer that question with spreadsheets and days of digging.</p>
-    <p>Lumina answers it in seconds, for all 185 stations, with every figure checked.</p>`, 7000);
-});
-
 await step('signin', async () => {
   await page.goto(`${BASE}/signin`, { waitUntil: 'networkidle', timeout: 60_000 });
-  await caption('Built for the people who decide where homes go', 'Developers and site analysts first; lenders and planners too', '');
-  await pause(2500);
+  await caption("Where near Sydney's stations is the next site worth a feasibility study?", 'Site teams answer that with spreadsheets and days of digging. Lumina answers it in seconds, for all 185 stations, every figure checked.');
+  await pause(4000);
+  await caption('Built for the people who decide where homes go', 'Developers and site analysts first; lenders and planners too');
+  await pause(2000);
   await spotlight(page.locator('.signin-models'), 'Meta models behind every answer', 3000);
   await caption('Live for Sydney, built to work for any city', 'Transit, map and imagery adapters: GTFS, OpenStreetMap, SAM 3.1 on any aerial or drone imagery');
   await page.mouse.wheel(0, 600); await pause(3000); await page.mouse.wheel(0, -600); await pause(600);
@@ -302,11 +309,10 @@ await step('sites', async () => {
 
 if (hasVoice) {
   await step('voice', async () => {
-    await caption(`Step 4 · Ask by voice`, 'Muse Voice Transcribe, hinted with station names', 'Muse Voice');
+    await caption('Step 4 · Ask by voice', 'The question is spoken by a synthesised voice; Muse Voice Transcribe turns it into text, live', 'Muse Voice');
     const mic = page.getByRole('button', { name: 'Ask by voice' });
     await click(mic);
-    const buf = readFileSync(VOICE);
-    const seconds = buf.readUInt32LE(40) / buf.readUInt32LE(28); // data bytes / byte rate
+    const seconds = wavSeconds(readFileSync(VOICE));
     await pause(Math.min(20_000, Math.round(seconds * 1000) + 600));
     await click(mic);
     await page.waitForFunction(() => (document.querySelector('#q')?.value ?? '').trim().length > 5, null, { timeout: 30_000 });

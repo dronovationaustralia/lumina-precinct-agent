@@ -36,7 +36,8 @@
     "sam:check": "tsx --tsconfig tsconfig.json scripts/sam/check.ts",
     "sam:sites": "tsx --tsconfig tsconfig.json scripts/sam/sites.ts",
     "sam:polygons": "tsx --tsconfig tsconfig.json scripts/sam/cover-polygons.ts",
-    "demo:record": "node scripts/demo/record.mjs"
+    "demo:record": "node scripts/demo/record.mjs",
+    "demo:voice": "powershell -ExecutionPolicy Bypass -File scripts/demo/make-voice.ps1"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.12",
