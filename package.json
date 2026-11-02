@@ -35,7 +35,8 @@
     "sam:batch": "tsx --tsconfig tsconfig.json scripts/sam/batch.ts",
     "sam:check": "tsx --tsconfig tsconfig.json scripts/sam/check.ts",
     "sam:sites": "tsx --tsconfig tsconfig.json scripts/sam/sites.ts",
-    "sam:polygons": "tsx --tsconfig tsconfig.json scripts/sam/cover-polygons.ts"
+    "sam:polygons": "tsx --tsconfig tsconfig.json scripts/sam/cover-polygons.ts",
+    "demo:record": "node scripts/demo/record.mjs"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.12",
@@ -69,6 +70,7 @@
     "@types/yauzl": "^3.4.0",
     "eslint": "^9",
     "eslint-config-next": "16.4.3",
+    "playwright": "^1.63.0",
     "shapefile": "^0.6.6",
     "sharp": "^0.35.5",
     "tailwindcss": "^4",
