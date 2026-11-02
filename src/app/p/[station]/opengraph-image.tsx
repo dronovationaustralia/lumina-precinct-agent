@@ -8,6 +8,7 @@ import { ImageResponse } from 'next/og';
 import { StationId } from '@/lib/contracts';
 import { STATION_BY_ID } from '@/lib/stations';
 import { briefingFacts, briefingIllustration, briefingPrompt } from '@/server/briefing';
+import { takeQuota } from '@/server/quota';
 import { getDb } from '@/server/db/client';
 import { cachedOgImage } from '@/server/share-url';
 
@@ -42,7 +43,7 @@ export default async function Image({ params }: { params: Promise<{ station: str
     );
     let image: string | null = null;
     try {
-      image = (await briefingIllustration(info.id, prompt)).image;
+      image = (await briefingIllustration(info.id, prompt, () => takeQuota('image'))).image;
     } catch {
       image = null;
     }

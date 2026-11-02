@@ -233,6 +233,8 @@ function fresh(entry: CachedIllustration | undefined, promptHash: string): entry
 export async function briefingIllustration(
   station: string,
   prompt: string,
+  /** Asked before a new picture is generated (cached pictures are free); false refuses. */
+  canGenerate?: () => boolean,
 ): Promise<{ image: string; model: string; ms: number; cached: boolean }> {
   const want = hashPrompt(prompt);
   const mem = memoryCache.get(station);
@@ -246,6 +248,7 @@ export async function briefingIllustration(
   } catch {
     // Miss, corrupt or unreadable: generate below.
   }
+  if (canGenerate && !canGenerate()) throw new Error("The demo has reached today's limit for briefing pictures.");
   const gen = await generateIllustration(prompt);
   const entry: CachedIllustration = { at: Date.now(), promptHash: want, image: gen.image, model: gen.model };
   memoryCache.set(station, entry);

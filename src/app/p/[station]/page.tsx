@@ -14,6 +14,7 @@ import { LineBadges } from '@/components/portal/LineBadges';
 import { briefingFacts, briefingIllustration, briefingPrompt } from '@/server/briefing';
 import { getDb } from '@/server/db/client';
 import { rateLimit } from '@/server/http';
+import { takeQuota } from '@/server/quota';
 import { publicBaseUrl } from '@/server/share-url';
 
 export const instant = false;
@@ -59,7 +60,7 @@ export default async function PrecinctPage({ params }: { params: Promise<{ stati
   );
   let image: string | null = null;
   try {
-    image = (await briefingIllustration(parsed.data, prompt)).image;
+    image = (await briefingIllustration(parsed.data, prompt, () => takeQuota('image'))).image;
   } catch {
     image = null;
   }

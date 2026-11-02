@@ -11,6 +11,7 @@ import { AskRequest, type AskResponse } from '@/lib/contracts';
 import { runAgent, type AgentEvent } from '@/server/agent/graph';
 import { getDb } from '@/server/db/client';
 import { CORS_HEADERS, errorJson, json, preflight, rateLimit } from '@/server/http';
+import { demoQuota } from '@/server/quota';
 import { shareTokenFor } from '@/server/share';
 
 export const maxDuration = 60;
@@ -22,6 +23,8 @@ export function OPTIONS() {
 export async function POST(request: Request) {
   const limited = rateLimit(request);
   if (limited) return limited;
+  const capped = await demoQuota(request, 'ask');
+  if (capped) return capped;
 
   let body: unknown;
   try {

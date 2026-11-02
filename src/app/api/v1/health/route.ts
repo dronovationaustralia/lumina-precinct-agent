@@ -8,6 +8,7 @@ import { getModel } from '@/server/agent/providers';
 import { getDb } from '@/server/db/client';
 import { json, preflight } from '@/server/http';
 import { listDatasets } from '@/server/metrics/query';
+import { quotaStatus } from '@/server/quota';
 
 /** The commit this deployment was built from (build.json, written by scripts/package-standalone.mjs). */
 function build(): { sha: string; built_at?: string } {
@@ -40,6 +41,7 @@ export async function GET() {
     return json({
       status: 'ok',
       build: build(),
+      demo_quota: quotaStatus(),
       provider,
       model,
       database: db.kind,

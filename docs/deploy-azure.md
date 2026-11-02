@@ -143,6 +143,9 @@ the Bicep deployment. To change them later, open the Web App → Settings → En
 | `AUTH_MICROSOFT_CLIENT_ID` | Application (client) ID of the Entra app registration |
 | `AUTH_MICROSOFT_CLIENT_SECRET` | Client secret value |
 | `AUTH_MICROSOFT_TENANT` | Optional: your tenant ID, to accept only accounts from your organisation |
+| `DEMO_DAILY_ASK` | Optional: daily cap on Muse Spark answers for the no-account demo (default 400; 0 turns demo questions off) |
+| `DEMO_DAILY_IMAGE` | Optional: daily cap on new Muse Image pictures for the demo and public pages (default 60) |
+| `DEMO_DAILY_VOICE` | Optional: daily cap on voice questions for the demo (default 150) |
 | `LUMINA_API_KEYS` | Optional, comma-separated 24+ character keys for the Quest app |
 
 Setting these with `az webapp config appsettings set` works, but a later Bicep deployment without

@@ -6,6 +6,7 @@
  */
 import { MAX_AUDIO_MS, transcribe, transcribeModel, validateAudio } from '@/server/voice';
 import { errorJson, json, preflight, rateLimit } from '@/server/http';
+import { demoQuota } from '@/server/quota';
 
 export const maxDuration = 60;
 
@@ -16,6 +17,8 @@ export function OPTIONS() {
 export async function POST(request: Request) {
   const limited = rateLimit(request);
   if (limited) return limited;
+  const capped = await demoQuota(request, 'voice');
+  if (capped) return capped;
 
   let form: FormData;
   try {

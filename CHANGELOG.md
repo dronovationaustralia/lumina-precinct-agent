@@ -22,6 +22,13 @@ repositories (`LuminaSpatialInsightsXR`, `LuminaSpatial`, `extended-tableau-mcp`
 
 ## 2026-11-02 (Mon)
 
+### Added
+- Daily caps for the no-account demo and the public share pages, so an open demo cannot run up
+  the Meta bill: Muse Spark answers (`DEMO_DAILY_ASK`, default 400), new Muse Image pictures
+  (`DEMO_DAILY_IMAGE`, 60) and voice questions (`DEMO_DAILY_VOICE`, 150), set in the app's
+  settings. Invited Microsoft users and API-key clients are not capped. Today's usage is shown in
+  `/api/v1/health` (`demo_quota`).
+
 ### Changed
 - Boundaries: the hovered suburb, council or postcode now gets a warm fill, a solid outline and
   its name in large type, so it stands out on the map.
