@@ -9,7 +9,7 @@ import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { Fact, MapAction } from '@/lib/contracts';
-import { PERSONA_INFO, TOUR_STEP, fillStep, type Playbook } from '@/lib/personas';
+import { PERSONA_INFO, STATION_SLOT, TOUR_STEP, fillStep, type Playbook } from '@/lib/personas';
 
 import { AnswerCard, type AnswerActions, type Turn } from './AnswerCard';
 import { AskDrawer } from './AskDrawer';
@@ -40,6 +40,11 @@ export function Portal() {
   const [user, setUser] = useState<User | null>(null);
   const [turns, setTurns] = useState<Turn[]>([]);
   const [draft, setDraft] = useState('');
+  /**
+   * A pre-built question waiting in the box. Its {station} slot follows the selected station
+   * (the text updates when the station changes) until the user edits the text or asks.
+   */
+  const [draftTemplate, setDraftTemplate] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [landUse, setLandUse] = useState<LandUseDto | null>(null);
@@ -153,17 +158,25 @@ export function Portal() {
     setMap((m) => ({ ...m, focus: id, compare: null, view: 'close', flyNonce: m.flyNonce + 1 }));
   };
 
-  /** Start a playbook: ask its first step, then walk the rest as chips under each answer. */
+  /** Put a pre-built question in the box (not asked yet); a {station} slot follows the selection. */
+  const prefill = (template: string) => {
+    const hasSlot = template.includes('{station}');
+    setDraftTemplate(hasSlot ? template : null);
+    setDraft(hasSlot ? '' : template);
+    const box = document.querySelector<HTMLTextAreaElement>('#q');
+    box?.focus();
+    if (hasSlot && !map.focus) {
+      setToast('Now pick a station: the question will update to match.');
+      document.querySelector<HTMLInputElement>('.station-search input')?.focus();
+    }
+  };
+
+  /** Start a playbook: its first step goes in the box; the rest follow as chips under each answer. */
   const startPlaybook = (book: Playbook) => {
     const first = book.steps[0];
     if (!first || first === TOUR_STEP) return;
-    if (first.includes('{station}') && !map.focus) {
-      setToast('Pick a station first, then start the playbook.');
-      return;
-    }
-    const name = stations.find((s) => s.id === map.focus)?.name ?? '';
     setPlaybook(book.steps.length > 1 ? { book, index: 1 } : null);
-    void submit(fillStep(first, name));
+    prefill(first);
   };
 
   const handleNextStep = (_display: string, position: number) => {
@@ -177,13 +190,8 @@ export function Portal() {
       advance();
       return;
     }
-    if (step.includes('{station}') && !map.focus) {
-      setToast('Pick a station first, then continue the playbook.');
-      return;
-    }
-    const name = stations.find((s) => s.id === map.focus)?.name ?? '';
     advance();
-    void submit(fillStep(step, name));
+    prefill(step);
   };
 
   const dismissCoach = () => {
@@ -250,8 +258,14 @@ export function Portal() {
   const submit = useCallback(async (question: string) => {
     const q = question.trim();
     if (!q || busy) return;
+    if (q.includes(STATION_SLOT)) {
+      setToast('Pick a station first: search at the top or click a dot on the map.');
+      document.querySelector<HTMLInputElement>('.station-search input')?.focus();
+      return;
+    }
     const id = crypto.randomUUID();
     setDraft('');
+    setDraftTemplate(null);
     setBusy(true);
     setLandUse(null);
     setTurns((t) => [...t, { id, question: q, station: map.focus ?? undefined, progress: [] }]);
@@ -409,6 +423,7 @@ export function Portal() {
   });
 
   const focus = stations.find((s) => s.id === map.focus) ?? null;
+  const composerText = draftTemplate ? fillStep(draftTemplate, focus?.name ?? STATION_SLOT) : draft;
   const kpis = Object.fromEntries(summary.map((k) => [k.id, k.unit_median_800m ? `${money(k.unit_median_800m)} unit median` : '']));
   const TOPIC: Record<string, string> = { demo_sales: 'Property sales', demo_patronage: 'Station patronage', demo_land_use: 'Aerial land cover (until the SAM 3.1 run)' };
   const demoTopics = (health?.datasets ?? []).filter((d) => d.demo).map((d) => TOPIC[d.id] ?? d.id);
@@ -517,7 +532,7 @@ export function Portal() {
               </section>
             )}
 
-            {focus && <PrecinctSnapshot station={focus} persona={persona} onAsk={submit} />}
+            {focus && <PrecinctSnapshot station={focus} persona={persona} onAsk={prefill} />}
 
             {turns.map((t) => (
               <AnswerCard
@@ -529,7 +544,7 @@ export function Portal() {
           </div>
         </div>
 
-        <form className="composer" onSubmit={(e) => { e.preventDefault(); submit(draft); }}>
+        <form className="composer" onSubmit={(e) => { e.preventDefault(); submit(composerText); }}>
           {focus && (
             <div className="quick-chips" role="group" aria-label={`Quick questions about ${focus.name}`}>
               {info.playbooks.map((b) => (
@@ -549,11 +564,11 @@ export function Portal() {
             <label htmlFor="q" className="sr-only">Your question</label>
             <textarea
               id="q"
-              value={draft}
+              value={composerText}
               rows={2}
               placeholder={info.questions[phIdx % info.questions.length]}
-              onChange={(e) => setDraft(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submit(draft); } }}
+              onChange={(e) => { setDraftTemplate(null); setDraft(e.target.value); }}
+              onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submit(composerText); } }}
             />
             <div className="composer-foot">
               <span className="composer-left">
@@ -561,7 +576,7 @@ export function Portal() {
                 <button type="button" className="link-button" onClick={() => setShowAsk(true)}>What can I ask?</button>
               </span>
               <span className="composer-actions">
-                <MicButton onTranscript={setDraft} station={stations.find((st) => st.id === map.focus)?.name} />
+                 <MicButton onTranscript={(t) => { setDraftTemplate(null); setDraft(t); }} station={stations.find((st) => st.id === map.focus)?.name} />
                 <button type="submit" className="ask-button" disabled={busy || !draft.trim()}>{busy ? 'Working…' : 'Ask'}</button>
               </span>
             </div>
@@ -608,7 +623,7 @@ export function Portal() {
       </section>
 
       {showModels && <ModelsPanel health={health} checking={!checked} onClose={() => setShowModels(false)} onShowSam={showSam} samStationName={(focus?.featured ? focus : featured[0] ?? null)?.name ?? null} />}
-      {showAsk && <AskDrawer datasets={health?.datasets ?? null} onClose={() => setShowAsk(false)} onAsk={submit} />}
+      {showAsk && <AskDrawer datasets={health?.datasets ?? null} stationName={focus?.name} onClose={() => setShowAsk(false)} onAsk={prefill} />}
       {tourPicker && <TourPicker onPick={(id) => void startTour(id)} onClose={() => setTourPicker(false)} />}
       {showSaved && (
         <SavedPanel

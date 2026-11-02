@@ -14,6 +14,9 @@ export type Playbook = {
 /** A playbook step that opens the guided-tour picker instead of asking a question. */
 export const TOUR_STEP = 'Take a guided tour of this corridor';
 
+/** Shown in the question box until a station is picked. */
+export const STATION_SLOT = '[pick a station]';
+
 /** Fill a playbook step's {station} slot with the station name. */
 export function fillStep(step: string, stationName: string): string {
   return step.replaceAll('{station}', stationName);
