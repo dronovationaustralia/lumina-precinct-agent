@@ -247,9 +247,14 @@ async function card(html, ms) {
 // 3. The story.
 // ---------------------------------------------------------------------------------------------
 const S = story.name;
+const BEFORE_LINE = arg('before', 'Before 27 Oct: an earlier Dronovation VR prototype, Lumina Spatial (separate; no code reused)');
+const BUILT_LINE = arg('built', 'Built 27 Oct – 4 Nov: everything in this video: the agent, data pipeline, SAM 3.1 layers, voice, briefings and the app');
 
 await step('signin', async () => {
   await page.goto(`${BASE}/signin`, { waitUntil: 'networkidle', timeout: 60_000 });
+  // The rules ask the video to open with one line on what existed before and what was built.
+  await caption(BEFORE_LINE, BUILT_LINE);
+  await pause(4500);
   await caption("Where near Sydney's stations is the next site worth a feasibility study?", 'Site teams answer that with spreadsheets and days of digging. Lumina answers it in seconds, for all 185 stations, every figure checked.');
   await pause(4000);
   await caption('Built for the people who decide where homes go', 'Developers and site analysts first; lenders and planners too');
