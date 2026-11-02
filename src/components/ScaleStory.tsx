@@ -2,6 +2,9 @@
 
 export const SCALE_LINE = 'Live for Sydney. The same engine runs anywhere with open transit, map and imagery data.';
 
+/** Why these cities are next: each already publishes the open data the adapters need. */
+export const NEXT_LINE = 'Next: London, New York and Singapore, because each already publishes open transit data and open property-sales records.';
+
 export const ADAPTERS = [
   { title: 'Stations and lines', body: 'GTFS, published by 1,000+ transit agencies worldwide.' },
   { title: 'Places and land use', body: 'OpenStreetMap, global.' },
@@ -30,7 +33,7 @@ const NEXT_CITIES = [
   { name: 'New York', x: 106, y: 49.3, anchor: 'end' as const, dx: -5, dy: 1 },
   { name: 'Singapore', x: 283.8, y: 88.7, anchor: 'start' as const, dx: 5, dy: 3 },
 ];
-const SYDNEY = { x: 331.2, y: 123.9 };
+const SYDNEY = { x: 324, y: 120.5 }; // on the schematic coastline (true position is just east)
 
 const TONES = {
   dark: { land: '#ffffff', landOpacity: 0.16, grid: '#ffffff', gridOpacity: 0.08, live: '#8fb8f5', liveText: '#ffffff', next: '#9fb7c9', nextText: '#9fb7c9' },
@@ -41,6 +44,7 @@ const TONES = {
 export function ScaleMap({ tone }: { tone: 'dark' | 'light' }) {
   const c = TONES[tone];
   return (
+    <figure className="scale-figure">
     <svg viewBox="0 0 360 180" className="scale-map" role="img" aria-label="Schematic world map: Sydney live; London, New York and Singapore next">
       <title>Live for Sydney; London, New York and Singapore next</title>
       {[60, 120, 180, 240, 300].map((x) => (
@@ -65,6 +69,8 @@ export function ScaleMap({ tone }: { tone: 'dark' | 'light' }) {
         Sydney · Live
       </text>
     </svg>
+      <figcaption className="scale-next">{NEXT_LINE}</figcaption>
+    </figure>
   );
 }
 
