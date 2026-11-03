@@ -263,7 +263,7 @@ async function card(html, ms) {
 // 3. The story.
 // ---------------------------------------------------------------------------------------------
 const S = story.name;
-const BEFORE_LINE = arg('before', 'Before 27 Oct: an earlier Dronovation VR prototype, Lumina Spatial (separate; no code reused)');
+const BEFORE_LINE = arg('before', 'Before 27 Oct: Lumina Spatial, an earlier Dronovation XR prototype (separate codebase; no code reused)');
 const BUILT_LINE = arg('built', 'Built 27 Oct – 4 Nov: everything in this video: the agent, data pipeline, SAM 3.1 layers, voice, briefings and the app');
 
 await step('signin', async () => {
@@ -391,7 +391,7 @@ await step('end', async () => {
     <ul>
       <li>26 of 26 evaluation questions answered and verified on real NSW data</li>
       <li>Muse Code built 10 of the features you just saw, each reviewed before merge</li>
-      <li>Live for Sydney; ready for any city with open transit, map and imagery data</li>
+      <li>Live for Sydney. Next: London, New York and Singapore, and the same answers in Lumina Spatial XR</li>
     </ul>
     <div class="row"><span class="c"><i></i>Muse Spark</span><span class="c"><i></i>SAM 3.1</span><span class="c"><i></i>Muse Voice</span><span class="c"><i></i>Muse Image</span><span class="c"><i></i>Muse Code</span></div>
     <p style="margin-top:26px"><a>lumina.dronovation.com.au</a> · Try the demo, no account needed</p>`, 8000);
