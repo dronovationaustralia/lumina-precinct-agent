@@ -41,7 +41,7 @@ const VW = 1920, VH = 1080;
 // ---------------------------------------------------------------------------------------------
 // 1. Choose the story precinct from the live data (not filmed).
 // ---------------------------------------------------------------------------------------------
-const money = (v) => (v >= 1_000_000 ? `$${(v / 1_000_000).toFixed(v % 1_000_000 === 0 ? 0 : 1)}m` : `$${Math.round(v / 1000)}k`);
+const money = (v) => (v >= 1_000_000 ? `$${String(+(v / 1_000_000).toFixed(2))}m` : `$${Math.round(v / 1000)}k`);
 
 async function chooseStory() {
   const api = await apiRequest.newContext({ baseURL: BASE });
@@ -49,30 +49,45 @@ async function chooseStory() {
     const demo = await api.post('/api/auth/demo', { data: { persona: 'developer' } });
     if (!demo.ok()) throw new Error(`demo sign-in failed (HTTP ${demo.status()})`);
     const get = async (p) => { const r = await api.get(p); if (!r.ok()) throw new Error(`${p}: HTTP ${r.status()}`); return r.json(); };
-    const [stations, median, change] = await Promise.all([
-      get('/api/v1/stations'),
-      get('/api/v1/layers/station-metric?metric=median_price&property_type=unit&ring=0-800m'),
-      get('/api/v1/layers/station-metric?metric=price_change_12m&property_type=unit&ring=0-800m'),
-    ]);
-    const list = Array.isArray(stations) ? stations : stations.stations;
-    const med = new Map(median.stations.map((s) => [s.id, s.value]));
-    const chg = new Map(change.stations.map((s) => [s.id, s.value]));
-    const both = [...med.keys()].filter((id) => chg.has(id));
-    const candidates = list.filter((s) => s.featured && med.has(s.id) && chg.has(s.id)).map((s) => {
-      const cap = Math.ceil(med.get(s.id) / 50_000) * 50_000;
-      const rank = 1 + both.filter((id) => med.get(id) <= cap && chg.get(id) > chg.get(s.id)).length;
-      const pool = both.filter((id) => med.get(id) <= cap).length;
-      return { id: s.id, name: s.name, cap, rank, pool, median: med.get(s.id), change: chg.get(s.id) };
-    });
-    candidates.sort((a, b) => a.rank - b.rank || b.change - a.change);
-    const best = candidates[0];
-    if (!best) throw new Error('no featured station has both a unit median and a 12-month change');
+    const list = await get('/api/v1/stations').then((r) => (Array.isArray(r) ? r : r.stations));
+    const layer = async (q) => new Map((await get(`/api/v1/layers/station-metric?${q}&ring=0-800m`)).stations.map((s) => [s.id, s.value]));
+    const featured = list.filter((s) => s.featured);
+    // Several screening angles; the story uses the one where a mapped (featured) station ranks best,
+    // so the "stands out" line is true on whatever data is live.
+    const angles = [
+      { key: 'unit', label: 'unit price growth', metric: 'metric=price_change_12m&property_type=unit', cap: 'metric=median_price&property_type=unit',
+        question: (c) => `Which stations under ${money(c)} unit median had the strongest unit price growth?` },
+      { key: 'house', label: 'house price growth', metric: 'metric=price_change_12m&property_type=house', cap: 'metric=median_price&property_type=house',
+        question: (c) => `Which stations under ${money(c)} house median had the strongest house price growth?` },
+      { key: 'trips', label: 'growth in station trips', metric: 'metric=patronage_change_12m&property_type=all', cap: null,
+        question: () => 'Which stations had the strongest growth in station trips over the last 12 months?' },
+    ];
+    const scored = [];
+    for (const angle of angles) {
+      const chg = await layer(angle.metric).catch(() => null);
+      if (!chg) continue;
+      const med = angle.cap ? await layer(angle.cap).catch(() => null) : null;
+      if (angle.cap && !med) continue;
+      const ids = [...chg.keys()].filter((id) => !med || med.has(id));
+      for (const s of featured) {
+        if (!chg.has(s.id) || (med && !med.has(s.id))) continue;
+        const step = med && med.get(s.id) >= 1_000_000 ? 250_000 : 50_000;
+        const cap = med ? Math.ceil(med.get(s.id) / step) * step : null;
+        const pool = ids.filter((id) => cap === null || med.get(id) <= cap);
+        const rank = 1 + pool.filter((id) => chg.get(id) > chg.get(s.id)).length;
+        scored.push({ id: s.id, name: s.name, angle: angle.key, label: angle.label, cap, rank, pool: pool.length,
+          median: med ? med.get(s.id) : null, change: chg.get(s.id), question: angle.question(cap) });
+      }
+    }
+    // Best rank; a capped pool must still hold at least 8 stations so "#1" means something.
+    scored.sort((x, y) => (x.pool < 8) - (y.pool < 8) || x.rank - y.rank || y.pool - x.pool);
+    const best = scored[0];
+    if (!best) throw new Error('no featured station has a ranked metric');
     const northShore = ['wynyard', 'milsons_point', 'north_sydney', 'st_leonards', 'chatswood'];
     return {
       ...best,
-      question: `Which stations under ${money(best.cap)} unit median had the strongest unit price growth?`,
       tour: northShore.includes(best.id) ? 'North Shore' : 'Parramatta corridor',
-      others: candidates.slice(1, 4),
+      others: scored.filter((c) => c.angle === best.angle && c.id !== best.id).sort((x, y) => x.rank - y.rank).slice(0, 3),
     };
   } finally {
     await api.dispose();
@@ -81,8 +96,9 @@ async function chooseStory() {
 
 const story = await chooseStory();
 writeFileSync(path.join(OUT, 'story.json'), JSON.stringify(story, null, 2));
-console.log(`Story precinct: ${story.name} (#${story.rank} of ${story.pool} stations under ${money(story.cap)} by unit price growth)`);
+console.log(`Story precinct: ${story.name} (#${story.rank} of ${story.pool} stations${story.cap ? ` under ${money(story.cap)}` : ''} by ${story.label})`);
 console.log(`Question: ${story.question}${hasVoice ? '' : '\n(No data/derived/demo/voice.wav: the voice scene will be skipped.)'}\n`);
+if (process.argv.includes('--story-only')) process.exit(0);
 
 // ---------------------------------------------------------------------------------------------
 // 2. Browser, overlays and helpers.
@@ -280,11 +296,13 @@ await step('models', async () => {
 await step('screen', async () => {
   await caption('Step 1 · Screen every station at once', story.question, 'Muse Spark');
   await ask(story.question);
-  await caption('All 185 stations recoloured by unit price growth', 'The leaders pulse on the map; every figure links to its source and date', 'Muse Spark');
+  await caption(`All 185 stations recoloured by ${story.label}`, 'The leaders pulse on the map; every figure links to its source and date', 'Muse Spark');
   await pause(3500);
   await spotlight(answers().last().locator('ol.tiles'), 'Every figure: governed NSW data, with source and date', 3500);
   await spotlight(answers().last().locator('section.made'), 'How this answer was made: Muse Spark planned and wrote; a checker verified every number', 5000);
-  await caption(`${S} stands out`, `#${story.rank} of ${story.pool} stations under ${money(story.cap)} for unit price growth, and SAM 3.1 has mapped it`, '');
+  const within = `${story.pool} stations${story.cap ? ` under ${money(story.cap)}` : ''}`;
+  await caption(story.rank <= 3 ? `${S} stands out` : `A closer look at ${S}`,
+    story.rank <= 3 ? `#${story.rank} of ${within} for ${story.label}, and SAM 3.1 has mapped it` : `One of ${within}, and one of the stations SAM 3.1 has mapped`, '');
   await pause(3500);
 });
 
