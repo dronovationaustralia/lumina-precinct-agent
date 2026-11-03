@@ -91,7 +91,7 @@ const browser = await chromium.launch({
   headless: !HEADED,
   args: [
     `--window-size=${W},${H}`, '--force-device-scale-factor=1',
-    ...(hasVoice ? ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream', `--use-file-for-fake-audio-capture=${VOICE}`] : []),
+    ...(hasVoice ? ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream', `--use-file-for-fake-audio-capture=${VOICE}%noloop`] : []),
   ],
 });
 const context = await browser.newContext({
@@ -322,8 +322,10 @@ if (hasVoice) {
     await click(mic);
     await page.waitForFunction(() => (document.querySelector('#q')?.value ?? '').trim().length > 5, null, { timeout: 30_000 });
     await spotlight(page.locator('#q'), 'Transcribed by Muse Voice', 2500);
+    // Click Ask: after clicking the mic, Enter would press the focused mic button and record again.
     const before = await answers().count();
-    await page.keyboard.press('Enter');
+    await click(page.locator('button.ask-button'));
+    mark('asked', { question: await page.locator('#q').inputValue() });
     await waitForAnswer(before);
     await pause(3000);
   });
