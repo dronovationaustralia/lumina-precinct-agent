@@ -85,7 +85,7 @@ for (const e of ev) {
 }
 const inside = (t, spans) => spans.some(([s, e]) => s <= t && t < e);
 
-const points = [...new Set([lead, dur, ...cuts.flat(), ...fast.flatMap((f) => [f.s, f.e])])].filter((p) => p >= lead && p <= dur).sort((a, b) => a - b);
+const points = [...new Set([lead, dur, ...cuts.flat(), ...fast.flatMap((f) => [f.s, f.e]), ...Object.values(starts), ...Object.values(ends)])].filter((p) => p >= lead && p <= dur).sort((a, b) => a - b);
 const segs = [];
 for (let i = 0; i + 1 < points.length; i++) {
   const s = points[i], e = points[i + 1];
@@ -95,8 +95,18 @@ for (let i = 0; i + 1 < points.length; i++) {
 }
 const fixed = segs.filter((g) => g.fast).reduce((a, g) => a + (g.e - g.s) / g.speed, 0);
 const normal = segs.filter((g) => !g.fast).reduce((a, g) => a + (g.e - g.s), 0);
-const k = Math.min(1.3, Math.max(1, normal / Math.max(1, TARGET - fixed)));
-for (const g of segs) if (!g.fast) g.speed = k;
+// --scale signin=0.7,tour=1.4 sets a scene's speed by hand (below 1 slows it, to fit narration);
+// fast spans inside it keep their own speed times that factor. Without --scale, the normal parts
+// are sped up evenly (at most 1.3x) only if needed to fit --target.
+const SCALE = Object.fromEntries((arg('scale', '') || '').split(',').filter(Boolean).map((kv) => { const [n, v] = kv.split('='); return [n, Number(v)]; }));
+const sceneOf = (t) => Object.keys(starts).find((n) => starts[n] <= t && t < (ends[n] ?? Infinity));
+const manual = Object.keys(SCALE).length > 0;
+const k = manual ? 1 : Math.min(1.3, Math.max(1, normal / Math.max(1, TARGET - fixed)));
+for (const g of segs) {
+  if (!g.fast) g.speed = k;
+  const f = SCALE[sceneOf((g.s + g.e) / 2)];
+  if (f) g.speed *= f;
+}
 const total = segs.reduce((a, g) => a + (g.e - g.s) / g.speed, 0);
 const cutTime = (t) => segs.reduce((a, g) => a + (t >= g.e ? (g.e - g.s) / g.speed : t > g.s ? (t - g.s) / g.speed : 0), 0);
 
@@ -113,6 +123,12 @@ const [vw, vh] = meta.viewport ?? [1920, 1080];
 const [fw, fh] = meta.size ?? [1920, 1080];
 const fill = vw < fw || vh < fh ? `crop=${vw}:${vh}:0:0,scale=1920:1080:flags=lanczos,` : '';
 
+const eventMap = ev.map((e) => ({ ...e, cut: Math.round(cutTime(e.t) * 100) / 100 }));
+if (process.argv.includes('--plan-only')) {
+  console.log(JSON.stringify({ total: Math.round(total * 10) / 10, scenes: Object.keys(starts).map((n) => [n, Math.round(cutTime(starts[n]) * 10) / 10, Math.round(cutTime(ends[n] ?? starts[n]) * 10) / 10]), events: eventMap.filter((e) => !/^(type|wait):/.test(e.name)).map((e) => [e.cut, e.name, e.label ?? e.question ?? '']) }, null, 1));
+  rmSync(work, { recursive: true, force: true });
+  process.exit(0);
+}
 console.log(`Cutting ${segs.length} segments from ${path.relative(process.cwd(), SRC)} …`);
 const parts = [];
 segs.forEach((g, i) => {
@@ -143,4 +159,5 @@ const timings = [
   ...scenes.map((s) => `${fmt(s.from).padStart(6)} – ${fmt(s.to).padStart(6)}  ${LABEL[s.scene] ?? s.scene}  (${(s.to - s.from).toFixed(1)} s)`),
 ].join('\n');
 writeFileSync(OUT.replace(/\.mp4$/, '-timings.txt'), `${timings}\n`);
+writeFileSync(OUT.replace(/\.mp4$/, '-events.json'), JSON.stringify(eventMap, null, 1));
 console.log(`\n${timings}\n\nSaved ${OUT}${total > 180 ? '\nWarning: over 3:00. Try --target 165.' : ''}`);
