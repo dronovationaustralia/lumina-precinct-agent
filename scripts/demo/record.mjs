@@ -430,7 +430,11 @@ await step('tour', async () => {
   await click(page.getByRole('button', { name: 'Tour', exact: true }));
   await pause(1000);
   await click(page.getByRole('button', { name: new RegExp(story.tour) }));
-  await pause(2500);
+  // The first stop loads its figures and the Muse Spark headline; the edit plays this wait fast.
+  mark('wait:start');
+  await page.locator('.tour-card').first().waitFor({ state: 'visible', timeout: 90_000 }).catch(() => {});
+  mark('wait:end');
+  await pause(1500);
   await spotlight(page.locator('.tour-card'), 'Headline by Muse Spark; every number checked', 3500);
   await pause(9000);
   await click(page.getByRole('button', { name: 'Exit tour' }));
