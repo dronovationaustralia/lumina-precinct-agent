@@ -65,6 +65,7 @@ async function chooseStory() {
     const list = await get('/api/v1/stations').then((r) => (Array.isArray(r) ? r : r.stations));
     const layer = async (q) => new Map((await get(`/api/v1/layers/station-metric?${q}&ring=0-800m`)).stations.map((s) => [s.id, s.value]));
     const featured = list.filter((s) => s.featured);
+    console.log(`Story picker: ${list.length} stations, ${featured.length} featured (${featured.map((f) => f.id).join(', ')})`);
     // Several screening angles; the story uses the one where a mapped (featured) station ranks best,
     // so the "stands out" line is true on whatever data is live.
     const angles = [
@@ -83,6 +84,8 @@ async function chooseStory() {
       const med = angle.cap ? await layer(angle.cap).catch(skip) : null;
       if (angle.cap && !med) continue;
       const ids = [...chg.keys()].filter((id) => !med || med.has(id));
+      const mine = featured.filter((f) => chg.has(f.id) && (!med || med.has(f.id))).map((f) => f.id);
+      console.log(`  ${angle.label}: ${chg.size} stations with a value, featured with data: ${mine.join(', ') || 'none'}`);
       for (const s of featured) {
         if (!chg.has(s.id) || (med && !med.has(s.id))) continue;
         const step = med && med.get(s.id) >= 1_000_000 ? 250_000 : 50_000;
@@ -96,6 +99,7 @@ async function chooseStory() {
     // Best rank; a capped pool must still hold at least 8 stations so "#1" means something.
     scored.sort((x, y) => (x.pool < 8) - (y.pool < 8) || x.rank - y.rank || y.pool - x.pool);
     const best = scored[0];
+    for (const c of scored.slice(0, 5)) console.log(`  candidate: ${c.name}, #${c.rank} of ${c.pool} by ${c.label}`);
     if (!best) throw new Error('no featured station has a ranked metric');
     const northShore = ['wynyard', 'milsons_point', 'north_sydney', 'st_leonards', 'chatswood'];
     return {
