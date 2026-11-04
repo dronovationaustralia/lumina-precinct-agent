@@ -48,7 +48,20 @@ async function chooseStory() {
   try {
     const demo = await api.post('/api/auth/demo', { data: { persona: 'developer' } });
     if (!demo.ok()) throw new Error(`demo sign-in failed (HTTP ${demo.status()})`);
-    const get = async (p) => { const r = await api.get(p); if (!r.ok()) throw new Error(`${p}: HTTP ${r.status()}`); return r.json(); };
+    // The API rate-limits each visitor per minute (RATE_LIMIT_PER_MIN); wait and retry on 429.
+    const get = async (p) => {
+      for (let i = 0; ; i++) {
+        const r = await api.get(p);
+        if (r.ok()) return r.json();
+        if (r.status() === 429 && i < 5) {
+          const wait = Math.min(65, Number(r.headers()['retry-after'] ?? 20)) + 1;
+          console.log(`  (rate limited; waiting ${wait} s)`);
+          await new Promise((res) => setTimeout(res, wait * 1000));
+          continue;
+        }
+        throw new Error(`${p}: HTTP ${r.status()}`);
+      }
+    };
     const list = await get('/api/v1/stations').then((r) => (Array.isArray(r) ? r : r.stations));
     const layer = async (q) => new Map((await get(`/api/v1/layers/station-metric?${q}&ring=0-800m`)).stations.map((s) => [s.id, s.value]));
     const featured = list.filter((s) => s.featured);
@@ -64,9 +77,10 @@ async function chooseStory() {
     ];
     const scored = [];
     for (const angle of angles) {
-      const chg = await layer(angle.metric).catch(() => null);
+      const skip = (e) => { console.log(`  (skipping ${angle.label}: ${e.message})`); return null; };
+      const chg = await layer(angle.metric).catch(skip);
       if (!chg) continue;
-      const med = angle.cap ? await layer(angle.cap).catch(() => null) : null;
+      const med = angle.cap ? await layer(angle.cap).catch(skip) : null;
       if (angle.cap && !med) continue;
       const ids = [...chg.keys()].filter((id) => !med || med.has(id));
       for (const s of featured) {
