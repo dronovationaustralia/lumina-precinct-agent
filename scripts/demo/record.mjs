@@ -19,9 +19,10 @@
  * growing?" into data/derived/demo/voice.wav with the built-in speech synthesiser; the browser's
  * microphone plays it, so Muse Voice transcribes it live. Without the file the scene is skipped.
  *
- * Output (gitignored): data/derived/demo/walkthrough.webm, events.json, story.json.
+ * Output (gitignored): data/derived/demo/runs/<date-time>/walkthrough.webm and events.json (latest also
+ * copied to data/derived/demo/), story.json. Then npm run demo:edit makes lumina-demo-<date-time>.mp4.
  */
-import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
 import { chromium, request as apiRequest } from 'playwright';
@@ -453,7 +454,16 @@ await page.close();
 const video = await page.video()?.path();
 await context.close();
 await browser.close();
-if (video) renameSync(video, path.join(OUT, 'walkthrough.webm'));
-writeFileSync(path.join(OUT, 'events.json'), JSON.stringify({ base: BASE, recorded_at: new Date().toISOString(), size: [VW, VH], viewport: [W, H], story, events }, null, 2));
+// Each run is kept in data/derived/demo/runs/<date-time>/; the latest is also copied to the top
+// of data/derived/demo/ for the edit step.
+const stamp = new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
+  .format(new Date()).replace(/[^0-9]/g, '').replace(/^(\d{8})(\d{4})$/, '$1-$2');
+const RUN = path.join(OUT, 'runs', stamp);
+mkdirSync(RUN, { recursive: true });
+const meta = JSON.stringify({ base: BASE, recorded_at: new Date().toISOString(), stamp, size: [VW, VH], viewport: [W, H], story, events }, null, 2);
+if (video) { renameSync(video, path.join(RUN, 'walkthrough.webm')); copyFileSync(path.join(RUN, 'walkthrough.webm'), path.join(OUT, 'walkthrough.webm')); }
+writeFileSync(path.join(RUN, 'events.json'), meta);
+writeFileSync(path.join(OUT, 'events.json'), meta);
 const failed = events.filter((e) => e.name.endsWith(':failed'));
-console.log(`\nSaved ${path.join(OUT, 'walkthrough.webm')} (${failed.length} failed steps${failed.length ? `: ${failed.map((f) => f.name).join(', ')}` : ''}).`);
+console.log(`\nSaved ${path.join(RUN, 'walkthrough.webm')} (${failed.length} failed steps${failed.length ? `: ${failed.map((f) => f.name).join(', ')}` : ''}).`);
+console.log('Next: npm run demo:edit');

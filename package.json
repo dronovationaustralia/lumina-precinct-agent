@@ -37,7 +37,8 @@
     "sam:sites": "tsx --tsconfig tsconfig.json scripts/sam/sites.ts",
     "sam:polygons": "tsx --tsconfig tsconfig.json scripts/sam/cover-polygons.ts",
     "demo:record": "node scripts/demo/record.mjs",
-    "demo:voice": "powershell -ExecutionPolicy Bypass -File scripts/demo/make-voice.ps1"
+    "demo:voice": "powershell -ExecutionPolicy Bypass -File scripts/demo/make-voice.ps1",
+    "demo:edit": "node scripts/demo/edit.mjs"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.12",
@@ -71,6 +72,8 @@
     "@types/yauzl": "^3.4.0",
     "eslint": "^9",
     "eslint-config-next": "16.4.3",
+    "ffmpeg-static": "^5.3.0",
+    "ffprobe-static": "^3.1.0",
     "playwright": "^1.63.0",
     "shapefile": "^0.6.6",
     "sharp": "^0.35.5",
