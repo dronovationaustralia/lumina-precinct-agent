@@ -12,7 +12,7 @@ import { STATION_BY_ID } from '@/lib/stations';
 import { briefingFacts, briefingIllustration, briefingPrompt } from '@/server/briefing';
 import { getDb } from '@/server/db/client';
 import { errorJson, json, preflight, rateLimit } from '@/server/http';
-import { isMetered, takeQuota } from '@/server/quota';
+import { isMetered, takeQuota, visitorOf } from '@/server/quota';
 
 export const maxDuration = 120;
 
@@ -40,7 +40,7 @@ export async function GET(request: NextRequest, ctx: { params: Promise<{ station
   );
 
   try {
-    const illustration = await briefingIllustration(parsed.data, prompt, (await isMetered(request)) ? () => takeQuota('image') : undefined);
+    const illustration = await briefingIllustration(parsed.data, prompt, (await isMetered(request)) ? () => takeQuota('image', visitorOf(request)) : undefined);
     return json({
       station: parsed.data,
       name: info.name,

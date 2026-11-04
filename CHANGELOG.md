@@ -9,6 +9,7 @@ repositories (`LuminaSpatialInsightsXR`, `LuminaSpatial`, `extended-tableau-mcp`
 ### Changed
 - "What can I ask?": a complete question is asked straight away; a question that needs a station waits in the box and fills in when you pick one. The Ask button now enables as soon as the box holds a question.
 - Turning the demo off (`AUTH_DEMO_DISABLED=1`) now also ends demo sessions already signed in, not only new ones.
+- Demo limits per visitor (by IP address: 25 questions, 5 pictures, 15 voice questions a day by default) on top of the shared daily limits, so one person cannot use up the demo for everyone.
 - Site icon: the Lumina mark replaces the default Next.js icon.
 - Land-use and SAM map layers: cached per station on the server (6 hours), featured stations warmed at start-up, and gzipped (land use 345 KB to 55 KB). Repeat loads take milliseconds instead of seconds.
 
