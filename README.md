@@ -8,6 +8,8 @@ Startup track, theme *Build for Your World*.
 
 **Live:** https://lumina.dronovation.com.au · click **Try the demo (no account)** · [About](https://lumina.dronovation.com.au/about)
 
+**Demo video (2:59):** https://youtu.be/T2Vyb7nBRpg
+
 ## The problem
 
 NSW is putting new homes near train stations (the Transport Oriented Development reforms). The
