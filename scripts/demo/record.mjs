@@ -68,7 +68,13 @@ async function chooseStory() {
     console.log(`Story picker: ${list.length} stations, ${featured.length} featured (${featured.map((f) => f.id).join(', ')})`);
     // Several screening angles; the story uses the one where a mapped (featured) station ranks best,
     // so the "stands out" line is true on whatever data is live.
+    // Market depth and station trips first: the mapped stations are big centres, so they lead
+    // there; growth angles follow as fallbacks.
     const angles = [
+      { key: 'sales', label: 'unit sales', metric: 'metric=sales_count&property_type=unit', cap: null,
+        question: () => 'Which stations had the most unit sales within 800 m over the last 12 months?' },
+      { key: 'busiest', label: 'station trips', metric: 'metric=patronage_12m&property_type=all', cap: null,
+        question: () => 'Which are the busiest stations by trips over the last 12 months?' },
       { key: 'unit', label: 'unit price growth', metric: 'metric=price_change_12m&property_type=unit', cap: 'metric=median_price&property_type=unit',
         question: (c) => `Which stations under ${money(c)} unit median had the strongest unit price growth?` },
       { key: 'house', label: 'house price growth', metric: 'metric=price_change_12m&property_type=house', cap: 'metric=median_price&property_type=house',
@@ -92,13 +98,15 @@ async function chooseStory() {
         const cap = med ? Math.ceil(med.get(s.id) / step) * step : null;
         const pool = ids.filter((id) => cap === null || med.get(id) <= cap);
         const rank = 1 + pool.filter((id) => chg.get(id) > chg.get(s.id)).length;
-        scored.push({ id: s.id, name: s.name, angle: angle.key, label: angle.label, cap, rank, pool: pool.length,
+        scored.push({ order: angles.indexOf(angle), id: s.id, name: s.name, angle: angle.key, label: angle.label, cap, rank, pool: pool.length,
           median: med ? med.get(s.id) : null, change: chg.get(s.id), question: angle.question(cap) });
       }
     }
     // Best rank; a capped pool must still hold at least 8 stations so "#1" means something.
-    scored.sort((x, y) => (x.pool < 8) - (y.pool < 8) || x.rank - y.rank || y.pool - x.pool);
-    const best = scored[0];
+    scored.sort((x, y) => (x.pool < 8) - (y.pool < 8) || x.rank - y.rank || x.order - y.order || y.pool - x.pool);
+    // First angle (in the order above) where a mapped station is in the top five, so it shows in
+    // the answer's leaders; otherwise the best rank anywhere.
+    const best = scored.filter((c) => c.pool >= 8 && c.rank <= 5).sort((x, y) => x.order - y.order || x.rank - y.rank)[0] ?? scored[0];
     for (const c of scored.slice(0, 5)) console.log(`  candidate: ${c.name}, #${c.rank} of ${c.pool} by ${c.label}`);
     if (!best) throw new Error('no featured station has a ranked metric');
     const northShore = ['wynyard', 'milsons_point', 'north_sydney', 'st_leonards', 'chatswood'];
@@ -319,8 +327,8 @@ await step('screen', async () => {
   await spotlight(answers().last().locator('ol.tiles'), 'Every figure: governed NSW data, with source and date', 3500);
   await spotlight(answers().last().locator('section.made'), 'How this answer was made: Muse Spark planned and wrote; a checker verified every number', 5000);
   const within = `${story.pool} stations${story.cap ? ` under ${money(story.cap)}` : ''}`;
-  await caption(story.rank <= 3 ? `${S} stands out` : `A closer look at ${S}`,
-    story.rank <= 3 ? `#${story.rank} of ${within} for ${story.label}, and SAM 3.1 has mapped it` : `One of ${within}, and one of the stations SAM 3.1 has mapped`, '');
+  const headline = story.rank === 1 ? `${S} leads` : story.rank <= 5 ? `${S} is in the top five` : `A closer look at ${S}`;
+  await caption(headline, story.rank <= 5 ? `#${story.rank} of ${within} for ${story.label}, and SAM 3.1 has mapped it` : `One of ${within}, and one of the stations SAM 3.1 has mapped`, '');
   await pause(3500);
 });
 
