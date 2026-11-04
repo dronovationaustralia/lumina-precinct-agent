@@ -44,6 +44,8 @@ export async function readSession(token: string | undefined | null): Promise<Ses
   try {
     const { payload } = await jwtVerify(token, secret(), { algorithms: ['HS256'] });
     if (!payload.sub || typeof payload.name !== 'string' || !isPersona(payload.persona)) return null;
+    // Turning the demo off (AUTH_DEMO_DISABLED=1) also ends demo sessions already handed out.
+    if (payload.provider !== 'microsoft' && process.env.AUTH_DEMO_DISABLED === '1') return null;
     return {
       sub: payload.sub,
       name: payload.name,
