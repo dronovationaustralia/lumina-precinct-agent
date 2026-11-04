@@ -312,12 +312,37 @@ await step('sam', async () => {
   await click(page.getByRole('button', { name: 'Open the land-use breakdown' }));
   await pause(1500);
   await click(page.getByRole('button', { name: 'Show what SAM 3.1 saw' }).first());
-  await pause(6500);
-  await spotlight(page.locator('.sam-keys'), 'SAM 3.1: every building, tree, car park and construction site it found', 4500);
-  await click(page.getByRole('button', { name: 'Back to the normal map' }));
-  await pause(800);
+  await pause(1000);
   const closeLanduse = page.getByRole('button', { name: 'Close land use' });
   if (await closeLanduse.isVisible().catch(() => false)) await click(closeLanduse);
+  // Full-width map so the segmentation fills the screen.
+  const mapView = page.getByRole('button', { name: 'Map', exact: true });
+  if (await mapView.isVisible().catch(() => false)) await click(mapView);
+  await pause(4000);
+  // Zoom out to show the whole area SAM 3.1 segmented, then back in.
+  const canvas = page.locator('.maplibregl-canvas').first();
+  const box = await canvas.boundingBox().catch(() => null);
+  const wheel = async (dy, n) => { for (let i = 0; i < n; i++) { await page.mouse.wheel(0, dy); await pause(260); } };
+  if (box) {
+    const x = box.x + box.width * 0.42, y = box.y + box.height * 0.5;
+    await page.mouse.move(x, y, { steps: 14 }); mouse = { x, y };
+    await caption('Every building, tree, car park and construction site', `SAM 3.1 on 0.5 m NSW aerial imagery: the whole area around ${S}`, 'SAM 3.1');
+    await wheel(250, 3);
+    await pause(3500);
+  }
+  // Before and after: hold to see the photo alone, release to bring the masks back.
+  const hold = page.getByRole('button', { name: /Hold to see the photo alone/ });
+  if (await hold.isVisible().catch(() => false)) {
+    await caption('The photo alone, then what SAM 3.1 found', 'Hold to compare; the masks are real polygons, counted and measured', 'SAM 3.1');
+    await moveTo(hold);
+    await page.mouse.down(); await pause(2200); await page.mouse.up();
+    await pause(1500);
+  }
+  await spotlight(page.locator('.sam-keys'), 'SAM 3.1: every building, tree, car park and construction site it found', 4000);
+  if (box) { await page.mouse.move(box.x + box.width * 0.42, box.y + box.height * 0.5, { steps: 12 }); await wheel(-250, 3); await pause(1200); }
+  await click(page.getByRole('button', { name: 'Back to the normal map' }));
+  const split = page.getByRole('button', { name: 'Split', exact: true });
+  if (await split.isVisible().catch(() => false)) await click(split);
   await pause(600);
 });
 
