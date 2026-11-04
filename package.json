@@ -85,5 +85,6 @@
   "description": "Lumina Precinct Agent (Dronovation Labs): headless agentic BI for Sydney station precincts on Meta Muse models.",
   "engines": {
     "node": ">=22.9.0"
-  }
+  },
+  "license": "PolyForm-Noncommercial-1.0.0"
 }

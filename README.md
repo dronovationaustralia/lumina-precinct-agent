@@ -190,4 +190,7 @@ ID (invited users only) plus a no-account demo session.
 
 ## Licence
 
-See [`LICENSE`](LICENSE).
+Source available under the [PolyForm Noncommercial License 1.0.0](LICENSE): free to read, run and
+adapt for noncommercial purposes (personal use, research, education, hackathon judging).
+Commercial use needs a licence from Dronovation Australia; contact info@dronovation.com.au.
+The datasets keep their own licences (see Data above).

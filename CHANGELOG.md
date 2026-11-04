@@ -4,6 +4,11 @@ All work in this repository was built during the Meta Global AI Developer Hackat
 (27 Oct – 4 Nov 2026). Dates are Sydney time. No code is copied from earlier Lumina
 repositories (`LuminaSpatialInsightsXR`, `LuminaSpatial`, `extended-tableau-mcp`).
 
+## 2026-11-04 (Wed)
+
+### Changed
+- Licensed under the PolyForm Noncommercial License 1.0.0 for the public submission.
+
 ## 2026-11-03 (Tue)
 
 ### Changed
