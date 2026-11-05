@@ -1,6 +1,11 @@
 # Watches the live site every 15 minutes and fails (GitHub emails the owner) when something looks
 # wrong: site down or slow, an unexpected deploy, or the demo close to its daily limits.
 # Read-only: it only calls the public /api/v1/health endpoint. Run it by hand from the Actions tab.
+#
+# Status email on every run (optional): add these repository secrets (Settings → Secrets and
+# variables → Actions): MAIL_USERNAME and MAIL_PASSWORD (an app password for the sending mailbox),
+# MAIL_TO (where to send), and optionally MAIL_SERVER (default smtp.gmail.com) and MAIL_PORT
+# (default 465). Without them the check still runs and GitHub emails only on failures.
 name: Monitor live site
 
 on:
@@ -21,8 +26,10 @@ jobs:
       QUOTA_WARN: '0.7'          # warn at 70% of any daily demo limit
       VISITORS_WARN: '60'        # warn when this many different visitors used the demo today
       SLOW_MS: '5000'
+      HAS_MAIL: ${{ secrets.MAIL_USERNAME != '' && 'yes' || 'no' }}
     steps:
       - name: Check health
+        id: check
         run: |
           node - <<'JS'
           const { URL, EXPECTED_SHA, QUOTA_WARN, VISITORS_WARN, SLOW_MS } = process.env;
@@ -62,8 +69,28 @@ jobs:
             problems.length ? '**Problems:**' : 'All normal.', ...problems.map((p) => `- ${p}`)].join('\n');
           fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, summary + '\n');
           console.log(summary);
+          const q = h?.demo_quota ?? {};
+          const head = problems.length ? `PROBLEM: ${problems[0]}` : `OK: ${q.used?.ask ?? '?'}/${q.limits?.ask ?? '?'} questions, ${q.visitors ?? '?'} visitors today`;
+          const sydney = new Date().toLocaleString('en-AU', { timeZone: 'Australia/Sydney', hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' });
+          fs.writeFileSync('status.md', summary + '\n\nRun: ' + process.env.GITHUB_SERVER_URL + '/' + process.env.GITHUB_REPOSITORY + '/actions/runs/' + process.env.GITHUB_RUN_ID + '\n');
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `subject=Lumina ${sydney}: ${head}\n`);
           if (problems.length) {
             console.log('\nWhat to do: open the Azure portal for lumina-precinct-faaxpp. Restart resets the demo counts; raise DEMO_DAILY_* to allow more.');
             process.exit(1);
           }
           JS
+
+      - name: Email status
+        if: always() && env.HAS_MAIL == 'yes'
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ secrets.MAIL_SERVER || 'smtp.gmail.com' }}
+          server_port: ${{ secrets.MAIL_PORT || '465' }}
+          secure: ${{ (secrets.MAIL_PORT || '465') == '465' }}
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          from: "Lumina monitor <${{ secrets.MAIL_USERNAME }}>"
+          to: ${{ secrets.MAIL_TO }}
+          subject: "${{ steps.check.outputs.subject || 'Lumina monitor - check did not finish' }}"
+          body: file://status.md
+          convert_markdown: true
