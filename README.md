@@ -31,7 +31,8 @@ every figure and a map that shows the answer.
 1. Open the live link and choose **Try the demo**. Pick a work type; it shapes the playbooks.
 2. **Screen:** ask *"Which stations under $900k unit median had the strongest unit price growth?"*
    All 185 station dots recolour and the leaders pulse.
-3. **See what SAM saw:** select **Chatswood**, open the land-use panel and click
+3. **See what SAM saw:** select **Chatswood** (SAM 3.1 layers cover 10 stations: Auburn, Chatswood,
+   Granville, Harris Park, Milsons Point, North Sydney, Parramatta, St Leonards, Westmead, Wynyard), open the land-use panel and click
    **Show what SAM 3.1 saw**. The map switches to the aerial photo and reveals buildings, tree
    canopy, car parks and construction sites as SAM segmented them.
 4. **Find land:** ask *"Show me large car parks near Parramatta."*
@@ -111,7 +112,7 @@ npm run eval -- --provider offline    # rule-based baseline
 | Transport for NSW train station entries and exits | Station trips and their change | CC BY 4.0, Transport for NSW |
 | Transport for NSW GTFS | Stations, lines, line order | CC BY 4.0, Transport for NSW |
 | NSW Landuse 2017 v1.5 | Land-use mix per ring and map layer | CC BY 4.0, NSW DCCEEW |
-| NSW Spatial Services aerial imagery | SAM 3.1 input and the aerial basemap | © Spatial Services NSW, under its published terms (licence to be confirmed before launch) |
+| NSW Spatial Services aerial imagery | SAM 3.1 input and the aerial basemap | CC BY 4.0, © Spatial Services, NSW Department of Customer Service |
 | ABS ASGS (suburbs, LGAs, postcodes) | Boundaries | CC BY 4.0, Australian Bureau of Statistics |
 | OpenStreetMap / OpenFreeMap | Basemap | ODbL, © OpenStreetMap contributors |
 
@@ -120,7 +121,7 @@ per hexagon only. SAM figures come from one aerial capture: they show land cover
 
 ## Built during the hackathon
 
-Every commit in this repository was made between 28 Oct and 4 Nov 2026; [`CHANGELOG.md`](CHANGELOG.md)
+The product was built between 28 Oct and 4 Nov 2026 (commits after 4 Nov add only the licence, the video link, demo-video tooling and freezing deploys); [`CHANGELOG.md`](CHANGELOG.md)
 records the progress day by day. Muse Code built these features from the task pack in
 `docs/muse-code/`, each reviewed before merge (`git log --grep "Built-with: Muse Code"`):
 

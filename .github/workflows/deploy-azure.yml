@@ -16,8 +16,8 @@ on:
         type: choice
         options: [hackathon, quest]
         default: hackathon
-  push:
-    branches: [main]
+  # Frozen for judging (5 Nov 2026): no deploy on push. Deploy by hand from the Actions tab
+  # ("Run workflow"). To restore automatic deploys, add back:  push: { branches: [main] }
 
 permissions:
   id-token: write

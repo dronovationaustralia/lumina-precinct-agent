@@ -8,6 +8,8 @@ repositories (`LuminaSpatialInsightsXR`, `LuminaSpatial`, `extended-tableau-mcp`
 
 ### Changed
 - Licensed under the PolyForm Noncommercial License 1.0.0 for the public submission.
+- Deploys frozen for judging: the Azure deploy now runs only by hand (Actions → Run workflow).
+- README: imagery licence (CC BY 4.0), which stations have SAM 3.1 layers, and what changed after 4 Nov.
 
 ## 2026-11-03 (Tue)
 
