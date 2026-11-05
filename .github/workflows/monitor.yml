@@ -1,0 +1,69 @@
+# Watches the live site every 15 minutes and fails (GitHub emails the owner) when something looks
+# wrong: site down or slow, an unexpected deploy, or the demo close to its daily limits.
+# Read-only: it only calls the public /api/v1/health endpoint. Run it by hand from the Actions tab.
+name: Monitor live site
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      URL: https://lumina.dronovation.com.au/api/v1/health
+      EXPECTED_SHA: 6bb497e      # the judged build; an unexpected deploy is flagged
+      QUOTA_WARN: '0.7'          # warn at 70% of any daily demo limit
+      VISITORS_WARN: '60'        # warn when this many different visitors used the demo today
+      SLOW_MS: '5000'
+    steps:
+      - name: Check health
+        run: |
+          node - <<'JS'
+          const { URL, EXPECTED_SHA, QUOTA_WARN, VISITORS_WARN, SLOW_MS } = process.env;
+          const problems = [];
+          let h = null, ms = 0;
+          for (let attempt = 1; attempt <= 3 && !h; attempt++) {
+            const t = Date.now();
+            try {
+              const r = await fetch(URL, { signal: AbortSignal.timeout(20000) });
+              ms = Date.now() - t;
+              if (!r.ok) throw new Error(`HTTP ${r.status}`);
+              h = await r.json();
+            } catch (e) {
+              if (attempt === 3) problems.push(`Site not responding: ${e.message} (3 attempts)`);
+              else await new Promise((s) => setTimeout(s, 15000));
+            }
+          }
+          const lines = [];
+          if (h) {
+            if (h.status !== 'ok') problems.push(`Health status is "${h.status}"`);
+            if (ms > Number(SLOW_MS)) problems.push(`Slow response: ${ms} ms`);
+            const sha = h.build?.sha ?? '';
+            if (!sha.startsWith(EXPECTED_SHA)) problems.push(`Unexpected build running: ${sha.slice(0, 7)} (expected ${EXPECTED_SHA})`);
+            const q = h.demo_quota ?? {};
+            for (const k of ['ask', 'image', 'voice']) {
+              const used = q.used?.[k] ?? 0, limit = q.limits?.[k] ?? 0;
+              lines.push(`${k}: ${used} / ${limit}`);
+              if (limit > 0 && used >= limit) problems.push(`Demo ${k} limit reached today (${used}/${limit})`);
+              else if (limit > 0 && used / limit >= Number(QUOTA_WARN)) problems.push(`Demo ${k} at ${Math.round((100 * used) / limit)}% of today's limit (${used}/${limit})`);
+            }
+            lines.push(`visitors today: ${q.visitors ?? 0}`);
+            if ((q.visitors ?? 0) >= Number(VISITORS_WARN)) problems.push(`Unusually many demo visitors today: ${q.visitors}`);
+            lines.push(`build: ${(h.build?.sha ?? '').slice(0, 7)}, response: ${ms} ms`);
+          }
+          const fs = await import('node:fs');
+          const summary = [`### Lumina live check (${new Date().toISOString()})`, '', ...lines.map((l) => `- ${l}`), '',
+            problems.length ? '**Problems:**' : 'All normal.', ...problems.map((p) => `- ${p}`)].join('\n');
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, summary + '\n');
+          console.log(summary);
+          if (problems.length) {
+            console.log('\nWhat to do: open the Azure portal for lumina-precinct-faaxpp. Restart resets the demo counts; raise DEMO_DAILY_* to allow more.');
+            process.exit(1);
+          }
+          JS

@@ -121,7 +121,7 @@ per hexagon only. SAM figures come from one aerial capture: they show land cover
 
 ## Built during the hackathon
 
-The product was built between 28 Oct and 4 Nov 2026 (commits after 4 Nov add only the licence, the video link, demo-video tooling and freezing deploys); [`CHANGELOG.md`](CHANGELOG.md)
+The product was built between 28 Oct and 4 Nov 2026 (commits after 4 Nov add only the licence, the video link, demo-video tooling, freezing deploys and a read-only uptime monitor); [`CHANGELOG.md`](CHANGELOG.md)
 records the progress day by day. Muse Code built these features from the task pack in
 `docs/muse-code/`, each reviewed before merge (`git log --grep "Built-with: Muse Code"`):
 
