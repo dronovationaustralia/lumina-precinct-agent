@@ -9,7 +9,7 @@ from the repo root; review the diff before committing. The project rules Muse Co
 ```powershell
 irm https://dev.meta.ai/install.ps1 | iex      # installs the muse CLI (open a new terminal after)
 muse login                                      # browser sign-in to your Meta developer account
-cd C:\Users\david\DevCenter\lumina-precinct-agent
+cd <your clone of lumina-precinct-agent>
 git checkout -b muse-code/<task>                # one branch per task
 ```
 

@@ -75,7 +75,7 @@ jobs:
           fs.writeFileSync('status.md', summary + '\n\nRun: ' + process.env.GITHUB_SERVER_URL + '/' + process.env.GITHUB_REPOSITORY + '/actions/runs/' + process.env.GITHUB_RUN_ID + '\n');
           fs.appendFileSync(process.env.GITHUB_OUTPUT, `subject=Lumina ${sydney}: ${head}\n`);
           if (problems.length) {
-            console.log('\nWhat to do: open the Azure portal for lumina-precinct-faaxpp. Restart resets the demo counts; raise DEMO_DAILY_* to allow more.');
+            console.log('\nWhat to do: open the web app in the Azure portal. Restart resets the demo counts; raise DEMO_DAILY_* to allow more.');
             process.exit(1);
           }
           JS
